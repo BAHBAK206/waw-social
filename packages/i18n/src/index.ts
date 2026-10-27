@@ -38,3 +38,5 @@ export function keyPaths(obj: unknown, prefix = ''): string[] {
   if (obj && typeof obj === 'object') return Object.entries(obj).flatMap(([k, v]) => keyPaths(v, prefix ? `${prefix}.${k}` : k));
   return [prefix];
 }
+
+export { createTranslator, interpolate, type TKey, type TVars, type Translator } from './translate';
