@@ -1,8 +1,7 @@
-/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const api = process.env.VITE_DEV_API ?? 'http://localhost:8787';
@@ -81,9 +80,11 @@ export default defineConfig({
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router'],
-          query: ['@tanstack/react-query', 'zustand'],
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/node_modules\/(react|react-dom|react-router|scheduler)\//.test(id)) return 'react';
+          if (/node_modules\/(@tanstack|zustand)\//.test(id)) return 'query';
+          return undefined;
         },
       },
     },

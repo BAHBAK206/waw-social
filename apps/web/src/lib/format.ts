@@ -100,3 +100,20 @@ export function greetingKey(date = new Date()): 'home.morning' | 'home.afternoon
   if (h < 18) return 'home.afternoon';
   return 'home.evening';
 }
+
+/** "in 3 hours" / "tomorrow" style text for a future (or past) timestamp, localized. */
+export function relativeFuture(ms: number, tr: Translator, now = Date.now()): string {
+  const diff = ms - now;
+  const abs = Math.abs(diff);
+  const [value, unit]: [number, Intl.RelativeTimeFormatUnit] =
+    abs < 3_600_000
+      ? [Math.round(diff / 60_000), 'minute']
+      : abs < 86_400_000
+        ? [Math.round(diff / 3_600_000), 'hour']
+        : [Math.round(diff / 86_400_000), 'day'];
+  try {
+    return new Intl.RelativeTimeFormat(tr.intl, { numeric: 'auto' }).format(value, unit);
+  } catch {
+    return `${value} ${unit}`;
+  }
+}

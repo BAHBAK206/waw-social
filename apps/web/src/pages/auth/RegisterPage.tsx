@@ -79,7 +79,15 @@ export default function RegisterPage() {
             maxLength={LIMITS.displayName.max}
             required
           />
-          <Input label={tr.t('auth.email')} type="email" autoComplete="email" inputMode="email" value={form.email} onChange={(e) => set('email')(e.target.value)} required />
+          <Input
+            label={tr.t('auth.email')}
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            value={form.email}
+            onChange={(e) => set('email')(e.target.value)}
+            required
+          />
           <PasswordInput label={tr.t('auth.password')} value={form.password} onChange={set('password')} autoComplete="new-password" showStrength />
           <fieldset>
             <legend className="field-label">{tr.t('auth.accountType')}</legend>

@@ -56,7 +56,15 @@ export default function LoginPage() {
     >
       <form onSubmit={submit} className="space-y-4" noValidate>
         {error && <NoticeCard tone="err">{error}</NoticeCard>}
-        <Input label={tr.t('auth.email')} type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Input
+          label={tr.t('auth.email')}
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
         <PasswordInput label={tr.t('auth.password')} value={password} onChange={setPassword} autoComplete="current-password" />
         <div className="text-end">
           <Link to="/forgot" className="link text-sm">

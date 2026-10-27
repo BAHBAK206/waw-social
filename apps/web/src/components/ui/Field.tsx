@@ -108,12 +108,7 @@ export function Switch({ checked, onChange, label, description, disabled, classN
           checked ? 'bg-primary' : 'bg-bg-3 ring-1 ring-line ring-inset',
         )}
       >
-        <span
-          className={cx(
-            'absolute top-1 size-5 rounded-full bg-white shadow transition-all',
-            checked ? 'start-6' : 'start-1',
-          )}
-        />
+        <span className={cx('absolute top-1 size-5 rounded-full bg-white shadow transition-all', checked ? 'start-6' : 'start-1')} />
       </button>
     </div>
   );

@@ -46,6 +46,7 @@ interface UiState {
   onboardingOpen: boolean;
   zen: boolean;
   navOpen: boolean;
+  report: { targetType: string; targetId: string } | null;
   /** Conversation currently open in the chat page (its messages do not count as unread). */
   activeConversationId: string | null;
   set: (patch: Partial<Omit<UiState, 'set'>>) => void;
@@ -62,6 +63,7 @@ export const useUi = create<UiState>((set) => ({
   onboardingOpen: false,
   zen: false,
   navOpen: false,
+  report: null,
   activeConversationId: null,
   set: (patch) => set(patch),
 }));
@@ -109,6 +111,6 @@ export function celebrate(meta: Partial<XpRewardMeta> & { newAchievements?: stri
 export function achievementName(id: string): string {
   const def = ACHIEVEMENTS.find((a) => a.id === id);
   if (!def) return id;
-  const items = currentT().dict.achievements.items as Record<string, readonly [string, string]>;
+  const items = currentT().dict.achievements.items as unknown as Record<string, readonly [string, string]>;
   return items[def.key]?.[0] ?? id;
 }

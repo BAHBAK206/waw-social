@@ -129,17 +129,42 @@ export function ProgressBar({ value, max = 100, className, label }: { value: num
       aria-valuenow={Math.round(value)}
       aria-label={label}
     >
-      <div className="h-full rounded-full bg-[linear-gradient(90deg,var(--grad-from),var(--grad-to))] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      <div
+        className="h-full rounded-full bg-[linear-gradient(90deg,var(--grad-from),var(--grad-to))] transition-[width] duration-500"
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
 
-export function ProgressRing({ value, max = 100, size = 64, stroke = 7, children, label }: { value: number; max?: number; size?: number; stroke?: number; children?: React.ReactNode; label?: string }) {
+export function ProgressRing({
+  value,
+  max = 100,
+  size = 64,
+  stroke = 7,
+  children,
+  label,
+}: {
+  value: number;
+  max?: number;
+  size?: number;
+  stroke?: number;
+  children?: React.ReactNode;
+  label?: string;
+}) {
   const pct = Math.max(0, Math.min(1, value / (max || 1)));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   return (
-    <div className="relative inline-grid place-items-center" style={{ width: size, height: size }} role="progressbar" aria-valuenow={Math.round(pct * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+    <div
+      className="relative inline-grid place-items-center"
+      style={{ width: size, height: size }}
+      role="progressbar"
+      aria-valuenow={Math.round(pct * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={label}
+    >
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--primary-soft)" strokeWidth={stroke} />
         <circle

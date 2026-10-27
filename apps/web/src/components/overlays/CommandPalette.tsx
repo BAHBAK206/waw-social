@@ -68,13 +68,32 @@ export default function CommandPalette() {
     };
     const pages: Entry[] = navItems(controls)
       .filter((i) => !i.auth || me)
-      .map((i) => ({ id: `p-${i.id}`, group: 'pages' as const, label: tr.t(`nav.${i.id}` as TKey), hint: tr.t(`features.${i.id}` as TKey), icon: <i.icon className="size-4" />, run: go(i.route) }))
+      .map((i) => ({
+        id: `p-${i.id}`,
+        group: 'pages' as const,
+        label: tr.t(`nav.${i.id}` as TKey),
+        hint: tr.t(`features.${i.id}` as TKey),
+        icon: <i.icon className="size-4" />,
+        run: go(i.route),
+      }))
       .filter((e) => !term || normalizeSearch(`${e.label} ${e.hint}`).includes(term));
     const ui = useUi.getState();
     const dark = resolvedMode(useAppearance.getState().appearance) === 'dark';
-    const actions: Entry[] = [
-      me && actionVisible(controls, 'pomodoro') && { id: 'a-pomo', label: tr.t('features.pomodoro'), icon: <Timer className="size-4" />, run: () => ui.set({ paletteOpen: false, pomodoroOpen: true }) },
-      me && actionVisible(controls, 'flashcards') && { id: 'a-cards', label: tr.t('features.flashcards'), icon: <Layers className="size-4" />, run: () => ui.set({ paletteOpen: false, flashcards: {} }) },
+    const candidates: (Omit<Entry, 'group'> | false)[] = [
+      !!me &&
+        actionVisible(controls, 'pomodoro') && {
+          id: 'a-pomo',
+          label: tr.t('features.pomodoro'),
+          icon: <Timer className="size-4" />,
+          run: () => ui.set({ paletteOpen: false, pomodoroOpen: true }),
+        },
+      !!me &&
+        actionVisible(controls, 'flashcards') && {
+          id: 'a-cards',
+          label: tr.t('features.flashcards'),
+          icon: <Layers className="size-4" />,
+          run: () => ui.set({ paletteOpen: false, flashcards: {} }),
+        },
       actionVisible(controls, 'theme') && {
         id: 'a-theme',
         label: `${tr.t('features.theme')} · ${tr.t(dark ? 'settings.appearance.themes.light' : 'settings.appearance.themes.dark')}`,
@@ -84,33 +103,83 @@ export default function CommandPalette() {
           close();
         },
       },
-      actionVisible(controls, 'zen') && { id: 'a-zen', label: tr.t('features.zen'), icon: <MoonStar className="size-4" />, run: () => ui.set({ paletteOpen: false, zen: true }) },
+      actionVisible(controls, 'zen') && {
+        id: 'a-zen',
+        label: tr.t('features.zen'),
+        icon: <MoonStar className="size-4" />,
+        run: () => ui.set({ paletteOpen: false, zen: true }),
+      },
       actionVisible(controls, 'share') && {
         id: 'a-share',
         label: tr.t('features.share'),
         icon: <Share2 className="size-4" />,
-        run: async () => {
+        run: () => {
           close();
           const url = location.origin;
-          if (navigator.share) await navigator.share({ title: 'Qubedu', url }).catch(() => undefined);
-          else {
-            await navigator.clipboard.writeText(url);
-            toast(tr.t('common.copied'));
-          }
+          if (navigator.share) void navigator.share({ title: 'Qubedu', url }).catch(() => undefined);
+          else void navigator.clipboard.writeText(url).then(() => toast(tr.t('common.copied')));
         },
       },
-    ]
-      .filter((x): x is Omit<Entry, 'group'> => !!x)
+    ];
+    const actions: Entry[] = candidates
+      .filter((x): x is Omit<Entry, 'group'> => x !== false)
       .map((x) => ({ ...x, group: 'actions' as const }))
       .filter((e) => !term || normalizeSearch(e.label).includes(term));
     const res: Entry[] = [];
     if (results) {
-      for (const u of results.users) res.push({ id: `u-${u.id}`, group: 'results', label: u.displayName, hint: u.username ? `@${u.username}` : undefined, icon: <Avatar name={u.displayName} url={u.avatarUrl} size="xs" />, run: go(`/u/${u.id}`) });
-      for (const g of results.groups) res.push({ id: `g-${g.id}`, group: 'results', label: g.name, hint: tr.t('groups.members', { count: g.memberCount }), icon: <UsersRound className="size-4" />, run: go(`/groups/${g.id}`) });
-      for (const z of results.quizzes) res.push({ id: `q-${z.id}`, group: 'results', label: z.title, hint: tr.t('quiz.questions', { count: z.questionCount }), icon: <ListChecks className="size-4" />, run: go(`/quiz?open=${z.id}`) });
-      for (const c of results.courses) res.push({ id: `c-${c.id}`, group: 'results', label: c.title, hint: c.subject ?? undefined, icon: <GraduationCap className="size-4" />, run: go(`/school/${c.id}`) });
-      for (const l of results.library) res.push({ id: `l-${l.id}`, group: 'results', label: l.title, icon: <BookOpen className="size-4" />, run: go(`/library?q=${encodeURIComponent(l.title)}`) });
-      for (const p of results.posts) res.push({ id: `po-${p.id}`, group: 'results', label: p.text.slice(0, 80), hint: p.author.displayName, icon: <Newspaper className="size-4" />, run: go(`/post/${p.id}`) });
+      for (const u of results.users)
+        res.push({
+          id: `u-${u.id}`,
+          group: 'results',
+          label: u.displayName,
+          hint: u.username ? `@${u.username}` : undefined,
+          icon: <Avatar name={u.displayName} url={u.avatarUrl} size="xs" />,
+          run: go(`/u/${u.id}`),
+        });
+      for (const g of results.groups)
+        res.push({
+          id: `g-${g.id}`,
+          group: 'results',
+          label: g.name,
+          hint: tr.t('groups.members', { count: g.memberCount }),
+          icon: <UsersRound className="size-4" />,
+          run: go(`/groups/${g.id}`),
+        });
+      for (const z of results.quizzes)
+        res.push({
+          id: `q-${z.id}`,
+          group: 'results',
+          label: z.title,
+          hint: tr.t('quiz.questions', { count: z.questionCount }),
+          icon: <ListChecks className="size-4" />,
+          run: go(`/quiz?open=${z.id}`),
+        });
+      for (const c of results.courses)
+        res.push({
+          id: `c-${c.id}`,
+          group: 'results',
+          label: c.title,
+          hint: c.subject ?? undefined,
+          icon: <GraduationCap className="size-4" />,
+          run: go(`/school/${c.id}`),
+        });
+      for (const l of results.library)
+        res.push({
+          id: `l-${l.id}`,
+          group: 'results',
+          label: l.title,
+          icon: <BookOpen className="size-4" />,
+          run: go(`/library?q=${encodeURIComponent(l.title)}`),
+        });
+      for (const p of results.posts)
+        res.push({
+          id: `po-${p.id}`,
+          group: 'results',
+          label: p.text.slice(0, 80),
+          hint: p.author.displayName,
+          icon: <Newspaper className="size-4" />,
+          run: go(`/post/${p.id}`),
+        });
     }
     return [...res, ...pages.slice(0, term ? 8 : 12), ...actions];
   }, [q, results, controls, me, tr, navigate]);
@@ -133,7 +202,13 @@ export default function CommandPalette() {
 
   const groups: Entry['group'][] = ['results', 'pages', 'actions'];
   return createPortal(
-    <div className="fixed inset-0 z-[85] flex items-start justify-center p-3 pt-[10vh]" role="dialog" aria-modal="true" aria-label={tr.t('nav.search')} onKeyDown={onKey}>
+    <div
+      className="fixed inset-0 z-[85] flex items-start justify-center p-3 pt-[10vh]"
+      role="dialog"
+      aria-modal="true"
+      aria-label={tr.t('nav.search')}
+      onKeyDown={onKey}
+    >
       <div className="animate-fade absolute inset-0 bg-[var(--overlay)]" onClick={close} />
       <div className="card animate-pop relative w-full max-w-xl overflow-hidden bg-[var(--card-solid)]">
         <div className="flex items-center gap-3 border-b border-line px-4">
@@ -170,7 +245,10 @@ export default function CommandPalette() {
                       aria-selected={i === index}
                       onMouseEnter={() => setIndex(i)}
                       onClick={e.run}
-                      className={cx('flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-control)] px-3 text-start', i === index ? 'bg-soft text-ink' : 'hover:bg-bg-3')}
+                      className={cx(
+                        'flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-control)] px-3 text-start',
+                        i === index ? 'bg-soft text-ink' : 'hover:bg-bg-3',
+                      )}
                     >
                       <span className="grid size-7 shrink-0 place-items-center">{e.icon}</span>
                       <span className="min-w-0 flex-1">

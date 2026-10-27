@@ -131,7 +131,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
           if (sound) chime();
           toast(currentT().t('academic.focus.completed', { xp: res.xpEarned }));
           celebrate(res);
-          useSession.getState().patchMe({ todayMinutes: res.todayMinutes, pomodoroCount: (useSession.getState().me?.pomodoroCount ?? 0) + 1 });
+          useSession.getState().patchMe({ todayMinutes: res.todayMinutes });
           void queryClient.invalidateQueries({ queryKey: qk.dashboard });
           void queryClient.invalidateQueries({ queryKey: ['pomodoro'] });
           set({ session: null, mode: 'shortBreak' });

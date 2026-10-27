@@ -92,15 +92,16 @@ export function PomodoroPanel({ compact }: { compact?: boolean }) {
         <button type="button" className="icon-btn" aria-label={tr.t('academic.focus.sound')} aria-pressed={s.sound} onClick={() => s.setSound(!s.sound)}>
           {s.sound ? <Volume2 className="size-5" /> : <VolumeX className="size-5" />}
         </button>
-        <button type="button" className="icon-btn" aria-label={tr.t('academic.focus.zen')} onClick={() => useUi.getState().set({ zen: true, pomodoroOpen: false })}>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={tr.t('academic.focus.zen')}
+          onClick={() => useUi.getState().set({ zen: true, pomodoroOpen: false })}
+        >
           <MoonStar className="size-5" />
         </button>
       </div>
-      {stats.data && (
-        <p className="muted text-sm">
-          {tr.t('academic.focus.week', { minutes: stats.data.weekMinutes })}
-        </p>
-      )}
+      {stats.data && <p className="muted text-sm">{tr.t('academic.focus.week', { minutes: stats.data.weekMinutes })}</p>}
     </div>
   );
 }

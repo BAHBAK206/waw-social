@@ -26,7 +26,11 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
           <label className="flex items-center gap-2 text-sm">
             <Languages className="size-4 text-fg-3" aria-hidden />
             <span className="sr-only">{tr.t('settings.appearance.language')}</span>
-            <select className="input h-10 min-h-0 w-auto py-0" value={language} onChange={(e) => useAppearance.getState().update({ language: e.target.value as typeof language })}>
+            <select
+              className="input h-10 min-h-0 w-auto py-0"
+              value={language}
+              onChange={(e) => useAppearance.getState().update({ language: e.target.value as typeof language })}
+            >
               {LANGUAGES.map((l) => (
                 <option key={l} value={l}>
                   {LOCALE_NAMES[l]}

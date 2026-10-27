@@ -44,7 +44,11 @@ export function AnnouncementsBar() {
   return (
     <div className={cx('app-chrome text-white', levelClass[a.level])} role="region" aria-label={tr.t('home.announcements')}>
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2">
-        {a.imageUrl ? <img src={fileUrl(a.imageUrl)} alt="" className="size-8 rounded-lg object-cover" /> : <Megaphone className="size-5 shrink-0" aria-hidden />}
+        {a.imageUrl ? (
+          <img src={fileUrl(a.imageUrl)} alt="" className="size-8 rounded-lg object-cover" />
+        ) : (
+          <Megaphone className="size-5 shrink-0" aria-hidden />
+        )}
         <div className="min-w-0 flex-1 text-sm">
           <span className="font-black">{a.title}</span> {a.text && <span className="opacity-95">— {a.text}</span>}
           {a.link && (
@@ -53,7 +57,12 @@ export function AnnouncementsBar() {
             </a>
           )}
         </div>
-        <button type="button" className="icon-btn icon-btn-sm text-white hover:bg-white/15 hover:text-white" aria-label={tr.t('common.close')} onClick={dismiss}>
+        <button
+          type="button"
+          className="icon-btn icon-btn-sm text-white hover:bg-white/15 hover:text-white"
+          aria-label={tr.t('common.close')}
+          onClick={dismiss}
+        >
           <X className="size-4" />
         </button>
       </div>

@@ -5,7 +5,22 @@ import { useT } from '@/lib/i18n';
 import { toast, toastError } from '@/lib/ui';
 import { Button, type ButtonProps } from './Button';
 
-export type UploadPurpose = 'avatar' | 'cover' | 'post' | 'chat' | 'group' | 'library' | 'course' | 'assignment' | 'form' | 'live' | 'workspace' | 'general';
+export type UploadPurpose =
+  | 'avatar'
+  | 'cover'
+  | 'post'
+  | 'chat'
+  | 'group'
+  | 'library'
+  | 'course'
+  | 'assignment'
+  | 'form'
+  | 'live'
+  | 'workspace'
+  | 'general'
+  | 'video'
+  | 'thumbnail'
+  | 'story';
 
 /** Validates size/type on the client (the server re-checks magic bytes) and uploads. */
 export function useUpload() {
@@ -17,7 +32,8 @@ export function useUpload() {
       toast(tr.t(imageOnly ? 'errors.image_required' : 'errors.unsupported_file_type'), 'err');
       return null;
     }
-    if (file.size > (imageOnly ? LIMITS.imageBytes : LIMITS.uploadBytes)) {
+    const max = imageOnly ? LIMITS.imageBytes : purpose === 'video' || purpose === 'story' ? LIMITS.videoBytes : LIMITS.uploadBytes;
+    if (file.size > max) {
       toast(tr.t('errors.file_too_large'), 'err');
       return null;
     }
@@ -42,7 +58,13 @@ export function UploadButton({
   onUploaded,
   children,
   ...button
-}: Omit<ButtonProps, 'onClick'> & { purpose: UploadPurpose; imageOnly?: boolean; accept?: string; onUploaded: (r: UploadResultDto) => void; children?: ReactNode }) {
+}: Omit<ButtonProps, 'onClick'> & {
+  purpose: UploadPurpose;
+  imageOnly?: boolean;
+  accept?: string;
+  onUploaded: (r: UploadResultDto) => void;
+  children?: ReactNode;
+}) {
   const input = useRef<HTMLInputElement>(null);
   const { upload, busy } = useUpload();
   return (

@@ -32,7 +32,19 @@ export function CardSkeletons({ count = 3, className }: { count?: number; classN
   );
 }
 
-export function EmptyState({ icon, title, body, action, className }: { icon?: ReactNode; title: ReactNode; body?: ReactNode; action?: ReactNode; className?: string }) {
+export function EmptyState({
+  icon,
+  title,
+  body,
+  action,
+  className,
+}: {
+  icon?: ReactNode;
+  title: ReactNode;
+  body?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={cx('flex flex-col items-center px-4 py-12 text-center', className)}>
       <div className="mb-4 grid size-16 place-items-center rounded-full bg-soft text-ink">{icon ?? <Inbox className="size-7" />}</div>

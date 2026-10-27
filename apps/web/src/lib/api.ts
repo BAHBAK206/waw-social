@@ -1,4 +1,5 @@
-import { createApi, RealtimeClient, type Status } from '@qubedu/api-client';
+import { ApiError, createApi, RealtimeClient, type Status } from '@qubedu/api-client';
+import type { UploadResultDto } from '@qubedu/shared';
 import { useAppearance } from './appearance';
 import { useSession } from './session';
 
@@ -56,4 +57,46 @@ export function downloadBlob(blob: Blob, name: string) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Upload with progress (XMLHttpRequest exposes upload progress; fetch does not). Retries once after a token refresh. */
+export function uploadWithProgress(
+  file: Blob,
+  name: string,
+  purpose: string,
+  onProgress: (pct: number) => void,
+  signal?: AbortSignal,
+): Promise<UploadResultDto> {
+  const send = (): Promise<{ status: number; body: unknown }> =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', api.http.url('/uploads'));
+      if (api.http.token) xhr.setRequestHeader('authorization', `Bearer ${api.http.token}`);
+      xhr.setRequestHeader('x-requested-with', 'qubedu');
+      xhr.withCredentials = true;
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
+      xhr.onload = () => {
+        let body: unknown = null;
+        try {
+          body = JSON.parse(xhr.responseText);
+        } catch {
+          /* not json */
+        }
+        resolve({ status: xhr.status, body });
+      };
+      xhr.onerror = () => reject(new ApiError(0, 'network', 'network'));
+      xhr.onabort = () => reject(new DOMException('aborted', 'AbortError'));
+      signal?.addEventListener('abort', () => xhr.abort());
+      const form = new FormData();
+      form.set('file', file, name);
+      form.set('purpose', purpose);
+      xhr.send(form);
+    });
+  return (async () => {
+    let res = await send();
+    if (res.status === 401 && (await api.http.refresh())) res = await send();
+    if (res.status >= 200 && res.status < 300) return res.body as UploadResultDto;
+    const err = (res.body as { error?: { code?: string; message?: string } } | null)?.error;
+    throw new ApiError(res.status, err?.code ?? `http_${res.status}`, err?.message ?? 'upload failed');
+  })();
 }

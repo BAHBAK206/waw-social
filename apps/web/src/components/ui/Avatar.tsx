@@ -19,7 +19,19 @@ function hue(seed: string) {
   return h;
 }
 
-export function Avatar({ name, url, size = 'md', online, className }: { name: string; url?: string | null; size?: Size; online?: boolean; className?: string }) {
+export function Avatar({
+  name,
+  url,
+  size = 'md',
+  online,
+  className,
+}: {
+  name: string;
+  url?: string | null;
+  size?: Size;
+  online?: boolean;
+  className?: string;
+}) {
   const tr = useT();
   return (
     <span className={cx('relative inline-flex shrink-0', className)}>
@@ -79,7 +91,19 @@ export function UserName({ user, link = true, className }: { user: Pick<UserSumm
 }
 
 /** Avatar + name + optional subtitle, linking to the profile. */
-export function UserChip({ user, subtitle, size = 'md', link = true, className }: { user: UserSummary; subtitle?: React.ReactNode; size?: Size; link?: boolean; className?: string }) {
+export function UserChip({
+  user,
+  subtitle,
+  size = 'md',
+  link = true,
+  className,
+}: {
+  user: UserSummary;
+  subtitle?: React.ReactNode;
+  size?: Size;
+  link?: boolean;
+  className?: string;
+}) {
   const tr = useT();
   return (
     <div className={cx('flex min-w-0 items-center gap-3', className)}>

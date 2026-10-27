@@ -12,7 +12,10 @@ export function BottomNav() {
   const controls = useSession((s) => s.config?.features ?? {});
   const ids = BOTTOM_NAV.filter((id) => featureMode(controls, id) !== 'hidden');
   return (
-    <nav aria-label={tr.t('nav.menu')} className="app-chrome glass safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-[color-mix(in_srgb,var(--card-solid)_92%,transparent)] backdrop-blur-lg lg:hidden">
+    <nav
+      aria-label={tr.t('nav.menu')}
+      className="app-chrome glass safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-[color-mix(in_srgb,var(--card-solid)_92%,transparent)] backdrop-blur-lg lg:hidden"
+    >
       <ul className="mx-auto flex max-w-lg">
         {ids.map((id: FeatureId) => {
           const f = FEATURES.find((x) => x.id === id)!;

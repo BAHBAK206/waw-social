@@ -13,7 +13,19 @@ export interface MenuItem {
 }
 
 /** Small popover menu (kebab menu) with keyboard support. */
-export function Menu({ items, trigger, label, align = 'end', className }: { items: MenuItem[]; trigger?: ReactNode; label?: string; align?: 'start' | 'end'; className?: string }) {
+export function Menu({
+  items,
+  trigger,
+  label,
+  align = 'end',
+  className,
+}: {
+  items: MenuItem[];
+  trigger?: ReactNode;
+  label?: string;
+  align?: 'start' | 'end';
+  className?: string;
+}) {
   const tr = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

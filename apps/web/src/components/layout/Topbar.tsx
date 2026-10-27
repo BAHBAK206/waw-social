@@ -124,7 +124,13 @@ export function Topbar() {
         {me ? (
           <>
             {actionVisible(controls, 'pomodoro') && (
-              <button type="button" className={cx(btn, 'hidden sm:inline-flex')} aria-label={tr.t('features.pomodoro')} title={tr.t('features.pomodoro')} onClick={() => ui.set({ pomodoroOpen: true })}>
+              <button
+                type="button"
+                className={cx(btn, 'hidden sm:inline-flex')}
+                aria-label={tr.t('features.pomodoro')}
+                title={tr.t('features.pomodoro')}
+                onClick={() => ui.set({ pomodoroOpen: true })}
+              >
                 <Timer className="size-5" />
               </button>
             )}
@@ -133,7 +139,13 @@ export function Topbar() {
               <Count n={me.unreadMessages} />
             </Link>
             {actionVisible(controls, 'notifications') && (
-              <button type="button" className={btn} aria-label={tr.t('nav.notifications')} title={tr.t('nav.notifications')} onClick={() => ui.set({ notificationsOpen: true })}>
+              <button
+                type="button"
+                className={btn}
+                aria-label={tr.t('nav.notifications')}
+                title={tr.t('nav.notifications')}
+                onClick={() => ui.set({ notificationsOpen: true })}
+              >
                 <Bell className="size-5" />
                 <Count n={me.unreadNotifications} />
               </button>
