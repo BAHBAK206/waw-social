@@ -31,7 +31,14 @@ describe('study tools', () => {
     // Duplicates in the same deck are skipped (case/space-insensitive); the same front in another deck is fine.
     const dup = await call<{ items: FlashcardDto[] }>('POST', '/flashcards', {
       token: u.token,
-      body: { cards: [{ front: ' h2o ', back: 'Water again', deck: 'chem' }, { front: 'H2O', back: 'Water', deck: 'review' }, { front: 'CO2', back: 'Carbon dioxide', deck: 'review' }, { front: 'co2', back: 'dup in batch', deck: 'review' }] },
+      body: {
+        cards: [
+          { front: ' h2o ', back: 'Water again', deck: 'chem' },
+          { front: 'H2O', back: 'Water', deck: 'review' },
+          { front: 'CO2', back: 'Carbon dioxide', deck: 'review' },
+          { front: 'co2', back: 'dup in batch', deck: 'review' },
+        ],
+      },
     });
     expect(dup.body.items.map((c) => c.front)).toEqual(['H2O', 'CO2']);
     const none = await call<{ items: FlashcardDto[] }>('POST', '/flashcards', { token: u.token, body: { front: 'NaCl', back: 'Salt', deck: 'chem' } });

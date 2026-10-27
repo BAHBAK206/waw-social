@@ -574,7 +574,9 @@ describe('lessons count as study', () => {
       body: { answers: [1] },
     });
     expect(result.body.lessons).toEqual([{ id: lesson.id, title: lesson.title }]);
-    const again = await call<{ submitted: boolean; result: { lessons: unknown[] } }>('GET', `/quizzes/attempts/${start.body.attemptId}`, { token: learner.token });
+    const again = await call<{ submitted: boolean; result: { lessons: unknown[] } }>('GET', `/quizzes/attempts/${start.body.attemptId}`, {
+      token: learner.token,
+    });
     expect(again.body.result.lessons).toHaveLength(1);
     dash = await call<AcademicDashboardDto>('GET', '/academic/dashboard', { token: learner.token });
     expect(dash.body.inbox.some((i) => i.kind === 'checkpoint')).toBe(false);
