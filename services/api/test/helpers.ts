@@ -65,7 +65,7 @@ export async function call<T = unknown>(method: string, path: string, opts: Req 
     headers['content-type'] = 'application/json';
     reqBody = JSON.stringify(opts.body);
   }
-  const res = await app.request(path.startsWith('/api') || path.startsWith('/files') || path === '/health' ? path : `/api/v1${path}`, { method, headers, body: reqBody });
+  const res = await app.request(path.startsWith('/api') || path.startsWith('/files') || path.startsWith('/internal') || path === '/health' ? path : `/api/v1${path}`, { method, headers, body: reqBody });
   const text = await res.text();
   let parsed: unknown = text;
   try {

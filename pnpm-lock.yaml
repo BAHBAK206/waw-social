@@ -33,6 +33,26 @@ importers:
         specifier: 8.72.1
         version: 8.72.1(eslint@9.39.5)(typescript@5.9.3)
 
+  packages/api-client:
+    dependencies:
+      '@qubedu/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/i18n:
+    dependencies:
+      '@qubedu/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      vitest:
+        specifier: 4.1.12
+        version: 4.1.12(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15))
+
   packages/shared:
     dependencies:
       zod:

@@ -27,3 +27,4 @@ apps/mobile/web-build/
 *.tsbuildinfo
 tests/e2e/test-results/
 tests/e2e/playwright-report/
+*.egg-info/

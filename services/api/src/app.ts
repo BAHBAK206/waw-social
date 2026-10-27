@@ -10,6 +10,13 @@ import { chatRoutes } from './routes/chat';
 import { groupRoutes } from './routes/groups';
 import { academicRoutes, dailyRoutes, examRoutes, flashcardRoutes, noteRoutes, pomodoroRoutes, studySessionRoutes, taskRoutes } from './routes/learning';
 import { quizRoutes, taxonomyRoutes } from './routes/quizzes';
+import { schoolRoutes } from './routes/school';
+import { classRoutes, liveRoutes } from './routes/live';
+import { formRoutes } from './routes/forms';
+import { libraryRoutes, savedRoutes, searchRoutes, workspaceRoutes } from './routes/content';
+import { aiRoutes, assistantRoutes } from './routes/ai';
+import { adminRoutes } from './routes/admin';
+import { internalRoutes } from './routes/internal';
 import { configRoutes } from './routes/config';
 import { fileRoutes } from './routes/files';
 import { notificationRoutes } from './routes/notifications';
@@ -48,6 +55,7 @@ export function createApp(deps: Deps) {
     return c.json({ ok: db, db, kv: deps.kv.kind, storage: deps.storage.driver, version: '2.0.0' }, db ? 200 : 503);
   });
   app.route('/files', fileRoutes);
+  app.route('/internal', internalRoutes);
 
   const api = new Hono<AppEnv>();
   api.route('/', configRoutes);
@@ -70,6 +78,17 @@ export function createApp(deps: Deps) {
   api.route('/exams', examRoutes);
   api.route('/study-sessions', studySessionRoutes);
   api.route('/academic', academicRoutes);
+  api.route('/school', schoolRoutes);
+  api.route('/live', liveRoutes);
+  api.route('/classes', classRoutes);
+  api.route('/forms', formRoutes);
+  api.route('/library', libraryRoutes);
+  api.route('/workspace', workspaceRoutes);
+  api.route('/saved', savedRoutes);
+  api.route('/search', searchRoutes);
+  api.route('/ai', aiRoutes);
+  api.route('/assistant', assistantRoutes);
+  api.route('/admin', adminRoutes);
   app.route('/api/v1', api);
 
   app.notFound((c) => c.json({ error: { code: 'not_found', message: 'not_found' } }, 404));

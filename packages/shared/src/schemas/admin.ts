@@ -50,7 +50,8 @@ export const dailyChallengeSchema = z
   });
 
 const featureEntry = z.object({ mode: z.enum(FEATURE_MODES as [string, ...string[]]), message: trimmed(420).default('') });
-export const featureControlsSchema = z.record(z.enum(FEATURE_IDS as unknown as [string, ...string[]]), featureEntry);
+// partialRecord: in zod 4 an enum-keyed record is exhaustive; feature overrides are optional per id.
+export const featureControlsSchema = z.partialRecord(z.enum(FEATURE_IDS as unknown as [string, ...string[]]), featureEntry);
 
 export const siteSettingsSchema = z.object({
   maintenance: z.object({ enabled: z.boolean(), message: trimmed(1000).default('') }).optional(),
