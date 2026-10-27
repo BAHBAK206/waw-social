@@ -100,3 +100,17 @@ export function uploadWithProgress(
     throw new ApiError(res.status, err?.code ?? `http_${res.status}`, err?.message ?? 'upload failed');
   })();
 }
+
+/**
+ * Fire-and-forget JSON request that survives the page closing (`keepalive`). Used to flush pending edits on pagehide,
+ * when a normal fetch would be cancelled. Failures are ignored: the next visit reloads the server copy.
+ */
+export function sendOnHide(method: 'PATCH' | 'PUT' | 'POST', path: string, body: unknown) {
+  void fetch(api.http.url(path), {
+    method,
+    keepalive: true,
+    credentials: 'include',
+    headers: { 'content-type': 'application/json', 'x-requested-with': 'qubedu', ...(api.http.token ? { authorization: `Bearer ${api.http.token}` } : {}) },
+    body: JSON.stringify(body),
+  }).catch(() => undefined);
+}

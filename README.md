@@ -59,7 +59,7 @@ pnpm test:e2e       # Playwright against a running stack (pnpm dev)
 | `services/realtime` | Hub, presence, authorization (`go test -race`) |
 | `services/ai` (22 tests) | Math solver, retrieval, essay grading |
 | `apps/web` (13 tests) | Formula engine, formatting, redirects |
-| `tests/e2e` (15 tests) | Sign-up/in, languages & RTL, themes, feed, quiz, **two-browser chat**, **WebRTC live class**, phone layout, every route |
+| `tests/e2e` (33 tests) | Auth, languages & RTL, themes, feed, polls, stories, events, groups, video upload + playback, shorts, quizzes, forms, classroom, workspace docs + spreadsheet formulas, planner, library moderation, admin console, **two-browser chat**, **WebRTC live class**, notifications, phone layout, every route |
 | CI (`.github/workflows/ci.yml`) | All of the above + web/API builds + Expo bundles + Docker images |
 
 More: [Architecture](docs/ARCHITECTURE.md) · [Features](docs/FEATURES.md) · [Deployment](docs/DEPLOYMENT.md) · [Security](docs/SECURITY.md)

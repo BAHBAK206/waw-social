@@ -13,6 +13,8 @@ export function SheetEditor({ value, onChange }: { value: SheetContent; onChange
   const tr = useT();
   const [sel, setSel] = useState<{ r: number; c: number }>({ r: 1, c: 0 });
   const [editing, setEditing] = useState<string | null>(null);
+  /** Where the text is being typed: inside the cell or in the formula bar (only one input may own focus). */
+  const [editor, setEditor] = useState<'cell' | 'bar'>('cell');
   const input = useRef<HTMLInputElement>(null);
   const ev = useMemo(() => createEvaluator(value.cells), [value.cells]);
   const ref = (r: number, c: number) => `${colName(c)}${r}`;
@@ -54,12 +56,14 @@ export function SheetEditor({ value, onChange }: { value: SheetContent; onChange
     else if (e.key === 'Tab') move(0, e.shiftKey ? -1 : 1);
     else if (e.key === 'Enter' || e.key === 'F2') {
       e.preventDefault();
+      setEditor('cell');
       setEditing(value.cells[selRef] ?? '');
       setTimeout(() => input.current?.focus());
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       setCell(selRef, '');
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      setEditor('cell');
       setEditing('');
       setTimeout(() => input.current?.focus());
     }
@@ -76,7 +80,10 @@ export function SheetEditor({ value, onChange }: { value: SheetContent; onChange
           dir="ltr"
           value={editing ?? value.cells[selRef] ?? ''}
           aria-label={selRef}
-          onFocus={() => editing === null && setEditing(value.cells[selRef] ?? '')}
+          onFocus={() => {
+            setEditor('bar');
+            if (editing === null) setEditing(value.cells[selRef] ?? '');
+          }}
           onChange={(e) => setEditing(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -134,11 +141,12 @@ export function SheetEditor({ value, onChange }: { value: SheetContent; onChange
                         setSel({ r, c });
                       }}
                       onDoubleClick={() => {
+                        setEditor('cell');
                         setEditing(value.cells[k] ?? '');
                         setTimeout(() => input.current?.focus());
                       }}
                     >
-                      {isSel && editing !== null ? (
+                      {isSel && editing !== null && editor === 'cell' ? (
                         <input
                           ref={input}
                           autoFocus

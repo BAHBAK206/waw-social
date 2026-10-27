@@ -8,7 +8,7 @@ import { Whiteboard, type Stroke, type WhiteboardHandle } from '@/components/com
 import { Menu } from '@/components/ui/Menu';
 import { ErrorState, Spinner } from '@/components/ui/States';
 import { ApiError } from '@qubedu/api-client';
-import { api } from '@/lib/api';
+import { api, sendOnHide } from '@/lib/api';
 import { useFeatureOn } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
@@ -113,16 +113,26 @@ export default function WorkspaceEditorPage() {
 
   // Save on leaving the page / tab.
   useEffect(() => {
-    const onHide = () => void flush();
-    window.addEventListener('pagehide', onHide);
-    document.addEventListener('visibilitychange', onHide);
+    // On tab close/reload a normal request would be cancelled, so send the pending edit with keepalive instead.
+    const onPageHide = () => {
+      const pending = dirty.current;
+      if (pending.title === undefined && pending.content === undefined) return;
+      if (conflict.current || inflight.current) return;
+      sendOnHide('PATCH', `/workspace/files/${id}`, { version: version.current, ...pending });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') void flush();
+    };
+    window.addEventListener('pagehide', onPageHide);
+    document.addEventListener('visibilitychange', onVisibility);
     const warn = (e: BeforeUnloadEvent) => {
-      if (dirty.current.title !== undefined || dirty.current.content !== undefined) e.preventDefault();
+      // Pending edits are sent on pagehide; only warn when they cannot be saved (version conflict).
+      if (conflict.current) e.preventDefault();
     };
     window.addEventListener('beforeunload', warn);
     return () => {
-      window.removeEventListener('pagehide', onHide);
-      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('beforeunload', warn);
       clearTimeout(timer.current);
       void flush();

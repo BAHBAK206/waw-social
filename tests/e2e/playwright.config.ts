@@ -20,6 +20,13 @@ export default defineConfig({
     { name: 'phone', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: process.env.E2E_START
-    ? { command: 'node scripts/dev.mjs --no-ai', cwd: '../..', url: `${baseURL}/api/v1/config`, reuseExistingServer: true, timeout: 180_000 }
+    ? {
+        command: 'node scripts/dev.mjs --no-ai',
+        cwd: '../..',
+        url: `${baseURL}/api/v1/config`,
+        reuseExistingServer: true,
+        timeout: 180_000,
+        env: { ROOT_ADMIN_EMAIL: process.env.ROOT_ADMIN_EMAIL ?? 'root@e2e.test', RATE_LIMIT_DISABLED: 'true' },
+      }
     : undefined,
 });

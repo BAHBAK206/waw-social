@@ -55,3 +55,37 @@ export async function apiRegister(request: APIRequestContext, user: TestUser, ac
   const body = (await res.json()) as { accessToken: string };
   return body.accessToken;
 }
+
+export const ROOT_EMAIL = process.env.ROOT_ADMIN_EMAIL ?? 'root@e2e.test';
+
+/** Signs in as the bootstrap administrator (registers the account on first use). Needs the API started with ROOT_ADMIN_EMAIL. */
+export async function adminToken(request: APIRequestContext) {
+  const password = 'Sup3rSecret!pass';
+  // Several workers may bootstrap the account at the same time: whoever loses the race simply signs in.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const login = await request.post('/api/v1/auth/login', { data: { email: ROOT_EMAIL, password } });
+    if (login.ok()) return ((await login.json()) as { accessToken: string }).accessToken;
+    const reg = await request.post('/api/v1/auth/register', {
+      data: { email: ROOT_EMAIL, password, displayName: 'Root Admin', accountType: 'teacher', language: 'en' },
+    });
+    if (reg.ok()) return ((await reg.json()) as { accessToken: string }).accessToken;
+  }
+  throw new Error('could not sign in as the bootstrap administrator (is the API running with ROOT_ADMIN_EMAIL?)');
+}
+
+export async function loginAsAdmin(page: Page) {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(ROOT_EMAIL);
+  await page.getByLabel('Password', { exact: true }).fill('Sup3rSecret!pass');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await dismissOnboarding(page);
+}
+
+/** Collects uncaught errors and console errors (ignoring failed network requests that tests trigger on purpose). */
+export function trackErrors(page: Page) {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(`${page.url()} → ${e.message}`));
+  page.on('console', (m) => m.type() === 'error' && !/Failed to load resource|favicon/.test(m.text()) && errors.push(`${page.url()} → ${m.text()}`));
+  return errors;
+}

@@ -1,5 +1,5 @@
 import { ch } from './channels';
-import { api, realtime } from '@/lib/api';
+import { api, realtime, sendOnHide } from '@/lib/api';
 import { afterSignIn } from '@/lib/auth';
 import { onAppearanceChange } from '@/lib/appearance';
 import { queryClient, qk } from '@/lib/query';
@@ -29,13 +29,7 @@ function flushAppearance(keepalive = false) {
   pendingAppearance = {};
   if (!Object.keys(appearance).length || useSession.getState().status !== 'authed') return;
   if (keepalive) {
-    void fetch(api.http.url('/me/prefs'), {
-      method: 'PATCH',
-      keepalive: true,
-      credentials: 'include',
-      headers: { 'content-type': 'application/json', 'x-requested-with': 'qubedu', ...(api.http.token ? { authorization: `Bearer ${api.http.token}` } : {}) },
-      body: JSON.stringify({ appearance }),
-    }).catch(() => undefined);
+    sendOnHide('PATCH', '/me/prefs', { appearance });
   } else {
     void api.me.prefs({ appearance }).catch(() => undefined);
   }
