@@ -28,13 +28,7 @@ export function topicKey(topic: string, courseId?: string | null): string {
 }
 
 /** Recency-weighted mastery (45-day decay, floor 0.35) with sample-size weighting. */
-export function computeMastery(
-  key: string,
-  topic: string,
-  courseId: string | null,
-  samples: TopicSample[],
-  now = Date.now(),
-): TopicMastery {
+export function computeMastery(key: string, topic: string, courseId: string | null, samples: TopicSample[], now = Date.now()): TopicMastery {
   const sorted = [...samples].sort((a, b) => a.ts - b.ts);
   let weighted = 0;
   let weight = 0;
@@ -49,8 +43,7 @@ export function computeMastery(
   const attempts = sorted.length;
   const confidence = evidenceQuestions >= 12 && attempts >= 3 ? 'high' : evidenceQuestions >= 6 && attempts >= 2 ? 'medium' : 'low';
   const recent = sorted.slice(-2).map((s) => s.pct);
-  const trend =
-    recent.length < 2 || Math.abs(recent[1]! - recent[0]!) < 8 ? 'stable' : recent[1]! > recent[0]! ? 'improving' : 'declining';
+  const trend = recent.length < 2 || Math.abs(recent[1]! - recent[0]!) < 8 ? 'stable' : recent[1]! > recent[0]! ? 'improving' : 'declining';
   return {
     key,
     topic,

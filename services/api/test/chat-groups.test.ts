@@ -11,9 +11,15 @@ describe('chat', () => {
     const again = await call<ConversationDto>('POST', '/chat/conversations/direct', { token: b.token, body: { userId: a.user.id } });
     expect(again.body.id).toBe(conv.body.id);
 
-    const m1 = await call<MessageDto>('POST', `/chat/conversations/${conv.body.id}/messages`, { token: a.token, body: { text: 'السلام عليكم', clientId: 'c1' } });
+    const m1 = await call<MessageDto>('POST', `/chat/conversations/${conv.body.id}/messages`, {
+      token: a.token,
+      body: { text: 'السلام عليكم', clientId: 'c1' },
+    });
     expect(m1.status).toBe(201);
-    const dup = await call<MessageDto>('POST', `/chat/conversations/${conv.body.id}/messages`, { token: a.token, body: { text: 'السلام عليكم', clientId: 'c1' } });
+    const dup = await call<MessageDto>('POST', `/chat/conversations/${conv.body.id}/messages`, {
+      token: a.token,
+      body: { text: 'السلام عليكم', clientId: 'c1' },
+    });
     expect(dup.body.id).toBe(m1.body.id);
 
     const list = await call<{ items: ConversationDto[] }>('GET', '/chat/conversations', { token: b.token });
@@ -22,7 +28,10 @@ describe('chat', () => {
     expect(entry.peer?.id).toBe(a.user.id);
     expect((await call<Me>('GET', '/me', { token: b.token })).body.unreadMessages).toBe(1);
 
-    const reply = await call<MessageDto>('POST', `/chat/conversations/${conv.body.id}/messages`, { token: b.token, body: { text: 'وعليكم السلام', replyToId: m1.body.id } });
+    const reply = await call<MessageDto>('POST', `/chat/conversations/${conv.body.id}/messages`, {
+      token: b.token,
+      body: { text: 'وعليكم السلام', replyToId: m1.body.id },
+    });
     expect(reply.body.replyTo?.id).toBe(m1.body.id);
     const react = await call<MessageDto>('POST', `/chat/messages/${m1.body.id}/reactions`, { token: b.token, body: { emoji: '❤️' } });
     expect(react.body.reactions['❤️']).toEqual([b.user.id]);
@@ -54,7 +63,10 @@ describe('groups & communities', () => {
   it('public group lifecycle: create, join, post, pin, members, chat', async () => {
     const owner = await newUser({ name: 'Teacher', accountType: 'teacher' });
     const member = await newUser({ name: 'Student' });
-    const g = await call<GroupDto & { newAchievements: string[] }>('POST', '/groups', { token: owner.token, body: { name: 'Physics 101', description: 'd', privacy: 'public' } });
+    const g = await call<GroupDto & { newAchievements: string[] }>('POST', '/groups', {
+      token: owner.token,
+      body: { name: 'Physics 101', description: 'd', privacy: 'public' },
+    });
     expect(g.status).toBe(201);
     expect(g.body.myRole).toBe('owner');
     expect(g.body.newAchievements).toContain('ach_grp1');
@@ -75,7 +87,10 @@ describe('groups & communities', () => {
 
     const detail = await call<GroupDto>('GET', `/groups/${g.body.id}`, { token: member.token });
     expect(detail.body.myRole).toBe('teacher');
-    const msg = await call<MessageDto>('POST', `/chat/conversations/${detail.body.conversationId}/messages`, { token: member.token, body: { text: 'hi group' } });
+    const msg = await call<MessageDto>('POST', `/chat/conversations/${detail.body.conversationId}/messages`, {
+      token: member.token,
+      body: { text: 'hi group' },
+    });
     expect(msg.status).toBe(201);
     const ownerConvs = await call<{ items: ConversationDto[] }>('GET', '/chat/conversations', { token: owner.token });
     expect(ownerConvs.body.items.some((x) => x.id === detail.body.conversationId)).toBe(false);
@@ -90,7 +105,9 @@ describe('groups & communities', () => {
     const owner = await newUser();
     const user = await newUser();
     const g = await call<GroupDto>('POST', '/groups', { token: owner.token, body: { name: 'Secret club', privacy: 'private' } });
-    expect((await call<{ status: string }>('POST', `/groups/${g.body.id}/join`, { token: user.token, body: { message: 'please' } })).body.status).toBe('requested');
+    expect((await call<{ status: string }>('POST', `/groups/${g.body.id}/join`, { token: user.token, body: { message: 'please' } })).body.status).toBe(
+      'requested',
+    );
     expect((await call('GET', `/groups/${g.body.id}/posts`, { token: user.token })).status).toBe(403);
     const reqs = await call<{ items: { user: { id: string } }[] }>('GET', `/groups/${g.body.id}/requests`, { token: owner.token });
     expect(reqs.body.items[0]!.user.id).toBe(user.user.id);

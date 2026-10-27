@@ -70,7 +70,10 @@ async function canSeeQuiz(deps: Deps, user: AuthUser | null, quiz: QuizRow) {
 }
 
 async function loadQuiz(deps: Deps, id: string) {
-  const [q] = await deps.db.select().from(quizzes).where(and(eq(quizzes.id, id), isNull(quizzes.deletedAt)));
+  const [q] = await deps.db
+    .select()
+    .from(quizzes)
+    .where(and(eq(quizzes.id, id), isNull(quizzes.deletedAt)));
   if (!q) throw notFound('quiz_not_found');
   return q;
 }
@@ -85,7 +88,10 @@ async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Pr
     .leftJoin(users, eq(users.id, quizzes.createdBy))
     .where(inArray(quizzes.id, ids));
   const best = viewer
-    ? await deps.db.select().from(quizBest).where(and(eq(quizBest.userId, viewer.id), inArray(quizBest.quizId, ids)))
+    ? await deps.db
+        .select()
+        .from(quizBest)
+        .where(and(eq(quizBest.userId, viewer.id), inArray(quizBest.quizId, ids)))
     : [];
   const bestMap = new Map(best.map((b) => [b.quizId, b]));
   const byId = new Map(rows.map((r) => [r.q.id, r]));
@@ -111,7 +117,7 @@ async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Pr
       attempts: r.q.attemptCount,
       myBest: b ? { pct: b.pct, correct: b.correct, total: b.total, at: b.updatedAt.getTime() } : null,
       createdAt: r.q.createdAt.getTime(),
-      canEdit: viewer ? (canManageQuizzes(viewer) || r.q.createdBy === viewer.id) : false,
+      canEdit: viewer ? canManageQuizzes(viewer) || r.q.createdBy === viewer.id : false,
     });
   }
   return out;
@@ -164,7 +170,10 @@ async function attemptDto(deps: Deps, viewer: AuthUser, attempt: typeof quizAtte
   return {
     attemptId: attempt.id,
     quiz: quiz ?? fallbackQuiz,
-    questions: attempt.questionIds.map((id) => map.get(id)).filter((q): q is NonNullable<typeof q> => !!q).map(publicQuestion),
+    questions: attempt.questionIds
+      .map((id) => map.get(id))
+      .filter((q): q is NonNullable<typeof q> => !!q)
+      .map(publicQuestion),
     startedAt: attempt.startedAt.getTime(),
     expiresAt: attempt.expiresAt.getTime(),
     review: attempt.review,
@@ -199,7 +208,10 @@ export const quizRoutes = new Hono<AppEnv>()
     const courseFilter = q.courseId
       ? eq(quizzes.courseId, q.courseId)
       : viewer
-        ? or(isNull(quizzes.courseId), inArray(quizzes.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, viewer.id))))
+        ? or(
+            isNull(quizzes.courseId),
+            inArray(quizzes.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, viewer.id))),
+          )
         : isNull(quizzes.courseId);
     if (q.courseId && (!viewer || !(await courseRole(deps.db, q.courseId, viewer.id)))) throw forbidden('not_enrolled');
     const rows = await deps.db
@@ -221,7 +233,14 @@ export const quizRoutes = new Hono<AppEnv>()
       .orderBy(desc(quizzes.createdAt), desc(quizzes.id))
       .limit(q.limit + 1);
     const page = pageOf(rows, q.limit, (r) => ({ t: r.createdAt, id: r.id }));
-    return c.json({ items: await summaries(deps, viewer, page.items.map((r) => r.id)), nextCursor: page.nextCursor });
+    return c.json({
+      items: await summaries(
+        deps,
+        viewer,
+        page.items.map((r) => r.id),
+      ),
+      nextCursor: page.nextCursor,
+    });
   })
   .post('/', async (c) => {
     const viewer = requireUser(c);
@@ -281,7 +300,10 @@ export const quizRoutes = new Hono<AppEnv>()
           sql`${quizzes.kind} <> 'exam'`,
           input.courseId
             ? eq(quizzes.courseId, input.courseId)
-            : or(isNull(quizzes.courseId), inArray(quizzes.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, viewer.id)))),
+            : or(
+                isNull(quizzes.courseId),
+                inArray(quizzes.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, viewer.id))),
+              ),
           input.topic ? sql`lower(${quizQuestions.topic}) = lower(${input.topic})` : undefined,
         ),
       )
@@ -292,10 +314,26 @@ export const quizRoutes = new Hono<AppEnv>()
       const mv = m?.mastery ?? 55;
       let score = 45 + Math.max(0, 55 - mv) * 0.9 + (mv < 60 ? 22 : mv < 75 ? 12 : 0) + (m?.confidence === 'low' || !m ? 8 : 0);
       score += recentIds.has(q.id) ? -35 : 16;
-      score += mv < 60 ? (difficulty === 'easy' ? 20 : difficulty === 'medium' ? 12 : 2) : mv < 80 ? (difficulty === 'medium' ? 20 : 11) : difficulty === 'hard' ? 20 : 8;
+      score +=
+        mv < 60
+          ? difficulty === 'easy'
+            ? 20
+            : difficulty === 'medium'
+              ? 12
+              : 2
+          : mv < 80
+            ? difficulty === 'medium'
+              ? 20
+              : 11
+            : difficulty === 'hard'
+              ? 20
+              : 8;
       return { id: q.id, score: score + Math.random() * 6 };
     });
-    const picked = scored.sort((a, b) => b.score - a.score).slice(0, input.count).map((s) => s.id);
+    const picked = scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, input.count)
+      .map((s) => s.id);
     const [attempt] = await deps.db
       .insert(quizAttempts)
       .values({ quizId: null, userId: viewer.id, questionIds: picked, adaptive: true, expiresAt: new Date(Date.now() + picked.length * 75_000 + 60_000) })
@@ -334,10 +372,13 @@ export const quizRoutes = new Hono<AppEnv>()
   .get('/attempts/:attemptId', async (c) => {
     const viewer = requireUser(c);
     const deps = c.get('deps');
-    const [attempt] = await deps.db.select().from(quizAttempts).where(and(eq(quizAttempts.id, param(c, 'attemptId')), eq(quizAttempts.userId, viewer.id)));
+    const [attempt] = await deps.db
+      .select()
+      .from(quizAttempts)
+      .where(and(eq(quizAttempts.id, param(c, 'attemptId')), eq(quizAttempts.userId, viewer.id)));
     if (!attempt) throw notFound('attempt_not_found');
     if (attempt.submittedAt) return c.json({ submitted: true, result: attempt.result });
-    const quiz = attempt.quizId ? (await summaries(deps, viewer, [attempt.quizId]))[0] ?? null : null;
+    const quiz = attempt.quizId ? ((await summaries(deps, viewer, [attempt.quizId]))[0] ?? null) : null;
     return c.json({ submitted: false, attempt: await attemptDto(deps, viewer, attempt, quiz) });
   })
   .post('/attempts/:attemptId/submit', async (c) => {
@@ -358,7 +399,14 @@ export const quizRoutes = new Hono<AppEnv>()
       const rows = await tx.select().from(quizQuestions).where(inArray(quizQuestions.id, attempt.questionIds));
       const map = new Map(rows.map((r) => [r.id, r]));
       const ordered = attempt.questionIds.map((id) => map.get(id)).filter((q): q is NonNullable<typeof q> => !!q);
-      const gradable: GradableQuestion[] = ordered.map((q) => ({ id: q.id, type: q.type, answer: q.answer, points: q.points, topic: q.topic, explanation: q.explanation }));
+      const gradable: GradableQuestion[] = ordered.map((q) => ({
+        id: q.id,
+        type: q.type,
+        answer: q.answer,
+        points: q.points,
+        topic: q.topic,
+        explanation: q.explanation,
+      }));
       const g = grade(gradable, answers as GivenAnswer[]);
       const now = Date.now();
       const timeSec = Math.max(1, Math.round((Math.min(now, attempt.expiresAt.getTime() + GRACE_MS) - attempt.startedAt.getTime()) / 1000));
@@ -369,7 +417,10 @@ export const quizRoutes = new Hono<AppEnv>()
       if (!attempt.review && attempt.quizId) {
         const [quiz] = await tx.select().from(quizzes).where(eq(quizzes.id, attempt.quizId));
         courseId = quiz?.courseId ?? null;
-        const [prev] = await tx.select().from(quizBest).where(and(eq(quizBest.userId, viewer.id), eq(quizBest.quizId, attempt.quizId)));
+        const [prev] = await tx
+          .select()
+          .from(quizBest)
+          .where(and(eq(quizBest.userId, viewer.id), eq(quizBest.quizId, attempt.quizId)));
         isNewBest = !prev || g.pct > prev.pct;
         if (isNewBest) {
           await tx
@@ -388,9 +439,15 @@ export const quizRoutes = new Hono<AppEnv>()
             })
             .where(eq(users.id, viewer.id));
         } else if (prev) {
-          await tx.update(quizBest).set({ wrongIds: prev.pct === g.pct ? g.wrongIds : prev.wrongIds }).where(and(eq(quizBest.userId, viewer.id), eq(quizBest.quizId, attempt.quizId)));
+          await tx
+            .update(quizBest)
+            .set({ wrongIds: prev.pct === g.pct ? g.wrongIds : prev.wrongIds })
+            .where(and(eq(quizBest.userId, viewer.id), eq(quizBest.quizId, attempt.quizId)));
         }
-        await tx.update(quizzes).set({ attemptCount: sql`${quizzes.attemptCount} + 1` }).where(eq(quizzes.id, attempt.quizId));
+        await tx
+          .update(quizzes)
+          .set({ attemptCount: sql`${quizzes.attemptCount} + 1` })
+          .where(eq(quizzes.id, attempt.quizId));
       } else if (attempt.adaptive && !attempt.review) {
         xpEarned = Math.round(xpForQuizScore(g.pct, g.perfect) / 2);
         const already = await xpEarnedToday(tx, viewer.id, 'quiz_adaptive', today);
@@ -399,12 +456,23 @@ export const quizRoutes = new Hono<AppEnv>()
       const award = await awardXp(tx, viewer.id, xpEarned, attempt.adaptive ? 'quiz_adaptive' : 'quiz_best', attemptId, today);
       if (!attempt.review && g.topicStats.length) {
         await tx.insert(topicSamples).values(
-          g.topicStats.map((t) => ({ userId: viewer.id, topicKey: topicKey(t.topic, courseId), topic: t.topic, courseId, correct: t.correct, total: t.total, attemptId })),
+          g.topicStats.map((t) => ({
+            userId: viewer.id,
+            topicKey: topicKey(t.topic, courseId),
+            topic: t.topic,
+            courseId,
+            correct: t.correct,
+            total: t.total,
+            attemptId,
+          })),
         );
       }
       await touchStreak(tx, viewer.id, viewer.timezone);
       await logStudy(tx, viewer.id, today, { quizzes: 1, minutes: Math.min(180, Math.round(timeSec / 60)) });
-      await tx.update(users).set({ studyMinutes: sql`${users.studyMinutes} + ${Math.min(180, Math.round(timeSec / 60))}` }).where(eq(users.id, viewer.id));
+      await tx
+        .update(users)
+        .set({ studyMinutes: sql`${users.studyMinutes} + ${Math.min(180, Math.round(timeSec / 60))}` })
+        .where(eq(users.id, viewer.id));
       const newAchievements = await checkAchievements(tx, viewer.id);
       const dto: QuizResultDto = {
         attemptId,
@@ -423,7 +491,16 @@ export const quizRoutes = new Hono<AppEnv>()
       };
       await tx
         .update(quizAttempts)
-        .set({ submittedAt: new Date(now), answers, correct: g.correct, total: g.total, pct: g.pct, timeSec, xpEarned: dto.xpEarned, result: dto as unknown as Record<string, unknown> })
+        .set({
+          submittedAt: new Date(now),
+          answers,
+          correct: g.correct,
+          total: g.total,
+          pct: g.pct,
+          timeSec,
+          xpEarned: dto.xpEarned,
+          result: dto as unknown as Record<string, unknown>,
+        })
         .where(eq(quizAttempts.id, attemptId));
       return { already: false, result: dto };
     });
@@ -455,7 +532,16 @@ export const quizRoutes = new Hono<AppEnv>()
       scheduledAt: quiz.scheduledAt?.getTime() ?? null,
       published: quiz.published,
       shuffle: quiz.shuffle,
-      questions: qs.map((q) => ({ type: q.type, prompt: q.prompt, imageUrl: q.imageUrl, options: q.options, answer: q.answer, explanation: q.explanation, topic: q.topic, points: q.points })),
+      questions: qs.map((q) => ({
+        type: q.type,
+        prompt: q.prompt,
+        imageUrl: q.imageUrl,
+        options: q.options,
+        answer: q.answer,
+        explanation: q.explanation,
+        topic: q.topic,
+        points: q.points,
+      })),
     };
     return c.json(dto);
   })
@@ -539,7 +625,10 @@ export const quizRoutes = new Hono<AppEnv>()
     const { review } = await body(c, startAttemptSchema).catch(() => ({ review: false }));
     let questionIds: string[];
     if (review) {
-      const [best] = await deps.db.select().from(quizBest).where(and(eq(quizBest.userId, viewer.id), eq(quizBest.quizId, quiz.id)));
+      const [best] = await deps.db
+        .select()
+        .from(quizBest)
+        .where(and(eq(quizBest.userId, viewer.id), eq(quizBest.quizId, quiz.id)));
       if (!best || !best.wrongIds.length) throw badRequest('nothing_to_review');
       questionIds = best.wrongIds;
     } else {
@@ -550,13 +639,19 @@ export const quizRoutes = new Hono<AppEnv>()
           .where(and(eq(quizAttempts.quizId, quiz.id), eq(quizAttempts.userId, viewer.id), sql`${quizAttempts.submittedAt} is not null`));
         if ((done?.n ?? 0) > 0) throw conflict('exam_already_taken');
       }
-      const qs = await deps.db.select({ id: quizQuestions.id }).from(quizQuestions).where(eq(quizQuestions.quizId, quiz.id)).orderBy(asc(quizQuestions.position));
+      const qs = await deps.db
+        .select({ id: quizQuestions.id })
+        .from(quizQuestions)
+        .where(eq(quizQuestions.quizId, quiz.id))
+        .orderBy(asc(quizQuestions.position));
       questionIds = qs.map((q) => q.id);
     }
     if (!questionIds.length) throw badRequest('quiz_has_no_questions');
     const seed = `${viewer.id}:${Date.now()}`;
     if (quiz.shuffle) questionIds = seededShuffle(questionIds, seed);
-    const durationMs = review ? Math.max(60, Math.round((quiz.durationSec * questionIds.length) / Math.max(1, quiz.questionCount))) * 1000 : quiz.durationSec * 1000;
+    const durationMs = review
+      ? Math.max(60, Math.round((quiz.durationSec * questionIds.length) / Math.max(1, quiz.questionCount))) * 1000
+      : quiz.durationSec * 1000;
     const [attempt] = await deps.db
       .insert(quizAttempts)
       .values({ quizId: quiz.id, userId: viewer.id, questionIds, review, expiresAt: new Date(Date.now() + durationMs) })

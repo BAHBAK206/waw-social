@@ -21,7 +21,11 @@ export interface AiClient {
     language: string;
   }): Promise<Omit<AiAnswerDto, 'remainingQuota'>>;
   gradeEssay(input: { answer: string; modelAnswer: string; keyPoints: string[]; synonyms: Record<string, string[]>; language: string }): Promise<EssayGradeDto>;
-  extract(input: { filename: string; mime: string; data: Uint8Array }): Promise<{ chunks: { heading: string | null; page: number | null; text: string }[]; text: string }>;
+  extract(input: {
+    filename: string;
+    mime: string;
+    data: Uint8Array;
+  }): Promise<{ chunks: { heading: string | null; page: number | null; text: string }[]; text: string }>;
   assistant(input: {
     message: string;
     history: { role: 'user' | 'assistant'; content: string }[];

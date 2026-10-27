@@ -94,9 +94,16 @@ export function createApi(options: ClientOptions) {
     reportClientError: (body: { message: string; stack?: string; url?: string; release?: string; kind?: string }) => http.post<Ok>('/client-errors', body),
 
     auth: {
-      register: async (body: { email: string; password: string; displayName: string; accountType: 'student' | 'teacher'; language?: string; timezone?: string }) =>
-        http.acceptAuth(await http.request<AuthResult>('POST', '/auth/register', { body, anonymous: true })),
-      login: async (body: { email: string; password: string }) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/login', { body, anonymous: true })),
+      register: async (body: {
+        email: string;
+        password: string;
+        displayName: string;
+        accountType: 'student' | 'teacher';
+        language?: string;
+        timezone?: string;
+      }) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/register', { body, anonymous: true })),
+      login: async (body: { email: string; password: string }) =>
+        http.acceptAuth(await http.request<AuthResult>('POST', '/auth/login', { body, anonymous: true })),
       /** Restores a session on app start (cookie on web, secure storage on mobile). */
       restore: async () => ((await http.refresh()) ? http.get<Me>('/me') : null),
       logout: async () => {
@@ -124,9 +131,17 @@ export function createApi(options: ClientOptions) {
 
     me: {
       get: () => http.get<Me>('/me'),
-      update: (body: Partial<Pick<Me, 'displayName' | 'username' | 'bio' | 'avatarUrl' | 'coverUrl' | 'gender' | 'educationLevel' | 'institution' | 'accountType'>>) => http.patch<Me>('/me', body),
-      prefs: (body: { appearance?: Partial<Me['appearance']>; privacy?: Partial<Me['privacy']>; notifications?: Partial<Me['notificationPrefs']>; timezone?: string; dailyGoalMinutes?: number; onboardingDone?: boolean }) =>
-        http.patch<Me>('/me/prefs', body),
+      update: (
+        body: Partial<Pick<Me, 'displayName' | 'username' | 'bio' | 'avatarUrl' | 'coverUrl' | 'gender' | 'educationLevel' | 'institution' | 'accountType'>>,
+      ) => http.patch<Me>('/me', body),
+      prefs: (body: {
+        appearance?: Partial<Me['appearance']>;
+        privacy?: Partial<Me['privacy']>;
+        notifications?: Partial<Me['notificationPrefs']>;
+        timezone?: string;
+        dailyGoalMinutes?: number;
+        onboardingDone?: boolean;
+      }) => http.patch<Me>('/me/prefs', body),
       checkin: () => http.post<{ streak: number; changed: boolean; newAchievements: string[] }>('/me/checkin'),
       export: () => http.request<Response>('GET', '/me/export', { raw: true }),
       delete: (password: string) => http.del<Ok>('/me', { password }),
@@ -145,8 +160,10 @@ export function createApi(options: ClientOptions) {
       unblock: (id: string) => http.del<{ blocked: boolean }>(`/users/${id}/block`),
       followers: (id: string, q: Q = {}) => http.get<Page<UserSummary>>(`/users/${id}/followers`, q),
       following: (id: string, q: Q = {}) => http.get<Page<UserSummary>>(`/users/${id}/following`, q),
-      groups: (id: string) => http.get<{ items: { id: string; name: string; kind: string; avatarUrl: string | null; memberCount: number }[] }>(`/users/${id}/groups`),
-      quizResults: (id: string) => http.get<{ items: { quizId: string; title: string; pct: number; correct: number; total: number; at: number }[] }>(`/users/${id}/quiz-results`),
+      groups: (id: string) =>
+        http.get<{ items: { id: string; name: string; kind: string; avatarUrl: string | null; memberCount: number }[] }>(`/users/${id}/groups`),
+      quizResults: (id: string) =>
+        http.get<{ items: { quizId: string; title: string; pct: number; correct: number; total: number; at: number }[] }>(`/users/${id}/quiz-results`),
     },
 
     report: (body: { targetType: string; targetId: string; reason: string; details?: string }) => http.post<{ id: string }>('/reports', body),
@@ -158,7 +175,8 @@ export function createApi(options: ClientOptions) {
       update: (id: string, text: string) => http.patch<PostDto>(`/posts/${id}`, { text }),
       remove: (id: string) => http.del<Ok>(`/posts/${id}`),
       pin: (id: string, pinned: boolean) => http.post<{ pinned: boolean }>(`/posts/${id}/pin`, { pinned }),
-      react: (id: string, reaction: Reaction | null) => http.put<{ reactionCounts: Record<string, number>; myReaction: Reaction | null }>(`/posts/${id}/reaction`, { reaction }),
+      react: (id: string, reaction: Reaction | null) =>
+        http.put<{ reactionCounts: Record<string, number>; myReaction: Reaction | null }>(`/posts/${id}/reaction`, { reaction }),
       comments: (id: string, q: Q = {}) => http.get<Page<CommentDto>>(`/posts/${id}/comments`, q),
       comment: (id: string, text: string) => http.post<CommentDto>(`/posts/${id}/comments`, { text }),
       deleteComment: (id: string, commentId: string) => http.del<Ok>(`/posts/${id}/comments/${commentId}`),
@@ -193,12 +211,22 @@ export function createApi(options: ClientOptions) {
     },
 
     groups: {
-      list: (q: { kind?: 'group' | 'community'; scope?: 'all' | 'mine' | 'discover'; q?: string; cursor?: string } = {}) => http.get<Page<GroupDto>>('/groups', q),
+      list: (q: { kind?: 'group' | 'community'; scope?: 'all' | 'mine' | 'discover'; q?: string; cursor?: string } = {}) =>
+        http.get<Page<GroupDto>>('/groups', q),
       get: (id: string) => http.get<GroupDto>(`/groups/${id}`),
-      create: (body: { kind: 'group' | 'community'; name: string; description?: string; privacy: 'public' | 'private'; avatarUrl?: string | null; coverUrl?: string | null; tags?: string[] }) =>
-        http.post<GroupDto & { newAchievements: string[] }>('/groups', body),
-      update: (id: string, body: Partial<{ name: string; description: string; privacy: 'public' | 'private'; avatarUrl: string | null; coverUrl: string | null; tags: string[] }>) =>
-        http.patch<GroupDto>(`/groups/${id}`, body),
+      create: (body: {
+        kind: 'group' | 'community';
+        name: string;
+        description?: string;
+        privacy: 'public' | 'private';
+        avatarUrl?: string | null;
+        coverUrl?: string | null;
+        tags?: string[];
+      }) => http.post<GroupDto & { newAchievements: string[] }>('/groups', body),
+      update: (
+        id: string,
+        body: Partial<{ name: string; description: string; privacy: 'public' | 'private'; avatarUrl: string | null; coverUrl: string | null; tags: string[] }>,
+      ) => http.patch<GroupDto>(`/groups/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/groups/${id}`),
       join: (id: string, message?: string) => http.post<{ status: 'member' | 'requested' }>(`/groups/${id}/join`, { message }),
       cancelRequest: (id: string) => http.del<{ status: 'none' }>(`/groups/${id}/join`),
@@ -212,7 +240,8 @@ export function createApi(options: ClientOptions) {
       posts: (id: string, q: Q = {}) => http.get<Page<PostDto>>(`/groups/${id}/posts`, q),
       leaderboard: (id: string) => http.get<{ items: LeaderboardEntry[] }>(`/groups/${id}/leaderboard`),
       resources: (id: string, q: Q = {}) => http.get<Page<GroupResourceDto>>(`/groups/${id}/resources`, q),
-      addResource: (id: string, body: { title: string; url: string; kind: 'file' | 'link'; mime?: string | null; size?: number | null }) => http.post<{ id: string }>(`/groups/${id}/resources`, body),
+      addResource: (id: string, body: { title: string; url: string; kind: 'file' | 'link'; mime?: string | null; size?: number | null }) =>
+        http.post<{ id: string }>(`/groups/${id}/resources`, body),
       removeResource: (id: string, resourceId: string) => http.del<Ok>(`/groups/${id}/resources/${resourceId}`),
       channels: (id: string) => http.get<{ items: ChannelDto[] }>(`/groups/${id}/channels`),
       addChannel: (id: string, body: { name: string; kind: 'text' | 'announcement' }) => http.post<ChannelDto>(`/groups/${id}/channels`, body),
@@ -227,26 +256,46 @@ export function createApi(options: ClientOptions) {
       update: (id: string, body: Omit<QuizEditorDto, 'id'>) => http.put<QuizSummaryDto>(`/quizzes/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/quizzes/${id}`),
       stats: (id: string) =>
-        http.get<{ attempts: number; averagePct: number | null; questions: { id: string; prompt: string; correct: number; total: number }[]; leaderboard: { user: UserSummary; pct: number }[] }>(
-          `/quizzes/${id}/stats`,
-        ),
+        http.get<{
+          attempts: number;
+          averagePct: number | null;
+          questions: { id: string; prompt: string; correct: number; total: number }[];
+          leaderboard: { user: UserSummary; pct: number }[];
+        }>(`/quizzes/${id}/stats`),
       start: (id: string, review = false) => http.post<QuizAttemptDto>(`/quizzes/${id}/attempts`, { review }),
       adaptive: (body: { courseId?: string | null; topic?: string | null; count?: number }) => http.post<QuizAttemptDto>('/quizzes/adaptive', body),
-      attempt: (attemptId: string) => http.get<{ submitted: true; result: QuizResultDto } | { submitted: false; attempt: QuizAttemptDto }>(`/quizzes/attempts/${attemptId}`),
-      submit: (attemptId: string, answers: (number | number[] | string | null)[]) => http.post<QuizResultDto>(`/quizzes/attempts/${attemptId}/submit`, { answers }),
+      attempt: (attemptId: string) =>
+        http.get<{ submitted: true; result: QuizResultDto } | { submitted: false; attempt: QuizAttemptDto }>(`/quizzes/attempts/${attemptId}`),
+      submit: (attemptId: string, answers: (number | number[] | string | null)[]) =>
+        http.post<QuizResultDto>(`/quizzes/attempts/${attemptId}/submit`, { answers }),
       history: () =>
-        http.get<{ items: { attemptId: string; quizId: string | null; title: string | null; adaptive: boolean; review: boolean; pct: number; correct: number; total: number; xpEarned: number; submittedAt: number }[] }>(
-          '/quizzes/history',
-        ),
+        http.get<{
+          items: {
+            attemptId: string;
+            quizId: string | null;
+            title: string | null;
+            adaptive: boolean;
+            review: boolean;
+            pct: number;
+            correct: number;
+            total: number;
+            xpEarned: number;
+            submittedAt: number;
+          }[];
+        }>('/quizzes/history'),
       mastery: () => http.get<{ items: MasteryDto[] }>('/quizzes/mastery'),
     },
 
     flashcards: {
-      list: (q: { due?: boolean; deck?: string } = {}) => http.get<{ items: FlashcardDto[]; dueCount: number; decks: { name: string; count: number }[] }>('/flashcards', q),
-      create: (cards: { front: string; back: string; deck?: string; topic?: string | null; courseId?: string | null }[]) => http.post<{ items: FlashcardDto[] }>('/flashcards', { cards }),
-      update: (id: string, body: Partial<{ front: string; back: string; deck: string; topic: string | null }>) => http.patch<FlashcardDto>(`/flashcards/${id}`, body),
+      list: (q: { due?: boolean; deck?: string } = {}) =>
+        http.get<{ items: FlashcardDto[]; dueCount: number; decks: { name: string; count: number }[] }>('/flashcards', q),
+      create: (cards: { front: string; back: string; deck?: string; topic?: string | null; courseId?: string | null }[]) =>
+        http.post<{ items: FlashcardDto[] }>('/flashcards', { cards }),
+      update: (id: string, body: Partial<{ front: string; back: string; deck: string; topic: string | null }>) =>
+        http.patch<FlashcardDto>(`/flashcards/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/flashcards/${id}`),
-      review: (id: string, rating: 'again' | 'unsure' | 'know' | 'easy') => http.post<{ card: FlashcardDto; newAchievements: string[] }>(`/flashcards/${id}/review`, { rating }),
+      review: (id: string, rating: 'again' | 'unsure' | 'know' | 'easy') =>
+        http.post<{ card: FlashcardDto; newAchievements: string[] }>(`/flashcards/${id}/review`, { rating }),
     },
 
     pomodoro: {
@@ -276,8 +325,10 @@ export function createApi(options: ClientOptions) {
     },
     exams: {
       list: () => http.get<{ items: ExamDto[] }>('/exams'),
-      create: (body: { subject: string; day: string; time?: string | null; place?: string | null; notes?: string | null }) => http.post<ExamDto>('/exams', body),
-      update: (id: string, body: Partial<{ subject: string; day: string; time: string | null; place: string | null; notes: string | null }>) => http.patch<ExamDto>(`/exams/${id}`, body),
+      create: (body: { subject: string; day: string; time?: string | null; place?: string | null; notes?: string | null }) =>
+        http.post<ExamDto>('/exams', body),
+      update: (id: string, body: Partial<{ subject: string; day: string; time: string | null; place: string | null; notes: string | null }>) =>
+        http.patch<ExamDto>(`/exams/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/exams/${id}`),
       ics: () => http.request<Response>('GET', '/exams/calendar.ics', { raw: true }),
     },
@@ -295,24 +346,38 @@ export function createApi(options: ClientOptions) {
 
     school: {
       courses: (archived = false) => http.get<{ items: CourseDto[] }>('/school/courses', { archived }),
-      create: (body: { title: string; description?: string; subject?: string | null; coverUrl?: string | null; color?: string | null }) => http.post<CourseDto>('/school/courses', body),
+      create: (body: { title: string; description?: string; subject?: string | null; coverUrl?: string | null; color?: string | null }) =>
+        http.post<CourseDto>('/school/courses', body),
       join: (code: string) => http.post<CourseDto>('/school/join', { code }),
       get: (id: string) => http.get<CourseDto>(`/school/courses/${id}`),
-      update: (id: string, body: Partial<{ title: string; description: string; subject: string | null; coverUrl: string | null; color: string | null; archived: boolean; regenerateCode: boolean }>) =>
-        http.patch<CourseDto>(`/school/courses/${id}`, body),
+      update: (
+        id: string,
+        body: Partial<{
+          title: string;
+          description: string;
+          subject: string | null;
+          coverUrl: string | null;
+          color: string | null;
+          archived: boolean;
+          regenerateCode: boolean;
+        }>,
+      ) => http.patch<CourseDto>(`/school/courses/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/school/courses/${id}`),
-      members: (id: string) => http.get<{ items: { user: UserSummary; role: 'teacher' | 'assistant' | 'student'; joinedAt: number }[] }>(`/school/courses/${id}/members`),
+      members: (id: string) =>
+        http.get<{ items: { user: UserSummary; role: 'teacher' | 'assistant' | 'student'; joinedAt: number }[] }>(`/school/courses/${id}/members`),
       setMemberRole: (id: string, userId: string, role: 'assistant' | 'student') => http.patch<Ok>(`/school/courses/${id}/members/${userId}`, { role }),
       removeMember: (id: string, userId: string) => http.del<Ok>(`/school/courses/${id}/members/${userId}`),
       announcements: (id: string) => http.get<{ items: CourseAnnouncementDto[] }>(`/school/courses/${id}/announcements`),
-      announce: (id: string, body: { text: string; attachments?: CourseAnnouncementDto['attachments'] }) => http.post<{ id: string }>(`/school/courses/${id}/announcements`, body),
+      announce: (id: string, body: { text: string; attachments?: CourseAnnouncementDto['attachments'] }) =>
+        http.post<{ id: string }>(`/school/courses/${id}/announcements`, body),
       deleteAnnouncement: (id: string, annId: string) => http.del<Ok>(`/school/courses/${id}/announcements/${annId}`),
       assignments: (id: string) => http.get<{ items: AssignmentDto[] }>(`/school/courses/${id}/assignments`),
       createAssignment: (id: string, body: Partial<AssignmentDto> & { title: string }) => http.post<AssignmentDto>(`/school/courses/${id}/assignments`, body),
       assignment: (assignmentId: string) => http.get<AssignmentDto>(`/school/assignments/${assignmentId}`),
       updateAssignment: (assignmentId: string, body: Partial<AssignmentDto>) => http.patch<AssignmentDto>(`/school/assignments/${assignmentId}`, body),
       deleteAssignment: (assignmentId: string) => http.del<Ok>(`/school/assignments/${assignmentId}`),
-      submit: (assignmentId: string, body: { text: string; attachments: SubmissionDto['attachments'] }) => http.post<SubmissionDto>(`/school/assignments/${assignmentId}/submit`, body),
+      submit: (assignmentId: string, body: { text: string; attachments: SubmissionDto['attachments'] }) =>
+        http.post<SubmissionDto>(`/school/assignments/${assignmentId}/submit`, body),
       unsubmit: (assignmentId: string) => http.del<Ok>(`/school/assignments/${assignmentId}/submit`),
       submissions: (assignmentId: string) => http.get<{ items: SubmissionDto[] }>(`/school/assignments/${assignmentId}/submissions`),
       grade: (submissionId: string, body: { grade: number; feedback?: string; rubricScores?: Record<string, number>; returned?: boolean }) =>
@@ -329,8 +394,12 @@ export function createApi(options: ClientOptions) {
       addMaterial: (id: string, body: { title: string; text?: string; topic?: string | null; fileUrl?: string | null; visibleToStudents?: boolean }) =>
         http.post<CourseMaterialDto>(`/school/courses/${id}/materials`, body),
       deleteMaterial: (materialId: string) => http.del<Ok>(`/school/materials/${materialId}`),
-      essayKeys: (id: string) => http.get<{ items: { id: string; prompt: string; topic: string | null; keyPointCount: number; modelAnswer?: string; keyPoints?: string[] }[] }>(`/school/courses/${id}/essay-keys`),
-      addEssayKey: (id: string, body: { prompt: string; modelAnswer?: string; keyPoints: string[]; topic?: string | null }) => http.post<{ id: string }>(`/school/courses/${id}/essay-keys`, body),
+      essayKeys: (id: string) =>
+        http.get<{ items: { id: string; prompt: string; topic: string | null; keyPointCount: number; modelAnswer?: string; keyPoints?: string[] }[] }>(
+          `/school/courses/${id}/essay-keys`,
+        ),
+      addEssayKey: (id: string, body: { prompt: string; modelAnswer?: string; keyPoints: string[]; topic?: string | null }) =>
+        http.post<{ id: string }>(`/school/courses/${id}/essay-keys`, body),
       deleteEssayKey: (keyId: string) => http.del<Ok>(`/school/essay-keys/${keyId}`),
       synonyms: (id: string) => http.get<{ items: { id: string; term: string; synonyms: string[] }[] }>(`/school/courses/${id}/synonyms`),
       addSynonym: (id: string, body: { term: string; synonyms: string[] }) => http.post<Ok>(`/school/courses/${id}/synonyms`, body),
@@ -345,8 +414,13 @@ export function createApi(options: ClientOptions) {
 
     live: {
       list: (q: { scopeType?: string; scopeId?: string } = {}) => http.get<{ items: LiveRoomDto[] }>('/live', q),
-      create: (body: { title: string; scopeType: LiveRoomDto['scopeType']; scopeId?: string | null; scheduledAt?: number | null; settings?: LiveRoomDto['settings'] }) =>
-        http.post<LiveRoomDto>('/live', body),
+      create: (body: {
+        title: string;
+        scopeType: LiveRoomDto['scopeType'];
+        scopeId?: string | null;
+        scheduledAt?: number | null;
+        settings?: LiveRoomDto['settings'];
+      }) => http.post<LiveRoomDto>('/live', body),
       get: (id: string) => http.get<LiveRoomDto>(`/live/${id}`),
       start: (id: string) => http.post<LiveRoomDto>(`/live/${id}/start`),
       end: (id: string) => http.post<LiveRoomDto>(`/live/${id}/end`),
@@ -358,7 +432,8 @@ export function createApi(options: ClientOptions) {
     },
     classes: {
       list: () => http.get<{ items: ScheduledClassDto[] }>('/classes'),
-      create: (body: { title: string; subject?: string | null; description?: string; link: string; startsAt?: number | null }) => http.post<{ id: string }>('/classes', body),
+      create: (body: { title: string; subject?: string | null; description?: string; link: string; startsAt?: number | null }) =>
+        http.post<{ id: string }>('/classes', body),
       remove: (id: string) => http.del<Ok>(`/classes/${id}`),
     },
 
@@ -380,8 +455,17 @@ export function createApi(options: ClientOptions) {
 
     library: {
       list: (q: Q = {}) => http.get<Page<LibraryItemDto>>('/library', q),
-      create: (body: { title: string; description?: string; category: LibraryItemDto['category']; sectionId?: string | null; materialId?: string | null; fileUrl: string; mime: string; size: number; coverUrl?: string | null }) =>
-        http.post<{ id: string; approved: boolean }>('/library', body),
+      create: (body: {
+        title: string;
+        description?: string;
+        category: LibraryItemDto['category'];
+        sectionId?: string | null;
+        materialId?: string | null;
+        fileUrl: string;
+        mime: string;
+        size: number;
+        coverUrl?: string | null;
+      }) => http.post<{ id: string; approved: boolean }>('/library', body),
       approve: (id: string) => http.post<Ok>(`/library/${id}/approve`),
       download: (id: string) => http.post<{ url: string }>(`/library/${id}/download`),
       remove: (id: string) => http.del<Ok>(`/library/${id}`),
@@ -392,27 +476,42 @@ export function createApi(options: ClientOptions) {
       createFolder: (name: string, parentId?: string | null) => http.post<WorkspaceFolderDto>('/workspace/folders', { name, parentId }),
       renameFolder: (id: string, name: string) => http.patch<WorkspaceFolderDto>(`/workspace/folders/${id}`, { name }),
       deleteFolder: (id: string) => http.del<Ok>(`/workspace/folders/${id}`),
-      createFile: (body: { title: string; kind: WorkspaceFileDto['kind']; folderId?: string | null; content?: unknown }) => http.post<WorkspaceFileDto>('/workspace/files', body),
+      createFile: (body: { title: string; kind: WorkspaceFileDto['kind']; folderId?: string | null; content?: unknown }) =>
+        http.post<WorkspaceFileDto>('/workspace/files', body),
       file: (id: string) => http.get<WorkspaceFileDto>(`/workspace/files/${id}`),
-      updateFile: (id: string, body: { version: number; title?: string; folderId?: string | null; content?: unknown }) => http.patch<WorkspaceFileDto>(`/workspace/files/${id}`, body),
+      updateFile: (id: string, body: { version: number; title?: string; folderId?: string | null; content?: unknown }) =>
+        http.patch<WorkspaceFileDto>(`/workspace/files/${id}`, body),
       deleteFile: (id: string) => http.del<Ok>(`/workspace/files/${id}`),
       import: (file: Blob, name: string) => {
         const form = new FormData();
         form.set('file', file, name);
-        return http.request<{ title: string; text: string; chunks: { heading: string | null; page: number | null; text: string }[] }>('POST', '/workspace/import', { form });
+        return http.request<{ title: string; text: string; chunks: { heading: string | null; page: number | null; text: string }[] }>(
+          'POST',
+          '/workspace/import',
+          { form },
+        );
       },
     },
 
     saved: {
       list: (q: { collectionId?: string; type?: string } = {}) => http.get<{ items: SavedItemDto[]; collections: SavedCollectionDto[] }>('/saved', q),
-      add: (body: { itemType: SavedItemDto['itemType']; refId?: string | null; title: string; url?: string | null; note?: string; collectionId?: string | null }) => http.post<SavedItemDto>('/saved', body),
+      add: (body: {
+        itemType: SavedItemDto['itemType'];
+        refId?: string | null;
+        title: string;
+        url?: string | null;
+        note?: string;
+        collectionId?: string | null;
+      }) => http.post<SavedItemDto>('/saved', body),
       update: (id: string, body: { note?: string; collectionId?: string | null; title?: string }) => http.patch<SavedItemDto>(`/saved/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/saved/${id}`),
       removeByRef: (type: string, refId: string) => http.del<Ok>(`/saved/by-ref/${enc(type)}/${enc(refId)}`),
       createCollection: (body: { name: string; description?: string; isPublic: boolean }) => http.post<SavedCollectionDto>('/saved/collections', body),
-      updateCollection: (id: string, body: Partial<{ name: string; description: string; isPublic: boolean }>) => http.patch<SavedCollectionDto>(`/saved/collections/${id}`, body),
+      updateCollection: (id: string, body: Partial<{ name: string; description: string; isPublic: boolean }>) =>
+        http.patch<SavedCollectionDto>(`/saved/collections/${id}`, body),
       deleteCollection: (id: string) => http.del<Ok>(`/saved/collections/${id}`),
-      public: (slug: string) => http.request<{ collection: SavedCollectionDto; owner: UserSummary; items: SavedItemDto[] }>('GET', `/saved/public/${enc(slug)}`, { anonymous: true }),
+      public: (slug: string) =>
+        http.request<{ collection: SavedCollectionDto; owner: UserSummary; items: SavedItemDto[] }>('GET', `/saved/public/${enc(slug)}`, { anonymous: true }),
     },
 
     search: (q: string, signal?: AbortSignal) => http.get<SearchResultsDto>('/search', { q }, signal),
@@ -420,7 +519,8 @@ export function createApi(options: ClientOptions) {
     ai: {
       courses: () => http.get<{ items: { id: string; title: string; subject: string | null; materials: number }[] }>('/ai/courses'),
       quota: () => http.get<{ enabled: boolean; limit: number; used: number }>('/ai/quota'),
-      solve: (body: { question: string; material?: string; options?: string[]; courseId?: string | null; mode?: 'solve' | 'explain' | 'summarize' | 'quiz' }) => http.post<AiAnswerDto>('/ai/solve', body),
+      solve: (body: { question: string; material?: string; options?: string[]; courseId?: string | null; mode?: 'solve' | 'explain' | 'summarize' | 'quiz' }) =>
+        http.post<AiAnswerDto>('/ai/solve', body),
       gradeEssay: (body: { answer: string; keyId?: string; modelAnswer?: string; keyPoints?: string[] }) => http.post<EssayGradeDto>('/ai/grade-essay', body),
       explain: (attemptId: string, questionId: string) => http.post<AiAnswerDto>('/ai/explain', { attemptId, questionId }),
     },
@@ -437,27 +537,33 @@ export function createApi(options: ClientOptions) {
       overview: () => http.get<AdminOverviewDto>('/admin/overview'),
       users: (q: Q = {}) => http.get<Page<AdminUserDto>>('/admin/users', q),
       user: (id: string) =>
-        http.get<{ user: AdminUserDto; stats: { posts: number; attempts: number; reports: number; xp: number; streak: number }; sessions: { id: string; client: string; userAgent: string | null; ip: string | null; lastUsedAt: number }[] }>(
-          `/admin/users/${id}`,
-        ),
+        http.get<{
+          user: AdminUserDto;
+          stats: { posts: number; attempts: number; reports: number; xp: number; streak: number };
+          sessions: { id: string; client: string; userAgent: string | null; ip: string | null; lastUsedAt: number }[];
+        }>(`/admin/users/${id}`),
       ban: (id: string, reason: string, until?: number | null) => http.post<Ok>(`/admin/users/${id}/ban`, { reason, until }),
       unban: (id: string) => http.post<Ok>(`/admin/users/${id}/unban`),
       setRole: (id: string, role: 'user' | 'moderator' | 'admin') => http.put<Ok>(`/admin/users/${id}/role`, { role }),
       setPermissions: (id: string, permissions: string[]) => http.put<Ok>(`/admin/users/${id}/permissions`, { permissions }),
-      setBadge: (id: string, badge: { enabled: boolean; label: string; color: string; icon?: string; shape?: string }) => http.put<Ok>(`/admin/users/${id}/badge`, badge),
+      setBadge: (id: string, badge: { enabled: boolean; label: string; color: string; icon?: string; shape?: string }) =>
+        http.put<Ok>(`/admin/users/${id}/badge`, badge),
       revokeSessions: (id: string) => http.post<Ok>(`/admin/users/${id}/revoke-sessions`),
       deleteUser: (id: string) => http.del<Ok>(`/admin/users/${id}`),
       reports: (q: Q = {}) => http.get<Page<ReportDto>>('/admin/reports', q),
-      resolveReport: (id: string, body: { status: 'resolved' | 'dismissed'; resolution?: string; removeContent?: boolean }) => http.post<Ok>(`/admin/reports/${id}/resolve`, body),
+      resolveReport: (id: string, body: { status: 'resolved' | 'dismissed'; resolution?: string; removeContent?: boolean }) =>
+        http.post<Ok>(`/admin/reports/${id}/resolve`, body),
       announcements: () => http.get<{ items: AnnouncementDto[] }>('/admin/announcements'),
       createAnnouncement: (body: Omit<AnnouncementDto, 'id' | 'createdAt'>) => http.post<AnnouncementDto>('/admin/announcements', body),
       updateAnnouncement: (id: string, body: Omit<AnnouncementDto, 'id' | 'createdAt'>) => http.put<AnnouncementDto>(`/admin/announcements/${id}`, body),
       deleteAnnouncement: (id: string) => http.del<Ok>(`/admin/announcements/${id}`),
       ads: () => http.get<{ items: AdDto[] }>('/admin/ads'),
       createAd: (body: Pick<AdDto, 'title' | 'subtitle' | 'link' | 'imageUrl' | 'placement' | 'active'>) => http.post<AdDto>('/admin/ads', body),
-      updateAd: (id: string, body: Pick<AdDto, 'title' | 'subtitle' | 'link' | 'imageUrl' | 'placement' | 'active'>) => http.put<AdDto>(`/admin/ads/${id}`, body),
+      updateAd: (id: string, body: Pick<AdDto, 'title' | 'subtitle' | 'link' | 'imageUrl' | 'placement' | 'active'>) =>
+        http.put<AdDto>(`/admin/ads/${id}`, body),
       deleteAd: (id: string) => http.del<Ok>(`/admin/ads/${id}`),
-      broadcast: (body: { title: string; body?: string; link?: string; audience?: 'all' | 'students' | 'teachers' }) => http.post<{ ok: true; recipients: number }>('/admin/broadcast', body),
+      broadcast: (body: { title: string; body?: string; link?: string; audience?: 'all' | 'students' | 'teachers' }) =>
+        http.post<{ ok: true; recipients: number }>('/admin/broadcast', body),
       createSection: (body: { name: string; sort?: number }) => http.post<{ id: string }>('/admin/sections', body),
       updateSection: (id: string, body: { name: string; sort?: number }) => http.put<{ id: string }>(`/admin/sections/${id}`, body),
       deleteSection: (id: string) => http.del<Ok>(`/admin/sections/${id}`),
@@ -465,27 +571,53 @@ export function createApi(options: ClientOptions) {
       updateMaterial: (id: string, body: { sectionId: string; name: string; sort?: number }) => http.put<{ id: string }>(`/admin/materials/${id}`, body),
       deleteMaterial: (id: string) => http.del<Ok>(`/admin/materials/${id}`),
       dailyChallenges: () =>
-        http.get<{ items: { day: string; type: 'quiz' | 'social'; title: string; description: string; question: string | null; options: string[]; answer: number | null; xp: number }[] }>(
-          '/admin/daily-challenges',
-        ),
-      saveDailyChallenge: (body: { day: string; type: 'quiz' | 'social'; title: string; description?: string; question?: string | null; options?: string[]; answer?: number | null; xp?: number }) =>
-        http.put<Ok>('/admin/daily-challenges', body),
+        http.get<{
+          items: {
+            day: string;
+            type: 'quiz' | 'social';
+            title: string;
+            description: string;
+            question: string | null;
+            options: string[];
+            answer: number | null;
+            xp: number;
+          }[];
+        }>('/admin/daily-challenges'),
+      saveDailyChallenge: (body: {
+        day: string;
+        type: 'quiz' | 'social';
+        title: string;
+        description?: string;
+        question?: string | null;
+        options?: string[];
+        answer?: number | null;
+        xp?: number;
+      }) => http.put<Ok>('/admin/daily-challenges', body),
       deleteDailyChallenge: (day: string) => http.del<Ok>(`/admin/daily-challenges/${day}`),
       features: () => http.get<{ features: FeatureControlMap }>('/admin/features'),
       saveFeatures: (features: FeatureControlMap) => http.put<{ features: FeatureControlMap }>('/admin/features', features),
       settings: () =>
-        http.get<{ features: FeatureControlMap; maintenance: { enabled: boolean; message: string }; registrationOpen: boolean; contact: Record<string, string>; ai: { enabled: boolean; dailyQuota: number }; uploads: { enabled: boolean } }>(
-          '/admin/settings',
-        ),
+        http.get<{
+          features: FeatureControlMap;
+          maintenance: { enabled: boolean; message: string };
+          registrationOpen: boolean;
+          contact: Record<string, string>;
+          ai: { enabled: boolean; dailyQuota: number };
+          uploads: { enabled: boolean };
+        }>('/admin/settings'),
       saveSettings: (body: Record<string, unknown>) => http.put<unknown>('/admin/settings', body),
       errors: () => http.get<{ items: ClientErrorDto[] }>('/admin/errors'),
       clearErrors: () => http.del<Ok>('/admin/errors'),
       audit: (q: Q = {}) => http.get<Page<AuditEntryDto>>('/admin/audit', q),
       knowledge: () => http.get<{ items: AssistantKnowledgeDto[] }>('/admin/assistant-knowledge'),
-      addKnowledge: (items: Omit<AssistantKnowledgeDto, 'id' | 'createdAt'>[]) => http.post<{ ok: true; added: number }>('/admin/assistant-knowledge', { items }),
+      addKnowledge: (items: Omit<AssistantKnowledgeDto, 'id' | 'createdAt'>[]) =>
+        http.post<{ ok: true; added: number }>('/admin/assistant-knowledge', { items }),
       updateKnowledge: (id: string, body: Omit<AssistantKnowledgeDto, 'id' | 'createdAt'>) => http.put<Ok>(`/admin/assistant-knowledge/${id}`, body),
       deleteKnowledge: (id: string) => http.del<Ok>(`/admin/assistant-knowledge/${id}`),
-      assistantFeedback: () => http.get<{ up: number; down: number; items: { id: string; content: string; rating: 'up' | 'down'; feedback: string | null; createdAt: number }[] }>('/admin/assistant-feedback'),
+      assistantFeedback: () =>
+        http.get<{ up: number; down: number; items: { id: string; content: string; rating: 'up' | 'down'; feedback: string | null; createdAt: number }[] }>(
+          '/admin/assistant-feedback',
+        ),
       cleanup: () => http.post<{ sessions: number; tokens: number; notifications: number; abandonedAttempts: number }>('/admin/maintenance/cleanup'),
       recomputeLevels: () => http.post<{ checked: number; fixed: number }>('/admin/maintenance/recompute-levels'),
     },

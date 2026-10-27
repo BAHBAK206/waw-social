@@ -48,8 +48,14 @@ async function toGroupDtos(deps: Deps, viewer: AuthUser, rows: (GroupRow & Recor
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
   const [roles, requests, pending] = await Promise.all([
-    deps.db.select({ g: groupMembers.groupId, role: groupMembers.role }).from(groupMembers).where(and(inArray(groupMembers.groupId, ids), eq(groupMembers.userId, viewer.id))),
-    deps.db.select({ g: groupJoinRequests.groupId }).from(groupJoinRequests).where(and(inArray(groupJoinRequests.groupId, ids), eq(groupJoinRequests.userId, viewer.id))),
+    deps.db
+      .select({ g: groupMembers.groupId, role: groupMembers.role })
+      .from(groupMembers)
+      .where(and(inArray(groupMembers.groupId, ids), eq(groupMembers.userId, viewer.id))),
+    deps.db
+      .select({ g: groupJoinRequests.groupId })
+      .from(groupJoinRequests)
+      .where(and(inArray(groupJoinRequests.groupId, ids), eq(groupJoinRequests.userId, viewer.id))),
     deps.db
       .select({ g: groupJoinRequests.groupId, n: count() })
       .from(groupJoinRequests)
@@ -100,14 +106,25 @@ async function requireModerator(deps: Deps, viewer: AuthUser, groupId: string) {
 
 async function addMember(deps: Deps, groupId: string, userId: string, role: 'owner' | 'admin' | 'teacher' | 'member' = 'member') {
   const inserted = await deps.db.insert(groupMembers).values({ groupId, userId, role }).onConflictDoNothing().returning();
-  if (inserted.length) await deps.db.update(groups).set({ memberCount: sql`${groups.memberCount} + 1` }).where(eq(groups.id, groupId));
+  if (inserted.length)
+    await deps.db
+      .update(groups)
+      .set({ memberCount: sql`${groups.memberCount} + 1` })
+      .where(eq(groups.id, groupId));
   await deps.db.delete(groupJoinRequests).where(and(eq(groupJoinRequests.groupId, groupId), eq(groupJoinRequests.userId, userId)));
   return inserted.length > 0;
 }
 
 async function removeMember(deps: Deps, groupId: string, userId: string) {
-  const removed = await deps.db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId))).returning();
-  if (removed.length) await deps.db.update(groups).set({ memberCount: sql`greatest(${groups.memberCount} - 1, 0)` }).where(eq(groups.id, groupId));
+  const removed = await deps.db
+    .delete(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
+    .returning();
+  if (removed.length)
+    await deps.db
+      .update(groups)
+      .set({ memberCount: sql`greatest(${groups.memberCount} - 1, 0)` })
+      .where(eq(groups.id, groupId));
 }
 
 const listQuery = paginationSchema.extend({
@@ -221,14 +238,25 @@ export const groupRoutes = new Hono<AppEnv>()
       return c.json({ status: 'member' });
     }
     const { message } = await body(c, joinRequestSchema).catch(() => ({ message: '' }));
-    await deps.db.insert(groupJoinRequests).values({ groupId: g.id, userId: viewer.id, message: message ?? '' }).onConflictDoNothing();
+    await deps.db
+      .insert(groupJoinRequests)
+      .values({ groupId: g.id, userId: viewer.id, message: message ?? '' })
+      .onConflictDoNothing();
     const mods = await deps.db
       .select({ id: groupMembers.userId })
       .from(groupMembers)
       .where(and(eq(groupMembers.groupId, g.id), inArray(groupMembers.role, ['owner', 'admin'])));
     await notify(
       deps,
-      mods.map((m) => ({ userId: m.id, type: 'group_request', icon: 'user-plus', actorId: viewer.id, link: `/groups/${g.id}?tab=members`, data: { name: viewer.displayName, group: g.name }, pref: 'groups' as const })),
+      mods.map((m) => ({
+        userId: m.id,
+        type: 'group_request',
+        icon: 'user-plus',
+        actorId: viewer.id,
+        link: `/groups/${g.id}?tab=members`,
+        data: { name: viewer.displayName, group: g.name },
+        pref: 'groups' as const,
+      })),
     );
     return c.json({ status: 'requested' });
   })
@@ -265,12 +293,23 @@ export const groupRoutes = new Hono<AppEnv>()
     const g = await loadGroup(deps.db, param(c, 'id'));
     await requireModerator(deps, viewer, g.id);
     const userId = param(c, 'userId');
-    const [req] = await deps.db.select().from(groupJoinRequests).where(and(eq(groupJoinRequests.groupId, g.id), eq(groupJoinRequests.userId, userId)));
+    const [req] = await deps.db
+      .select()
+      .from(groupJoinRequests)
+      .where(and(eq(groupJoinRequests.groupId, g.id), eq(groupJoinRequests.userId, userId)));
     if (!req) throw notFound('request_not_found');
     if (c.req.param('decision') === 'approve') {
       await addMember(deps, g.id, userId);
       await checkAchievements(deps.db, userId);
-      await notify(deps, { userId, type: 'group_approved', icon: 'check', actorId: viewer.id, link: `/groups/${g.id}`, data: { group: g.name }, pref: 'groups' });
+      await notify(deps, {
+        userId,
+        type: 'group_approved',
+        icon: 'check',
+        actorId: viewer.id,
+        link: `/groups/${g.id}`,
+        data: { group: g.name },
+        pref: 'groups',
+      });
     } else {
       await deps.db.delete(groupJoinRequests).where(and(eq(groupJoinRequests.groupId, g.id), eq(groupJoinRequests.userId, userId)));
     }
@@ -287,7 +326,12 @@ export const groupRoutes = new Hono<AppEnv>()
       .select({ ...summaryColumns, role: groupMembers.role, joinedAt: groupMembers.joinedAt })
       .from(groupMembers)
       .innerJoin(users, eq(users.id, groupMembers.userId))
-      .where(and(eq(groupMembers.groupId, g.id), cursor ? sql`(${groupMembers.joinedAt}, ${users.id}) > (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined))
+      .where(
+        and(
+          eq(groupMembers.groupId, g.id),
+          cursor ? sql`(${groupMembers.joinedAt}, ${users.id}) > (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
+        ),
+      )
       .orderBy(groupMembers.joinedAt, users.id)
       .limit(q.limit + 1);
     const page = pageOf(rows, q.limit, (r) => ({ t: r.joinedAt, id: r.id }));
@@ -305,7 +349,11 @@ export const groupRoutes = new Hono<AppEnv>()
     if (userId === g.ownerId) throw forbidden('cannot_change_owner');
     const { role } = await body(c, memberRoleSchema);
     if (role === 'admin' && myRole !== 'owner') throw forbidden('owner_only');
-    const updated = await deps.db.update(groupMembers).set({ role }).where(and(eq(groupMembers.groupId, g.id), eq(groupMembers.userId, userId))).returning();
+    const updated = await deps.db
+      .update(groupMembers)
+      .set({ role })
+      .where(and(eq(groupMembers.groupId, g.id), eq(groupMembers.userId, userId)))
+      .returning();
     if (!updated.length) throw notFound('member_not_found');
     return c.json({ ok: true, role });
   })
@@ -330,8 +378,14 @@ export const groupRoutes = new Hono<AppEnv>()
     if (!(await groupRole(deps.db, g.id, userId))) throw badRequest('not_a_member');
     await deps.db.transaction(async (tx) => {
       await tx.update(groups).set({ ownerId: userId }).where(eq(groups.id, g.id));
-      await tx.update(groupMembers).set({ role: 'owner' }).where(and(eq(groupMembers.groupId, g.id), eq(groupMembers.userId, userId)));
-      await tx.update(groupMembers).set({ role: 'admin' }).where(and(eq(groupMembers.groupId, g.id), eq(groupMembers.userId, viewer.id)));
+      await tx
+        .update(groupMembers)
+        .set({ role: 'owner' })
+        .where(and(eq(groupMembers.groupId, g.id), eq(groupMembers.userId, userId)));
+      await tx
+        .update(groupMembers)
+        .set({ role: 'admin' })
+        .where(and(eq(groupMembers.groupId, g.id), eq(groupMembers.userId, viewer.id)));
     });
     return c.json({ ok: true });
   })
@@ -369,7 +423,12 @@ export const groupRoutes = new Hono<AppEnv>()
       .select({ r: groupResources, ...ownerCols })
       .from(groupResources)
       .innerJoin(users, eq(users.id, groupResources.uploaderId))
-      .where(and(eq(groupResources.groupId, g.id), cursor ? sql`(${groupResources.createdAt}, ${groupResources.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined))
+      .where(
+        and(
+          eq(groupResources.groupId, g.id),
+          cursor ? sql`(${groupResources.createdAt}, ${groupResources.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
+        ),
+      )
       .orderBy(desc(groupResources.createdAt), desc(groupResources.id))
       .limit(q.limit + 1);
     const page = pageOf(rows, q.limit, (r) => ({ t: r.r.createdAt, id: r.r.id }));
@@ -392,14 +451,20 @@ export const groupRoutes = new Hono<AppEnv>()
     const role = await groupRole(deps.db, g.id, viewer.id);
     if (!role) throw forbidden('not_a_member');
     const input = await body(c, groupResourceSchema);
-    const [row] = await deps.db.insert(groupResources).values({ groupId: g.id, uploaderId: viewer.id, ...input }).returning();
+    const [row] = await deps.db
+      .insert(groupResources)
+      .values({ groupId: g.id, uploaderId: viewer.id, ...input })
+      .returning();
     return c.json({ id: row!.id }, 201);
   })
   .delete('/:id/resources/:resourceId', async (c) => {
     const viewer = requireUser(c);
     const deps = c.get('deps');
     const g = await loadGroup(deps.db, param(c, 'id'));
-    const [res] = await deps.db.select().from(groupResources).where(and(eq(groupResources.id, param(c, 'resourceId')), eq(groupResources.groupId, g.id)));
+    const [res] = await deps.db
+      .select()
+      .from(groupResources)
+      .where(and(eq(groupResources.id, param(c, 'resourceId')), eq(groupResources.groupId, g.id)));
     if (!res) throw notFound();
     if (res.uploaderId !== viewer.id) await requireModerator(deps, viewer, g.id);
     await deps.db.delete(groupResources).where(eq(groupResources.id, res.id));
@@ -423,7 +488,10 @@ export const groupRoutes = new Hono<AppEnv>()
     const [{ n }] = (await deps.db.select({ n: count() }).from(groupChannels).where(eq(groupChannels.groupId, g.id))) as [{ n: number }];
     if (n >= 30) throw conflict('too_many_channels');
     const [conv] = await deps.db.insert(conversations).values({ kind: 'channel', groupId: g.id, title: input.name }).returning({ id: conversations.id });
-    const [row] = await deps.db.insert(groupChannels).values({ groupId: g.id, name: input.name, kind: input.kind, conversationId: conv!.id, sort: n }).returning();
+    const [row] = await deps.db
+      .insert(groupChannels)
+      .values({ groupId: g.id, name: input.name, kind: input.kind, conversationId: conv!.id, sort: n })
+      .returning();
     return c.json({ id: row!.id, name: row!.name, kind: row!.kind, conversationId: row!.conversationId } satisfies ChannelDto, 201);
   })
   .delete('/:id/channels/:channelId', async (c) => {
@@ -431,7 +499,10 @@ export const groupRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const g = await loadGroup(deps.db, param(c, 'id'));
     await requireModerator(deps, viewer, g.id);
-    const [row] = await deps.db.delete(groupChannels).where(and(eq(groupChannels.id, param(c, 'channelId')), eq(groupChannels.groupId, g.id))).returning();
+    const [row] = await deps.db
+      .delete(groupChannels)
+      .where(and(eq(groupChannels.id, param(c, 'channelId')), eq(groupChannels.groupId, g.id)))
+      .returning();
     if (row) await deps.db.delete(conversations).where(eq(conversations.id, row.conversationId));
     return c.json({ ok: true });
   });

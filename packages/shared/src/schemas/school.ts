@@ -6,7 +6,11 @@ export const courseInputSchema = z.object({
   description: trimmed(4000).default(''),
   subject: trimmed(120).optional().nullable(),
   coverUrl: optionalUrl,
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional()
+    .nullable(),
 });
 export const joinCourseSchema = z.object({ code: z.string().trim().min(4).max(16) });
 export const courseAnnouncementSchema = z.object({ text: trimmed(5000, 1), attachments: z.array(attachmentSchema).max(10).default([]) });
@@ -44,7 +48,10 @@ export const rubricInputSchema = z.object({
       z.object({
         title: trimmed(160, 1),
         description: trimmed(1000).default(''),
-        levels: z.array(z.object({ label: trimmed(80, 1), points: z.number().min(0).max(1000) })).min(1).max(8),
+        levels: z
+          .array(z.object({ label: trimmed(80, 1), points: z.number().min(0).max(1000) }))
+          .min(1)
+          .max(8),
       }),
     )
     .min(1)

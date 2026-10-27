@@ -106,19 +106,28 @@ export function buildThemeCss(): string {
   const skins = Object.keys(SKIN_TOKENS) as SkinName[];
   const modes: ResolvedMode[] = ['light', 'dark'];
   const accentKeys = new Set([
-    '--primary', '--primary-2', '--primary-3', '--on-primary', '--primary-ink', '--primary-soft',
-    '--grad-from', '--grad-to', '--grad-dark-from', '--grad-dark-to',
+    '--primary',
+    '--primary-2',
+    '--primary-3',
+    '--on-primary',
+    '--primary-ink',
+    '--primary-soft',
+    '--grad-from',
+    '--grad-to',
+    '--grad-dark-from',
+    '--grad-dark-to',
   ]);
   const lines: string[] = [];
   const block = (selector: string, vars: Record<string, string>) =>
-    `${selector}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+    `${selector}{${Object.entries(vars)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(';')}}`;
   for (const mode of modes) {
     for (const design of designs) {
       const t = resolveTheme(design, 'violet', mode);
       const vars = Object.fromEntries(Object.entries(themeVariables(t)).filter(([k]) => !accentKeys.has(k)));
-      const sel = design === 'classic' && mode === 'light'
-        ? `:root,[data-design="classic"][data-theme="light"]`
-        : `[data-design="${design}"][data-theme="${mode}"]`;
+      const sel =
+        design === 'classic' && mode === 'light' ? `:root,[data-design="classic"][data-theme="light"]` : `[data-design="${design}"][data-theme="${mode}"]`;
       lines.push(block(sel, { ...vars, 'color-scheme': mode }));
     }
     for (const skin of skins) {
@@ -130,4 +139,3 @@ export function buildThemeCss(): string {
   }
   return lines.join('\n');
 }
-

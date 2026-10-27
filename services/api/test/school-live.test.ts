@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { AcademicDashboardDto, AiAnswerDto, AssignmentDto, AttendanceSessionDto, CourseAnalyticsDto, CourseDto, CourseMaterialDto, GroupDto, LiveRoomDto, SubmissionDto } from '@qubedu/shared';
+import type {
+  AcademicDashboardDto,
+  AiAnswerDto,
+  AssignmentDto,
+  AttendanceSessionDto,
+  CourseAnalyticsDto,
+  CourseDto,
+  CourseMaterialDto,
+  GroupDto,
+  LiveRoomDto,
+  SubmissionDto,
+} from '@qubedu/shared';
 import { call, newUser } from './helpers';
 
 describe('school', () => {
@@ -20,14 +31,29 @@ describe('school', () => {
 
     const rubric = await call<{ id: string }>('POST', `/school/courses/${course.body.id}/rubrics`, {
       token: teacher.token,
-      body: { title: 'Essay', criteria: [{ title: 'Clarity', levels: [{ label: 'Good', points: 4 }, { label: 'Weak', points: 1 }] }, { title: 'Evidence', levels: [{ label: 'Good', points: 6 }] }] },
+      body: {
+        title: 'Essay',
+        criteria: [
+          {
+            title: 'Clarity',
+            levels: [
+              { label: 'Good', points: 4 },
+              { label: 'Weak', points: 1 },
+            ],
+          },
+          { title: 'Evidence', levels: [{ label: 'Good', points: 6 }] },
+        ],
+      },
     });
     const a = await call<AssignmentDto>('POST', `/school/courses/${course.body.id}/assignments`, {
       token: teacher.token,
       body: { title: 'Cell essay', points: 20, dueAt: Date.now() + 2 * 86400_000, rubricId: rubric.body.id },
     });
     expect(a.status).toBe(201);
-    const draft = await call<AssignmentDto>('POST', `/school/courses/${course.body.id}/assignments`, { token: teacher.token, body: { title: 'Hidden', state: 'draft' } });
+    const draft = await call<AssignmentDto>('POST', `/school/courses/${course.body.id}/assignments`, {
+      token: teacher.token,
+      body: { title: 'Hidden', state: 'draft' },
+    });
     const list = await call<{ items: AssignmentDto[] }>('GET', `/school/courses/${course.body.id}/assignments`, { token: student.token });
     expect(list.body.items.map((x) => x.id)).toEqual([a.body.id]);
     expect((await call('GET', `/school/assignments/${draft.body.id}`, { token: student.token })).status).toBe(404);
@@ -39,15 +65,29 @@ describe('school', () => {
     expect(sub.status).toBe(201);
     const subs = await call<{ items: SubmissionDto[] }>('GET', `/school/assignments/${a.body.id}/submissions`, { token: teacher.token });
     expect(subs.body.items).toHaveLength(1);
-    const graded = await call<SubmissionDto>('POST', `/school/submissions/${sub.body.id}/grade`, { token: teacher.token, body: { grade: 0, rubricScores: { Clarity: 4, Evidence: 6 }, feedback: 'Great' } });
+    const graded = await call<SubmissionDto>('POST', `/school/submissions/${sub.body.id}/grade`, {
+      token: teacher.token,
+      body: { grade: 0, rubricScores: { Clarity: 4, Evidence: 6 }, feedback: 'Great' },
+    });
     expect(graded.body.grade).toBe(20);
     expect(graded.body.status).toBe('returned');
     expect((await call('POST', `/school/assignments/${a.body.id}/submit`, { token: student.token, body: { text: 'again' } })).status).toBe(409);
     const mine = await call<AssignmentDto>('GET', `/school/assignments/${a.body.id}`, { token: student.token });
     expect(mine.body.mySubmission?.grade).toBe(20);
 
-    const att = await call<AttendanceSessionDto>('POST', `/school/courses/${course.body.id}/attendance`, { token: teacher.token, body: { title: 'Lesson 1', day: '2026-10-01' } });
-    await call('PUT', `/school/attendance/${att.body.id}`, { token: teacher.token, body: { records: [{ studentId: student.user.id, status: 'present' }, { studentId: teacher.user.id, status: 'absent' }] } });
+    const att = await call<AttendanceSessionDto>('POST', `/school/courses/${course.body.id}/attendance`, {
+      token: teacher.token,
+      body: { title: 'Lesson 1', day: '2026-10-01' },
+    });
+    await call('PUT', `/school/attendance/${att.body.id}`, {
+      token: teacher.token,
+      body: {
+        records: [
+          { studentId: student.user.id, status: 'present' },
+          { studentId: teacher.user.id, status: 'absent' },
+        ],
+      },
+    });
     const atts = await call<{ items: AttendanceSessionDto[] }>('GET', `/school/courses/${course.body.id}/attendance`, { token: student.token });
     expect(atts.body.items[0]!.records).toEqual({ [student.user.id]: 'present' });
 
@@ -59,10 +99,16 @@ describe('school', () => {
 
     const material = await call<CourseMaterialDto>('POST', `/school/courses/${course.body.id}/materials`, {
       token: teacher.token,
-      body: { title: 'Chapter 1', text: 'The Cell\n\nThe mitochondria is the powerhouse of the cell and produces ATP energy for the organism.\n\nNucleus\n\nThe nucleus stores the genetic information of the cell.' },
+      body: {
+        title: 'Chapter 1',
+        text: 'The Cell\n\nThe mitochondria is the powerhouse of the cell and produces ATP energy for the organism.\n\nNucleus\n\nThe nucleus stores the genetic information of the cell.',
+      },
     });
     expect(material.body.chunkCount).toBe(2);
-    const ai = await call<AiAnswerDto>('POST', '/ai/solve', { token: student.token, body: { question: 'What does the mitochondria produce?', courseId: course.body.id } });
+    const ai = await call<AiAnswerDto>('POST', '/ai/solve', {
+      token: student.token,
+      body: { question: 'What does the mitochondria produce?', courseId: course.body.id },
+    });
     expect(ai.status).toBe(200);
     expect(ai.body.kind).toBe('retrieval');
     expect(ai.body.sources[0]!.title).toBe('Chapter 1');
@@ -91,7 +137,9 @@ describe('live rooms', () => {
     expect(list.body.items[0]!.id).toBe(room.body.id);
 
     const auth = (uid: string, channel: string) =>
-      call<{ allowed: boolean }>('GET', `/internal/authorize?uid=${uid}&channel=${channel}`, { headers: { 'x-internal-token': 'dev-internal-token-change-me' } });
+      call<{ allowed: boolean }>('GET', `/internal/authorize?uid=${uid}&channel=${channel}`, {
+        headers: { 'x-internal-token': 'dev-internal-token-change-me' },
+      });
     expect((await auth(member.user.id, `live:${room.body.id}`)).body.allowed).toBe(true);
     expect((await auth(outsider.user.id, `live:${room.body.id}`)).body.allowed).toBe(false);
     expect((await auth(member.user.id, `conv:${room.body.conversationId}`)).body.allowed).toBe(true);

@@ -9,7 +9,10 @@ export const setPermissionsSchema = z.object({ permissions: z.array(z.enum(ADMIN
 export const badgeSchema = z.object({
   enabled: z.boolean(),
   label: trimmed(40).default(''),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#1d9bf0'),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .default('#1d9bf0'),
   icon: trimmed(8).optional(),
   shape: z.enum(['pill', 'shield', 'diamond', 'ribbon', 'seal', 'crown']).default('seal'),
 });

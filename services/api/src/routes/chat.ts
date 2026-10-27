@@ -150,7 +150,9 @@ async function listConversations(deps: Deps, viewer: AuthUser, opts: { ids?: str
       avatarUrl: r.c.kind === 'direct' ? (peer?.avatarUrl ?? null) : (r.g?.avatarUrl ?? null),
       peer: peer ? (onlineMap.get(peer.id) ?? peer) : null,
       groupId: r.c.groupId,
-      lastMessage: r.c.lastMessageAt ? { text: r.c.lastMessageText ?? '', senderId: r.c.lastMessageSenderId ?? '', createdAt: r.c.lastMessageAt.getTime() } : null,
+      lastMessage: r.c.lastMessageAt
+        ? { text: r.c.lastMessageText ?? '', senderId: r.c.lastMessageSenderId ?? '', createdAt: r.c.lastMessageAt.getTime() }
+        : null,
       unread: unreadMap.get(r.c.id) ?? 0,
       muted: r.m.muted,
       updatedAt: (r.c.lastMessageAt ?? r.c.createdAt).getTime(),
@@ -174,12 +176,7 @@ async function recipientsOf(deps: Deps, conv: typeof conversations.$inferSelect,
   return rows.map((r) => ({ id: r.id, muted: !!r.muted }));
 }
 
-export async function postMessage(
-  deps: Deps,
-  viewer: AuthUser,
-  conversationId: string,
-  input: z.infer<typeof sendMessageSchema>,
-): Promise<MessageDto> {
+export async function postMessage(deps: Deps, viewer: AuthUser, conversationId: string, input: z.infer<typeof sendMessageSchema>): Promise<MessageDto> {
   const { conv, groupRole } = await conversationAccess(deps.db, conversationId, viewer.id);
   if (conv.kind === 'channel') {
     const [chan] = await deps.db.execute<{ kind: string }>(sql`select kind from group_channels where conversation_id = ${conv.id}`);
@@ -196,7 +193,10 @@ export async function postMessage(
       .innerJoin(users, eq(users.id, conversationMembers.userId))
       .where(and(eq(conversationMembers.conversationId, conv.id), ne(conversationMembers.userId, viewer.id)));
     if (peer) {
-      const [blocked] = await deps.db.select().from(blocks).where(and(eq(blocks.blockerId, peer.id), eq(blocks.blockedId, viewer.id)));
+      const [blocked] = await deps.db
+        .select()
+        .from(blocks)
+        .where(and(eq(blocks.blockerId, peer.id), eq(blocks.blockedId, viewer.id)));
       if (blocked) throw forbidden('blocked');
     }
   }
@@ -218,7 +218,14 @@ export async function postMessage(
   }
   const [row] = await deps.db
     .insert(messages)
-    .values({ conversationId: conv.id, senderId: viewer.id, text: input.text, attachment, replyToId: input.replyToId ?? null, clientId: input.clientId ?? null })
+    .values({
+      conversationId: conv.id,
+      senderId: viewer.id,
+      text: input.text,
+      attachment,
+      replyToId: input.replyToId ?? null,
+      clientId: input.clientId ?? null,
+    })
     .returning({ id: messages.id, createdAt: messages.createdAt });
   const preview = input.text ? truncate(input.text, 140) : `📎 ${input.attachment?.name ?? ''}`;
   await deps.db
@@ -245,7 +252,15 @@ export async function postMessage(
         deps,
         recipients
           .filter((r) => !r.muted)
-          .map((r) => ({ userId: r.id, type: 'message', icon: 'message-circle', actorId: viewer.id, link: `/chat/${conv.id}`, data: { name: viewer.displayName, preview }, pref: 'messages' as const })),
+          .map((r) => ({
+            userId: r.id,
+            type: 'message',
+            icon: 'message-circle',
+            actorId: viewer.id,
+            link: `/chat/${conv.id}`,
+            data: { name: viewer.displayName, preview },
+            pref: 'messages' as const,
+          })),
       );
     }
   }
@@ -264,7 +279,10 @@ export const chatRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const { userId } = await body(c, startDirectSchema);
     if (userId === viewer.id) throw badRequest('cannot_message_self');
-    const [peer] = await deps.db.select().from(users).where(and(eq(users.id, userId), isNull(users.deletedAt)));
+    const [peer] = await deps.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)));
     if (!peer) throw notFound('user_not_found');
     const key = directKey(viewer.id, userId);
     const [existing] = await deps.db.select({ id: conversations.id }).from(conversations).where(eq(conversations.directKey, key));
@@ -275,12 +293,18 @@ export const chatRoutes = new Hono<AppEnv>()
         .where(and(eq(conversationMembers.conversationId, existing.id), eq(conversationMembers.userId, viewer.id)));
       return c.json(await conversationDto(deps, viewer, existing.id));
     }
-    const [blocked] = await deps.db.select().from(blocks).where(and(eq(blocks.blockerId, userId), eq(blocks.blockedId, viewer.id)));
+    const [blocked] = await deps.db
+      .select()
+      .from(blocks)
+      .where(and(eq(blocks.blockerId, userId), eq(blocks.blockedId, viewer.id)));
     if (blocked) throw forbidden('blocked');
     const privacy = privacyOf(peer);
     if (privacy.allowMessages === 'none') throw forbidden('messages_disabled');
     if (privacy.allowMessages === 'following') {
-      const [f] = await deps.db.select().from(follows).where(and(eq(follows.followerId, userId), eq(follows.followeeId, viewer.id)));
+      const [f] = await deps.db
+        .select()
+        .from(follows)
+        .where(and(eq(follows.followerId, userId), eq(follows.followeeId, viewer.id)));
       if (!f) throw forbidden('messages_following_only');
     }
     const id = await deps.db.transaction(async (tx) => {

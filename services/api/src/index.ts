@@ -5,7 +5,7 @@ import { createDeps } from './deps';
 import { loadEnv } from './env';
 
 const env = loadEnv();
-if (process.env.MIGRATE_ON_START !== 'false') await runMigrations(env.DATABASE_URL, process.env.MIGRATIONS_DIR);
+if (process.env.MIGRATE_ON_START !== 'false') await runMigrations(env.DATABASE_URL, process.env.MIGRATIONS_DIR || undefined);
 const deps = await createDeps(env);
 const app = createApp(deps);
 

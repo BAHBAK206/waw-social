@@ -6,3 +6,5 @@ pnpm-lock.yaml
 services/ai
 services/realtime
 apps/mobile/.expo
+services/api/drizzle
+services/api/src/db/seed-data

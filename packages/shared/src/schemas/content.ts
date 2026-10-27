@@ -43,7 +43,10 @@ export const formSettingsSchema = z.object({
   shuffleQuestions: z.boolean().default(false),
   deadline: z.number().int().optional().nullable(),
   confirmationMessage: trimmed(1000).default(''),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#6c5ce7'),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .default('#6c5ce7'),
 });
 export type FormSettings = z.infer<typeof formSettingsSchema>;
 

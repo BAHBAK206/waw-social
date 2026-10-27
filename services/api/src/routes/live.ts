@@ -53,7 +53,11 @@ async function toDto(deps: Deps, viewer: AuthUser, room: RoomRow & Record<string
 }
 
 async function loadRoom(deps: Deps, id: string) {
-  const [row] = await deps.db.select({ r: liveRooms, ...hostCols }).from(liveRooms).innerJoin(users, eq(users.id, liveRooms.hostId)).where(eq(liveRooms.id, id));
+  const [row] = await deps.db
+    .select({ r: liveRooms, ...hostCols })
+    .from(liveRooms)
+    .innerJoin(users, eq(users.id, liveRooms.hostId))
+    .where(eq(liveRooms.id, id));
   if (!row) throw notFound('room_not_found');
   return { ...row.r, ...row } as RoomRow & Record<string, unknown>;
 }
@@ -139,7 +143,18 @@ export const liveRoutes = new Hono<AppEnv>()
     const room = await loadRoom(deps, id);
     if (room.scheduledAt) {
       const members = (await scopeMemberIds(deps, room)).filter((m) => m !== viewer.id);
-      await notify(deps, members.map((m) => ({ userId: m, type: 'live_scheduled', icon: 'calendar-clock', actorId: viewer.id, link: `/live/${id}`, data: { title: room.title, startAt: ms(room.scheduledAt) }, pref: 'live' as const })));
+      await notify(
+        deps,
+        members.map((m) => ({
+          userId: m,
+          type: 'live_scheduled',
+          icon: 'calendar-clock',
+          actorId: viewer.id,
+          link: `/live/${id}`,
+          data: { title: room.title, startAt: ms(room.scheduledAt) },
+          pref: 'live' as const,
+        })),
+      );
     }
     return c.json(await toDto(deps, viewer, room), 201);
   })
@@ -160,7 +175,18 @@ export const liveRoutes = new Hono<AppEnv>()
     const updated = await loadRoom(deps, room.id);
     await deps.realtime.publish(ch.live(room.id), 'room:status', { status: 'live' });
     const members = (await scopeMemberIds(deps, room)).filter((m) => m !== viewer.id);
-    await notify(deps, members.map((m) => ({ userId: m, type: 'live_started', icon: 'radio', actorId: viewer.id, link: `/live/${room.id}`, data: { title: room.title }, pref: 'live' as const })));
+    await notify(
+      deps,
+      members.map((m) => ({
+        userId: m,
+        type: 'live_started',
+        icon: 'radio',
+        actorId: viewer.id,
+        link: `/live/${room.id}`,
+        data: { title: room.title },
+        pref: 'live' as const,
+      })),
+    );
     return c.json(await toDto(deps, viewer, updated));
   })
   .post('/:id/end', async (c) => {
@@ -238,7 +264,9 @@ export const classRoutes = new Hono<AppEnv>()
       .select({ k: scheduledClasses, ...hostCols })
       .from(scheduledClasses)
       .leftJoin(users, eq(users.id, scheduledClasses.createdBy))
-      .where(and(isNull(scheduledClasses.deletedAt), or(isNull(scheduledClasses.startsAt), gte(scheduledClasses.startsAt, new Date(Date.now() - 3 * 3600_000)))))
+      .where(
+        and(isNull(scheduledClasses.deletedAt), or(isNull(scheduledClasses.startsAt), gte(scheduledClasses.startsAt, new Date(Date.now() - 3 * 3600_000)))),
+      )
       .orderBy(asc(sql`coalesce(${scheduledClasses.startsAt}, 'infinity'::timestamptz)`))
       .limit(100);
     return c.json({ items: rows.map((r) => toClass({ ...r.k, ...r } as typeof scheduledClasses.$inferSelect & Record<string, unknown>)) });
@@ -257,7 +285,10 @@ export const classRoutes = new Hono<AppEnv>()
   .delete('/:id', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
-    const [row] = await db.select().from(scheduledClasses).where(eq(scheduledClasses.id, param(c, 'id')));
+    const [row] = await db
+      .select()
+      .from(scheduledClasses)
+      .where(eq(scheduledClasses.id, param(c, 'id')));
     if (!row) throw notFound();
     if (row.createdBy !== viewer.id && !hasPermission(viewer.role, viewer.permissions, 'classes.manage')) throw forbidden();
     await db.update(scheduledClasses).set({ deletedAt: new Date() }).where(eq(scheduledClasses.id, row.id));

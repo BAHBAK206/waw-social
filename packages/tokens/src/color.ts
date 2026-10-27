@@ -9,7 +9,13 @@ export function parseColor(input: string): Rgba {
   const s = input.trim();
   if (s.startsWith('#')) {
     const h = s.slice(1);
-    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const full =
+      h.length === 3
+        ? h
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : h;
     const n = Number.parseInt(full.slice(0, 6), 16);
     const a = full.length === 8 ? Number.parseInt(full.slice(6, 8), 16) / 255 : 1;
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255, a };
@@ -20,7 +26,10 @@ export function parseColor(input: string): Rgba {
   return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), a: alpha };
 }
 
-const hex2 = (n: number) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0');
+const hex2 = (n: number) =>
+  Math.round(Math.max(0, Math.min(255, n)))
+    .toString(16)
+    .padStart(2, '0');
 
 export function toHex(c: Rgba): string {
   return `#${hex2(c.r)}${hex2(c.g)}${hex2(c.b)}${c.a < 1 ? hex2(c.a * 255) : ''}`;

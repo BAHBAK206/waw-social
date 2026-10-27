@@ -20,11 +20,9 @@ export const questionInputSchema = z
   })
   .superRefine((q, ctx) => {
     if (q.type === 'tf' && q.options.length !== 2) ctx.addIssue({ code: 'custom', message: 'tf_needs_two_options' });
-    if ((q.type === 'mc' || q.type === 'multi') && q.options.length < 2)
-      ctx.addIssue({ code: 'custom', message: 'needs_two_options' });
+    if ((q.type === 'mc' || q.type === 'multi') && q.options.length < 2) ctx.addIssue({ code: 'custom', message: 'needs_two_options' });
     if (q.type === 'mc' || q.type === 'tf') {
-      if (typeof q.answer !== 'number' || q.answer >= q.options.length)
-        ctx.addIssue({ code: 'custom', message: 'answer_out_of_range' });
+      if (typeof q.answer !== 'number' || q.answer >= q.options.length) ctx.addIssue({ code: 'custom', message: 'answer_out_of_range' });
     }
     if (q.type === 'multi') {
       if (!Array.isArray(q.answer) || q.answer.some((a) => typeof a !== 'number' || a >= q.options.length))
@@ -43,7 +41,12 @@ export const quizInputSchema = z.object({
   courseId: idSchema.optional().nullable(),
   kind: z.enum(['quiz', 'test', 'exam']).default('quiz'),
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
-  durationSec: z.number().int().min(30).max(6 * 3600).default(600),
+  durationSec: z
+    .number()
+    .int()
+    .min(30)
+    .max(6 * 3600)
+    .default(600),
   scheduledAt: z.number().int().optional().nullable(),
   published: z.boolean().default(true),
   shuffle: z.boolean().default(false),
@@ -96,7 +99,10 @@ export const taskInputSchema = z.object({
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   status: z.enum(['todo', 'doing', 'done']).default('todo'),
   tags: z.array(trimmed(30, 1)).max(10).default([]),
-  subtasks: z.array(z.object({ title: trimmed(200, 1), done: z.boolean().default(false) })).max(30).default([]),
+  subtasks: z
+    .array(z.object({ title: trimmed(200, 1), done: z.boolean().default(false) }))
+    .max(30)
+    .default([]),
 });
 export type TaskInput = z.infer<typeof taskInputSchema>;
 

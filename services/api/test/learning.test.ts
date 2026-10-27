@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { AcademicDashboardDto, DailyChallengeDto, ExamDto, FlashcardDto, NoteDto, PomodoroCompleteDto, PomodoroSessionDto, TaskDto, WeeklyPlanDto } from '@qubedu/shared';
+import type {
+  AcademicDashboardDto,
+  DailyChallengeDto,
+  ExamDto,
+  FlashcardDto,
+  NoteDto,
+  PomodoroCompleteDto,
+  PomodoroSessionDto,
+  TaskDto,
+  WeeklyPlanDto,
+} from '@qubedu/shared';
 import { addDays, dayKey } from '@qubedu/shared';
 import { dailyChallenges, pomodoroSessions } from '../src/db/schema';
 import { call, newUser, setupApp } from './helpers';
@@ -8,12 +18,25 @@ import { call, newUser, setupApp } from './helpers';
 describe('study tools', () => {
   it('flashcards: create, review schedules, due counts', async () => {
     const u = await newUser();
-    const created = await call<{ items: FlashcardDto[] }>('POST', '/flashcards', { token: u.token, body: { cards: [{ front: 'H2O', back: 'Water', deck: 'chem' }, { front: 'NaCl', back: 'Salt', deck: 'chem' }] } });
+    const created = await call<{ items: FlashcardDto[] }>('POST', '/flashcards', {
+      token: u.token,
+      body: {
+        cards: [
+          { front: 'H2O', back: 'Water', deck: 'chem' },
+          { front: 'NaCl', back: 'Salt', deck: 'chem' },
+        ],
+      },
+    });
     expect(created.body.items).toHaveLength(2);
-    const due = await call<{ items: FlashcardDto[]; dueCount: number; decks: { name: string; count: number }[] }>('GET', '/flashcards?due=true', { token: u.token });
+    const due = await call<{ items: FlashcardDto[]; dueCount: number; decks: { name: string; count: number }[] }>('GET', '/flashcards?due=true', {
+      token: u.token,
+    });
     expect(due.body.dueCount).toBe(2);
     expect(due.body.decks).toEqual([{ name: 'chem', count: 2 }]);
-    const reviewed = await call<{ card: FlashcardDto }>('POST', `/flashcards/${created.body.items[0]!.id}/review`, { token: u.token, body: { rating: 'know' } });
+    const reviewed = await call<{ card: FlashcardDto }>('POST', `/flashcards/${created.body.items[0]!.id}/review`, {
+      token: u.token,
+      body: { rating: 'know' },
+    });
     expect(reviewed.body.card.intervalDays).toBe(1);
     expect(reviewed.body.card.dueAt).toBeGreaterThan(Date.now() + 23 * 3600_000);
     expect((await call<{ dueCount: number }>('GET', '/flashcards', { token: u.token })).body.dueCount).toBe(1);
@@ -26,7 +49,10 @@ describe('study tools', () => {
     const u = await newUser();
     const s = await call<PomodoroSessionDto>('POST', '/pomodoro/start', { token: u.token, body: { minutes: 25 } });
     expect((await call('POST', `/pomodoro/${s.body.id}/complete`, { token: u.token })).status).toBe(400);
-    await deps.db.update(pomodoroSessions).set({ startedAt: new Date(Date.now() - 26 * 60_000) }).where(eq(pomodoroSessions.id, s.body.id));
+    await deps.db
+      .update(pomodoroSessions)
+      .set({ startedAt: new Date(Date.now() - 26 * 60_000) })
+      .where(eq(pomodoroSessions.id, s.body.id));
     const done = await call<PomodoroCompleteDto>('POST', `/pomodoro/${s.body.id}/complete`, { token: u.token });
     expect(done.body.xpEarned).toBe(5);
     expect(done.body.newAchievements).toContain('ach_pomo1');

@@ -110,8 +110,7 @@ export function featureIdsForLocation(pathname: string, search = ''): FeatureId[
   if (path === '/people' && params.get('tab') === 'leaderboard') ids.push('leaderboard');
   if (/^\/live\/[^/]+$/.test(path)) ids.push('live', 'classes');
   const pages = FEATURES.filter(
-    (f): f is Extract<(typeof FEATURES)[number], { route: string }> =>
-      f.kind === 'page' && 'route' in f && !f.route.includes(':') && !f.route.includes('?'),
+    (f): f is Extract<(typeof FEATURES)[number], { route: string }> => f.kind === 'page' && 'route' in f && !f.route.includes(':') && !f.route.includes('?'),
   ).sort((a, b) => b.route.length - a.route.length);
   const parent = pages.find((f) => f.route === path || (f.route !== '/' && path.startsWith(`${f.route}/`)));
   if (parent && !ids.includes(parent.id)) ids.push(parent.id);

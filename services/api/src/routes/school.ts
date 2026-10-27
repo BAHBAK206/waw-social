@@ -82,8 +82,15 @@ async function requireRole(deps: Deps, courseId: string, user: AuthUser, allowed
 
 async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Promise<CourseDto[]> {
   if (!ids.length) return [];
-  const rows = await deps.db.select({ c: courses, ...ownerCols }).from(courses).innerJoin(users, eq(users.id, courses.ownerId)).where(inArray(courses.id, ids));
-  const roles = await deps.db.select({ id: courseMembers.courseId, role: courseMembers.role }).from(courseMembers).where(and(inArray(courseMembers.courseId, ids), eq(courseMembers.userId, user.id)));
+  const rows = await deps.db
+    .select({ c: courses, ...ownerCols })
+    .from(courses)
+    .innerJoin(users, eq(users.id, courses.ownerId))
+    .where(inArray(courses.id, ids));
+  const roles = await deps.db
+    .select({ id: courseMembers.courseId, role: courseMembers.role })
+    .from(courseMembers)
+    .where(and(inArray(courseMembers.courseId, ids), eq(courseMembers.userId, user.id)));
   const roleMap = new Map(roles.map((r) => [r.id, r.role]));
   const byId = new Map(rows.map((r) => [r.c.id, r]));
   return ids
@@ -110,7 +117,10 @@ async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Promise<Co
 
 async function submissionDtos(deps: Deps, rows: (typeof submissions.$inferSelect)[]): Promise<SubmissionDto[]> {
   if (!rows.length) return [];
-  const students = await deps.db.select(summaryColumns).from(users).where(inArray(users.id, [...new Set(rows.map((r) => r.studentId))]));
+  const students = await deps.db
+    .select(summaryColumns)
+    .from(users)
+    .where(inArray(users.id, [...new Set(rows.map((r) => r.studentId))]));
   const map = new Map(students.map((s) => [s.id, toSummary(s)]));
   return Promise.all(
     rows.map(async (r) => ({
@@ -146,7 +156,10 @@ async function assignmentDto(deps: Deps, user: AuthUser, role: CourseRole, a: ty
   let mySubmission: SubmissionDto | null = null;
   let stats: AssignmentDto['stats'] = null;
   if (role === 'student') {
-    const [s] = await deps.db.select().from(submissions).where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
+    const [s] = await deps.db
+      .select()
+      .from(submissions)
+      .where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
     if (s) {
       mySubmission = (await submissionDtos(deps, [s]))[0]!;
       if (s.status === 'submitted') mySubmission = { ...mySubmission, grade: null, feedback: '', rubricScores: null };
@@ -157,7 +170,10 @@ async function assignmentDto(deps: Deps, user: AuthUser, role: CourseRole, a: ty
         .select({ submitted: count(), graded: sql<number>`count(*) filter (where ${submissions.status} <> 'submitted')::int` })
         .from(submissions)
         .where(eq(submissions.assignmentId, a.id)),
-      deps.db.select({ n: count() }).from(courseMembers).where(and(eq(courseMembers.courseId, a.courseId), eq(courseMembers.role, 'student'))),
+      deps.db
+        .select({ n: count() })
+        .from(courseMembers)
+        .where(and(eq(courseMembers.courseId, a.courseId), eq(courseMembers.role, 'student'))),
     ]);
     stats = { submitted: agg?.submitted ?? 0, graded: agg?.graded ?? 0, total: students?.n ?? 0 };
   }
@@ -187,7 +203,10 @@ async function loadAssignment(deps: Deps, id: string) {
 }
 
 function chunkText(text: string, size = 900): { heading: string | null; page: number | null; text: string }[] {
-  const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paras = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const out: { heading: string | null; page: number | null; text: string }[] = [];
   let heading: string | null = null;
   let buf = '';
@@ -239,7 +258,13 @@ export const schoolRoutes = new Hono<AppEnv>()
       .innerJoin(courses, eq(courses.id, courseMembers.courseId))
       .where(and(eq(courseMembers.userId, user.id), eq(courses.archived, q.archived)))
       .orderBy(desc(courses.updatedAt));
-    return c.json({ items: await courseDtos(deps, user, rows.map((r) => r.id)) });
+    return c.json({
+      items: await courseDtos(
+        deps,
+        user,
+        rows.map((r) => r.id),
+      ),
+    });
   })
   .post('/courses', async (c) => {
     const user = requireUser(c);
@@ -268,10 +293,17 @@ export const schoolRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'course-join', limit: 20, windowSec: 600, by: 'user' });
     const deps = c.get('deps');
     const { code } = await body(c, joinCourseSchema);
-    const [course] = await deps.db.select().from(courses).where(and(eq(courses.joinCode, code.trim().toLowerCase()), eq(courses.archived, false)));
+    const [course] = await deps.db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.joinCode, code.trim().toLowerCase()), eq(courses.archived, false)));
     if (!course) throw notFound('invalid_code');
     const inserted = await deps.db.insert(courseMembers).values({ courseId: course.id, userId: user.id, role: 'student' }).onConflictDoNothing().returning();
-    if (inserted.length) await deps.db.update(courses).set({ memberCount: sql`${courses.memberCount} + 1` }).where(eq(courses.id, course.id));
+    if (inserted.length)
+      await deps.db
+        .update(courses)
+        .set({ memberCount: sql`${courses.memberCount} + 1` })
+        .where(eq(courses.id, course.id));
     return c.json((await courseDtos(deps, user, [course.id]))[0]);
   })
   .get('/courses/:id', async (c) => {
@@ -290,7 +322,12 @@ export const schoolRoutes = new Hono<AppEnv>()
     const { regenerateCode, ...rest } = input;
     await deps.db
       .update(courses)
-      .set({ ...rest, ...(rest.title ? { searchTitle: normalizeSearch(rest.title) } : {}), ...(regenerateCode ? { joinCode: randomCode(7) } : {}), updatedAt: new Date() })
+      .set({
+        ...rest,
+        ...(rest.title ? { searchTitle: normalizeSearch(rest.title) } : {}),
+        ...(regenerateCode ? { joinCode: randomCode(7) } : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(courses.id, id));
     return c.json((await courseDtos(deps, user, [id]))[0]);
   })
@@ -326,7 +363,10 @@ export const schoolRoutes = new Hono<AppEnv>()
     const target = param(c, 'userId');
     const [course] = await deps.db.select({ owner: courses.ownerId }).from(courses).where(eq(courses.id, id));
     if (course?.owner === target) throw forbidden('cannot_change_owner');
-    await deps.db.update(courseMembers).set({ role }).where(and(eq(courseMembers.courseId, id), eq(courseMembers.userId, target)));
+    await deps.db
+      .update(courseMembers)
+      .set({ role })
+      .where(and(eq(courseMembers.courseId, id), eq(courseMembers.userId, target)));
     return c.json({ ok: true });
   })
   .delete('/courses/:id/members/:userId', async (c) => {
@@ -337,8 +377,15 @@ export const schoolRoutes = new Hono<AppEnv>()
     if (target !== user.id) await requireRole(deps, id, user, ['teacher']);
     const [course] = await deps.db.select({ owner: courses.ownerId }).from(courses).where(eq(courses.id, id));
     if (course?.owner === target) throw badRequest('owner_cannot_leave');
-    const removed = await deps.db.delete(courseMembers).where(and(eq(courseMembers.courseId, id), eq(courseMembers.userId, target))).returning();
-    if (removed.length) await deps.db.update(courses).set({ memberCount: sql`greatest(${courses.memberCount} - 1, 0)` }).where(eq(courses.id, id));
+    const removed = await deps.db
+      .delete(courseMembers)
+      .where(and(eq(courseMembers.courseId, id), eq(courseMembers.userId, target)))
+      .returning();
+    if (removed.length)
+      await deps.db
+        .update(courses)
+        .set({ memberCount: sql`greatest(${courses.memberCount} - 1, 0)` })
+        .where(eq(courses.id, id));
     return c.json({ ok: true });
   })
   .get('/courses/:id/announcements', async (c) => {
@@ -368,10 +415,27 @@ export const schoolRoutes = new Hono<AppEnv>()
     const id = param(c, 'id');
     await requireRole(deps, id, user, STAFF);
     const input = await body(c, courseAnnouncementSchema);
-    const [row] = await deps.db.insert(courseAnnouncements).values({ courseId: id, authorId: user.id, text: input.text, attachments: input.attachments }).returning();
+    const [row] = await deps.db
+      .insert(courseAnnouncements)
+      .values({ courseId: id, authorId: user.id, text: input.text, attachments: input.attachments })
+      .returning();
     const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, id));
-    const students = await deps.db.select({ id: courseMembers.userId }).from(courseMembers).where(and(eq(courseMembers.courseId, id), eq(courseMembers.role, 'student')));
-    await notify(deps, students.map((s) => ({ userId: s.id, type: 'course_announcement', icon: 'megaphone', actorId: user.id, link: `/school/${id}`, data: { course: course?.title, preview: input.text.slice(0, 80) }, pref: 'school' as const })));
+    const students = await deps.db
+      .select({ id: courseMembers.userId })
+      .from(courseMembers)
+      .where(and(eq(courseMembers.courseId, id), eq(courseMembers.role, 'student')));
+    await notify(
+      deps,
+      students.map((s) => ({
+        userId: s.id,
+        type: 'course_announcement',
+        icon: 'megaphone',
+        actorId: user.id,
+        link: `/school/${id}`,
+        data: { course: course?.title, preview: input.text.slice(0, 80) },
+        pref: 'school' as const,
+      })),
+    );
     await deps.realtime.publish(ch.course(id), 'announcement:new', { id: row!.id });
     return c.json({ id: row!.id }, 201);
   })
@@ -423,8 +487,22 @@ export const schoolRoutes = new Hono<AppEnv>()
       })
       .returning();
     if (row!.state === 'published') {
-      const students = await deps.db.select({ id: courseMembers.userId }).from(courseMembers).where(and(eq(courseMembers.courseId, id), eq(courseMembers.role, 'student')));
-      await notify(deps, students.map((s) => ({ userId: s.id, type: 'assignment_new', icon: 'clipboard-list', actorId: user.id, link: `/school/${id}?assignment=${row!.id}`, data: { title: row!.title }, pref: 'school' as const })));
+      const students = await deps.db
+        .select({ id: courseMembers.userId })
+        .from(courseMembers)
+        .where(and(eq(courseMembers.courseId, id), eq(courseMembers.role, 'student')));
+      await notify(
+        deps,
+        students.map((s) => ({
+          userId: s.id,
+          type: 'assignment_new',
+          icon: 'clipboard-list',
+          actorId: user.id,
+          link: `/school/${id}?assignment=${row!.id}`,
+          data: { title: row!.title },
+          pref: 'school' as const,
+        })),
+      );
     }
     return c.json(await assignmentDto(deps, user, 'teacher', row!), 201);
   })
@@ -474,7 +552,10 @@ export const schoolRoutes = new Hono<AppEnv>()
     const late = !!a.dueAt && a.dueAt.getTime() < Date.now();
     if (late && !a.allowLate) throw forbidden('deadline_passed');
     const input = await body(c, submissionInputSchema);
-    const [prev] = await deps.db.select().from(submissions).where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
+    const [prev] = await deps.db
+      .select()
+      .from(submissions)
+      .where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
     if (prev && prev.status !== 'submitted') throw conflict('already_graded');
     const values = { text: input.text, attachments: attachKeys(input.attachments), late, submittedAt: new Date(), status: 'submitted' as const };
     const [row] = await deps.db
@@ -482,15 +563,32 @@ export const schoolRoutes = new Hono<AppEnv>()
       .values({ assignmentId: a.id, studentId: user.id, ...values })
       .onConflictDoUpdate({ target: [submissions.assignmentId, submissions.studentId], set: values })
       .returning();
-    const staff = await deps.db.select({ id: courseMembers.userId }).from(courseMembers).where(and(eq(courseMembers.courseId, a.courseId), inArray(courseMembers.role, STAFF)));
-    await notify(deps, staff.map((s) => ({ userId: s.id, type: 'submission_new', icon: 'inbox', actorId: user.id, link: `/school/${a.courseId}?assignment=${a.id}`, data: { title: a.title, name: user.displayName }, pref: 'school' as const })));
+    const staff = await deps.db
+      .select({ id: courseMembers.userId })
+      .from(courseMembers)
+      .where(and(eq(courseMembers.courseId, a.courseId), inArray(courseMembers.role, STAFF)));
+    await notify(
+      deps,
+      staff.map((s) => ({
+        userId: s.id,
+        type: 'submission_new',
+        icon: 'inbox',
+        actorId: user.id,
+        link: `/school/${a.courseId}?assignment=${a.id}`,
+        data: { title: a.title, name: user.displayName },
+        pref: 'school' as const,
+      })),
+    );
     return c.json((await submissionDtos(deps, [row!]))[0], prev ? 200 : 201);
   })
   .delete('/assignments/:id/submit', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
     const a = await loadAssignment(deps, param(c, 'id'));
-    const [prev] = await deps.db.select().from(submissions).where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
+    const [prev] = await deps.db
+      .select()
+      .from(submissions)
+      .where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
     if (!prev) throw notFound();
     if (prev.status !== 'submitted') throw conflict('already_graded');
     await deps.db.delete(submissions).where(eq(submissions.id, prev.id));
@@ -507,7 +605,10 @@ export const schoolRoutes = new Hono<AppEnv>()
   .post('/submissions/:id/grade', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [s] = await deps.db.select().from(submissions).where(eq(submissions.id, param(c, 'id')));
+    const [s] = await deps.db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, param(c, 'id')));
     if (!s) throw notFound('submission_not_found');
     const a = await loadAssignment(deps, s.assignmentId);
     await requireRole(deps, a.courseId, user, STAFF);
@@ -522,11 +623,26 @@ export const schoolRoutes = new Hono<AppEnv>()
     if (grade > a.points) throw badRequest('grade_exceeds_points');
     const [row] = await deps.db
       .update(submissions)
-      .set({ grade, feedback: input.feedback, rubricScores: input.rubricScores ?? null, status: input.returned ? 'returned' : 'graded', gradedBy: user.id, gradedAt: new Date() })
+      .set({
+        grade,
+        feedback: input.feedback,
+        rubricScores: input.rubricScores ?? null,
+        status: input.returned ? 'returned' : 'graded',
+        gradedBy: user.id,
+        gradedAt: new Date(),
+      })
       .where(eq(submissions.id, s.id))
       .returning();
     if (input.returned)
-      await notify(deps, { userId: s.studentId, type: 'submission_graded', icon: 'award', actorId: user.id, link: `/school/${a.courseId}?assignment=${a.id}`, data: { title: a.title, grade, points: a.points }, pref: 'school' });
+      await notify(deps, {
+        userId: s.studentId,
+        type: 'submission_graded',
+        icon: 'award',
+        actorId: user.id,
+        link: `/school/${a.courseId}?assignment=${a.id}`,
+        data: { title: a.title, grade, points: a.points },
+        pref: 'school',
+      });
     return c.json((await submissionDtos(deps, [row!]))[0]);
   })
   /* rubrics */
@@ -550,7 +666,10 @@ export const schoolRoutes = new Hono<AppEnv>()
   .delete('/rubrics/:id', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [r] = await deps.db.select().from(rubrics).where(eq(rubrics.id, param(c, 'id')));
+    const [r] = await deps.db
+      .select()
+      .from(rubrics)
+      .where(eq(rubrics.id, param(c, 'id')));
     if (!r) throw notFound();
     await requireRole(deps, r.courseId, user, STAFF);
     await deps.db.delete(rubrics).where(eq(rubrics.id, r.id));
@@ -562,12 +681,25 @@ export const schoolRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const id = param(c, 'id');
     const role = await requireRole(deps, id, user, ['teacher', 'assistant', 'student']);
-    const sessions = await deps.db.select().from(attendanceSessions).where(eq(attendanceSessions.courseId, id)).orderBy(desc(attendanceSessions.day)).limit(200);
+    const sessions = await deps.db
+      .select()
+      .from(attendanceSessions)
+      .where(eq(attendanceSessions.courseId, id))
+      .orderBy(desc(attendanceSessions.day))
+      .limit(200);
     const records = sessions.length
       ? await deps.db
           .select()
           .from(attendanceRecords)
-          .where(and(inArray(attendanceRecords.sessionId, sessions.map((s) => s.id)), role === 'student' ? eq(attendanceRecords.studentId, user.id) : undefined))
+          .where(
+            and(
+              inArray(
+                attendanceRecords.sessionId,
+                sessions.map((s) => s.id),
+              ),
+              role === 'student' ? eq(attendanceRecords.studentId, user.id) : undefined,
+            ),
+          )
       : [];
     const items: AttendanceSessionDto[] = sessions.map((s) => ({
       id: s.id,
@@ -589,12 +721,20 @@ export const schoolRoutes = new Hono<AppEnv>()
   .put('/attendance/:id', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [s] = await deps.db.select().from(attendanceSessions).where(eq(attendanceSessions.id, param(c, 'id')));
+    const [s] = await deps.db
+      .select()
+      .from(attendanceSessions)
+      .where(eq(attendanceSessions.id, param(c, 'id')));
     if (!s) throw notFound();
     await requireRole(deps, s.courseId, user, STAFF);
     const { records } = await body(c, attendanceMarkSchema);
     const students = new Set(
-      (await deps.db.select({ id: courseMembers.userId }).from(courseMembers).where(and(eq(courseMembers.courseId, s.courseId), eq(courseMembers.role, 'student')))).map((r) => r.id),
+      (
+        await deps.db
+          .select({ id: courseMembers.userId })
+          .from(courseMembers)
+          .where(and(eq(courseMembers.courseId, s.courseId), eq(courseMembers.role, 'student')))
+      ).map((r) => r.id),
     );
     const valid = records.filter((r) => students.has(r.studentId));
     for (const r of valid) {
@@ -608,7 +748,10 @@ export const schoolRoutes = new Hono<AppEnv>()
   .delete('/attendance/:id', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [s] = await deps.db.select().from(attendanceSessions).where(eq(attendanceSessions.id, param(c, 'id')));
+    const [s] = await deps.db
+      .select()
+      .from(attendanceSessions)
+      .where(eq(attendanceSessions.id, param(c, 'id')));
     if (!s) throw notFound();
     await requireRole(deps, s.courseId, user, STAFF);
     await deps.db.delete(attendanceSessions).where(eq(attendanceSessions.id, s.id));
@@ -626,7 +769,15 @@ export const schoolRoutes = new Hono<AppEnv>()
       .where(and(eq(courseMaterials.courseId, id), role === 'student' ? eq(courseMaterials.visibleToStudents, true) : undefined))
       .orderBy(desc(courseMaterials.createdAt));
     return c.json({
-      items: rows.map((m): CourseMaterialDto => ({ id: m.id, title: m.title, topic: m.topic, fileUrl: m.fileUrl, chunkCount: m.chunkCount, visibleToStudents: m.visibleToStudents, createdAt: m.createdAt.getTime() })),
+      items: rows.map((m): CourseMaterialDto => ({
+        id: m.id,
+        title: m.title,
+        topic: m.topic,
+        fileUrl: m.fileUrl,
+        chunkCount: m.chunkCount,
+        visibleToStudents: m.visibleToStudents,
+        createdAt: m.createdAt.getTime(),
+      })),
     });
   })
   .post('/courses/:id/materials', async (c) => {
@@ -643,22 +794,51 @@ export const schoolRoutes = new Hono<AppEnv>()
       if (!obj) throw badRequest('file_not_found');
       const ext = m![1]!.split('.').pop() ?? '';
       const mime =
-        { pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain', md: 'text/markdown', csv: 'text/csv' }[ext] ?? 'application/octet-stream';
+        {
+          pdf: 'application/pdf',
+          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          txt: 'text/plain',
+          md: 'text/markdown',
+          csv: 'text/csv',
+        }[ext] ?? 'application/octet-stream';
       const extracted = await deps.ai.extract({ filename: `material.${ext}`, mime, data: obj.data });
       chunks = extracted.chunks;
     }
     if (!chunks.length) throw badRequest('material_empty');
     const [row] = await deps.db
       .insert(courseMaterials)
-      .values({ courseId: id, title: input.title, topic: input.topic ?? null, fileUrl: input.fileUrl ?? null, visibleToStudents: input.visibleToStudents, createdBy: user.id })
+      .values({
+        courseId: id,
+        title: input.title,
+        topic: input.topic ?? null,
+        fileUrl: input.fileUrl ?? null,
+        visibleToStudents: input.visibleToStudents,
+        createdBy: user.id,
+      })
       .returning();
     const n = await storeChunks(deps, id, row!.id, chunks);
-    return c.json({ id: row!.id, title: row!.title, topic: row!.topic, fileUrl: row!.fileUrl, chunkCount: n, visibleToStudents: row!.visibleToStudents, createdAt: row!.createdAt.getTime() } satisfies CourseMaterialDto, 201);
+    return c.json(
+      {
+        id: row!.id,
+        title: row!.title,
+        topic: row!.topic,
+        fileUrl: row!.fileUrl,
+        chunkCount: n,
+        visibleToStudents: row!.visibleToStudents,
+        createdAt: row!.createdAt.getTime(),
+      } satisfies CourseMaterialDto,
+      201,
+    );
   })
   .delete('/materials/:id', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [m] = await deps.db.select().from(courseMaterials).where(eq(courseMaterials.id, param(c, 'id')));
+    const [m] = await deps.db
+      .select()
+      .from(courseMaterials)
+      .where(eq(courseMaterials.id, param(c, 'id')));
     if (!m) throw notFound();
     await requireRole(deps, m.courseId, user, STAFF);
     await deps.db.delete(courseMaterials).where(eq(courseMaterials.id, m.id));
@@ -671,7 +851,13 @@ export const schoolRoutes = new Hono<AppEnv>()
     const role = await requireRole(deps, id, user, ['teacher', 'assistant', 'student']);
     const rows = await deps.db.select().from(essayKeys).where(eq(essayKeys.courseId, id)).orderBy(desc(essayKeys.createdAt));
     return c.json({
-      items: rows.map((k) => ({ id: k.id, prompt: k.prompt, topic: k.topic, keyPointCount: k.keyPoints.length, ...(role === 'student' ? {} : { modelAnswer: k.modelAnswer, keyPoints: k.keyPoints }) })),
+      items: rows.map((k) => ({
+        id: k.id,
+        prompt: k.prompt,
+        topic: k.topic,
+        keyPointCount: k.keyPoints.length,
+        ...(role === 'student' ? {} : { modelAnswer: k.modelAnswer, keyPoints: k.keyPoints }),
+      })),
     });
   })
   .post('/courses/:id/essay-keys', async (c) => {
@@ -680,13 +866,19 @@ export const schoolRoutes = new Hono<AppEnv>()
     const id = param(c, 'id');
     await requireRole(deps, id, user, STAFF);
     const input = await body(c, essayKeySchema);
-    const [row] = await deps.db.insert(essayKeys).values({ courseId: id, ...input, topic: input.topic ?? null }).returning();
+    const [row] = await deps.db
+      .insert(essayKeys)
+      .values({ courseId: id, ...input, topic: input.topic ?? null })
+      .returning();
     return c.json({ id: row!.id }, 201);
   })
   .delete('/essay-keys/:id', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [k] = await deps.db.select().from(essayKeys).where(eq(essayKeys.id, param(c, 'id')));
+    const [k] = await deps.db
+      .select()
+      .from(essayKeys)
+      .where(eq(essayKeys.id, param(c, 'id')));
     if (!k) throw notFound();
     await requireRole(deps, k.courseId, user, STAFF);
     await deps.db.delete(essayKeys).where(eq(essayKeys.id, k.id));
@@ -716,7 +908,10 @@ export const schoolRoutes = new Hono<AppEnv>()
   .delete('/synonyms/:id', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const [s] = await deps.db.select().from(courseSynonyms).where(eq(courseSynonyms.id, param(c, 'id')));
+    const [s] = await deps.db
+      .select()
+      .from(courseSynonyms)
+      .where(eq(courseSynonyms.id, param(c, 'id')));
     if (!s) throw notFound();
     await requireRole(deps, s.courseId, user, STAFF);
     await deps.db.delete(courseSynonyms).where(eq(courseSynonyms.id, s.id));
@@ -728,12 +923,24 @@ export const schoolRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const id = param(c, 'id');
     const role = await requireRole(deps, id, user, ['teacher', 'assistant', 'student']);
-    const assigns = await deps.db.select().from(assignments).where(and(eq(assignments.courseId, id), sql`${assignments.state} <> 'draft'`)).orderBy(asc(assignments.createdAt));
+    const assigns = await deps.db
+      .select()
+      .from(assignments)
+      .where(and(eq(assignments.courseId, id), sql`${assignments.state} <> 'draft'`))
+      .orderBy(asc(assignments.createdAt));
     const subs = assigns.length
       ? await deps.db
           .select()
           .from(submissions)
-          .where(and(inArray(submissions.assignmentId, assigns.map((a) => a.id)), role === 'student' ? eq(submissions.studentId, user.id) : undefined))
+          .where(
+            and(
+              inArray(
+                submissions.assignmentId,
+                assigns.map((a) => a.id),
+              ),
+              role === 'student' ? eq(submissions.studentId, user.id) : undefined,
+            ),
+          )
       : [];
     const students =
       role === 'student'
@@ -768,22 +975,59 @@ export const schoolRoutes = new Hono<AppEnv>()
       .from(courseMembers)
       .innerJoin(users, eq(users.id, courseMembers.userId))
       .where(and(eq(courseMembers.courseId, id), eq(courseMembers.role, 'student')));
-    const assigns = await deps.db.select({ id: assignments.id, points: assignments.points }).from(assignments).where(and(eq(assignments.courseId, id), eq(assignments.state, 'published')));
-    const subs = assigns.length ? await deps.db.select().from(submissions).where(inArray(submissions.assignmentId, assigns.map((a) => a.id))) : [];
+    const assigns = await deps.db
+      .select({ id: assignments.id, points: assignments.points })
+      .from(assignments)
+      .where(and(eq(assignments.courseId, id), eq(assignments.state, 'published')));
+    const subs = assigns.length
+      ? await deps.db
+          .select()
+          .from(submissions)
+          .where(
+            inArray(
+              submissions.assignmentId,
+              assigns.map((a) => a.id),
+            ),
+          )
+      : [];
     const pointsOf = new Map(assigns.map((a) => [a.id, a.points]));
     const sessions = await deps.db.select({ id: attendanceSessions.id }).from(attendanceSessions).where(eq(attendanceSessions.courseId, id));
-    const records = sessions.length ? await deps.db.select().from(attendanceRecords).where(inArray(attendanceRecords.sessionId, sessions.map((s) => s.id))) : [];
+    const records = sessions.length
+      ? await deps.db
+          .select()
+          .from(attendanceRecords)
+          .where(
+            inArray(
+              attendanceRecords.sessionId,
+              sessions.map((s) => s.id),
+            ),
+          )
+      : [];
     const pct = (s: typeof subs) => {
       const graded = s.filter((x) => x.grade !== null);
       if (!graded.length) return null;
       return Math.round((graded.reduce((sum, x) => sum + (x.grade! / Math.max(1, pointsOf.get(x.assignmentId) ?? 100)) * 100, 0) / graded.length) * 10) / 10;
     };
-    const att = (r: typeof records) => (r.length ? Math.round((r.filter((x) => x.status === 'present' || x.status === 'late').length / r.length) * 1000) / 10 : null);
+    const att = (r: typeof records) =>
+      r.length ? Math.round((r.filter((x) => x.status === 'present' || x.status === 'late').length / r.length) * 1000) / 10 : null;
     const topicRows = students.length
       ? await deps.db
-          .select({ topic: topicSamples.topic, correct: sql<number>`sum(${topicSamples.correct})::int`, total: sql<number>`sum(${topicSamples.total})::int`, students: sql<number>`count(distinct ${topicSamples.userId})::int` })
+          .select({
+            topic: topicSamples.topic,
+            correct: sql<number>`sum(${topicSamples.correct})::int`,
+            total: sql<number>`sum(${topicSamples.total})::int`,
+            students: sql<number>`count(distinct ${topicSamples.userId})::int`,
+          })
           .from(topicSamples)
-          .where(and(eq(topicSamples.courseId, id), inArray(topicSamples.userId, students.map((s) => s.id))))
+          .where(
+            and(
+              eq(topicSamples.courseId, id),
+              inArray(
+                topicSamples.userId,
+                students.map((s) => s.id),
+              ),
+            ),
+          )
           .groupBy(topicSamples.topic)
       : [];
     const dto: CourseAnalyticsDto = {
@@ -792,7 +1036,9 @@ export const schoolRoutes = new Hono<AppEnv>()
       submissionRate: students.length && assigns.length ? Math.round((subs.length / (students.length * assigns.length)) * 1000) / 10 : 0,
       averageGrade: pct(subs),
       attendanceRate: att(records),
-      topicMastery: topicRows.map((t) => ({ topic: t.topic, mastery: Math.round((t.correct / Math.max(1, t.total)) * 100), students: t.students })).sort((a, b) => a.mastery - b.mastery),
+      topicMastery: topicRows
+        .map((t) => ({ topic: t.topic, mastery: Math.round((t.correct / Math.max(1, t.total)) * 100), students: t.students }))
+        .sort((a, b) => a.mastery - b.mastery),
       perStudent: students.map((s) => {
         const mine = subs.filter((x) => x.studentId === s.id);
         return { student: toSummary(s), submitted: mine.length, averageGrade: pct(mine), attendance: att(records.filter((r) => r.studentId === s.id)) };
@@ -800,4 +1046,3 @@ export const schoolRoutes = new Hono<AppEnv>()
     };
     return c.json(dto);
   });
-

@@ -42,6 +42,7 @@ export const uploadRoutes = new Hono<AppEnv>().post('/', async (c) => {
   if (imageOnly && !(IMAGE_MIME as readonly string[]).includes(real)) throw badRequest('image_required');
   const visibility = PRIVATE_PURPOSES.has(purpose) ? 'private' : 'public';
   const stored = await deps.storage.put(data, { mime: real, ext: EXT_FOR_MIME[real] ?? 'bin', visibility });
+  // eslint-disable-next-line no-control-regex -- control characters are stripped from stored file names on purpose
   const name = (file.name || 'file').replace(/[\\/\u0000-\u001f]/g, '_').slice(0, 200);
   await deps.db.insert(uploads).values({ ownerId: user.id, key: stored.key, mime: real, size: file.size, name, visibility, purpose });
   const result: UploadResultDto = { url: stored.url, key: stored.key, mime: real, size: file.size, name, kind: kindOf(real) };

@@ -23,12 +23,31 @@ export const ch = {
   site: () => 'site',
 };
 
-export function createRealtime(kv: Kv, onError: (err: unknown) => void): Realtime {
+export interface RealtimeOptions {
+  /** Hub base URL for direct HTTP delivery; only used when the Kv is in-memory (no Redis to fan out through). */
+  hubUrl?: string;
+  internalToken?: string;
+  fetch?: typeof fetch;
+}
+
+export function createRealtime(kv: Kv, onError: (err: unknown) => void, options: RealtimeOptions = {}): Realtime {
+  const direct = kv.kind === 'memory' && options.hubUrl ? options.hubUrl.replace(/\/$/, '') + '/internal/publish' : null;
+  const doFetch = options.fetch ?? fetch;
   return {
     async publish(channels, event, data, exceptUser) {
       const payload: RealtimeEvent = { channels: Array.isArray(channels) ? channels : [channels], event, data, exceptUser };
+      const body = JSON.stringify(payload);
       try {
-        await kv.publish(REALTIME_CHANNEL, JSON.stringify(payload));
+        await kv.publish(REALTIME_CHANNEL, body);
+        if (direct) {
+          const res = await doFetch(direct, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-internal-token': options.internalToken ?? '' },
+            body,
+            signal: AbortSignal.timeout(2000),
+          });
+          if (!res.ok) throw new Error(`hub publish failed: ${res.status}`);
+        }
       } catch (err) {
         onError(err);
       }

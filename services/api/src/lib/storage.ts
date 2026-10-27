@@ -26,7 +26,11 @@ const SIGNED_TTL_MS = 6 * 24 * 3600 * 1000;
 
 function newKey(visibility: Visibility, ext: string): string {
   const d = new Date();
-  const safeExt = ext.replace(/[^a-z0-9]/gi, '').slice(0, 8).toLowerCase() || 'bin';
+  const safeExt =
+    ext
+      .replace(/[^a-z0-9]/gi, '')
+      .slice(0, 8)
+      .toLowerCase() || 'bin';
   return `${visibility}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${randomUUID()}.${safeExt}`;
 }
 

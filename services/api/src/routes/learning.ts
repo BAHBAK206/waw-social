@@ -143,12 +143,11 @@ export const flashcardRoutes = new Hono<AppEnv>()
       .where(and(eq(flashcards.userId, user.id), q.due ? lte(flashcards.dueAt, new Date()) : undefined, q.deck ? eq(flashcards.deck, q.deck) : undefined))
       .orderBy(q.due ? asc(flashcards.dueAt) : desc(flashcards.createdAt))
       .limit(1000);
-    const [due] = await db.select({ n: count() }).from(flashcards).where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date())));
-    const decks = await db
-      .select({ deck: flashcards.deck, n: count() })
+    const [due] = await db
+      .select({ n: count() })
       .from(flashcards)
-      .where(eq(flashcards.userId, user.id))
-      .groupBy(flashcards.deck);
+      .where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date())));
+    const decks = await db.select({ deck: flashcards.deck, n: count() }).from(flashcards).where(eq(flashcards.userId, user.id)).groupBy(flashcards.deck);
     return c.json({ items: rows.map(toCard), dueCount: due?.n ?? 0, decks: decks.map((d) => ({ name: d.deck, count: d.n })) });
   })
   .post('/', async (c) => {
@@ -161,7 +160,17 @@ export const flashcardRoutes = new Hono<AppEnv>()
     const s = initialSchedulerState();
     const rows = await db
       .insert(flashcards)
-      .values(list.map((x) => ({ userId: user.id, front: x.front, back: x.back, deck: x.deck, topic: x.topic ?? null, courseId: x.courseId ?? null, dueAt: new Date(s.dueAt) })))
+      .values(
+        list.map((x) => ({
+          userId: user.id,
+          front: x.front,
+          back: x.back,
+          deck: x.deck,
+          topic: x.topic ?? null,
+          courseId: x.courseId ?? null,
+          dueAt: new Date(s.dueAt),
+        })),
+      )
       .returning();
     return c.json({ items: rows.map(toCard) }, 201);
   })
@@ -188,16 +197,35 @@ export const flashcardRoutes = new Hono<AppEnv>()
     const card = await own((await deps.db.select().from(flashcards).where(eq(flashcards.id, id)))[0], user);
     const { rating } = await body(c, flashcardReviewSchema);
     const next = rateCard(
-      { level: card.level, ease: card.ease, repetitions: card.repetitions, lapses: card.lapses, intervalDays: card.intervalDays, dueAt: card.dueAt.getTime(), lastReviewedAt: ms(card.lastReviewedAt) },
+      {
+        level: card.level,
+        ease: card.ease,
+        repetitions: card.repetitions,
+        lapses: card.lapses,
+        intervalDays: card.intervalDays,
+        dueAt: card.dueAt.getTime(),
+        lastReviewedAt: ms(card.lastReviewedAt),
+      },
       rating as FlashcardRating,
     );
     const result = await deps.db.transaction(async (tx) => {
       const [row] = await tx
         .update(flashcards)
-        .set({ level: next.level, ease: next.ease, repetitions: next.repetitions, lapses: next.lapses, intervalDays: next.intervalDays, dueAt: new Date(next.dueAt), lastReviewedAt: new Date(next.lastReviewedAt!) })
+        .set({
+          level: next.level,
+          ease: next.ease,
+          repetitions: next.repetitions,
+          lapses: next.lapses,
+          intervalDays: next.intervalDays,
+          dueAt: new Date(next.dueAt),
+          lastReviewedAt: new Date(next.lastReviewedAt!),
+        })
         .where(eq(flashcards.id, id))
         .returning();
-      await tx.update(users).set({ cardReviews: sql`${users.cardReviews} + 1` }).where(eq(users.id, user.id));
+      await tx
+        .update(users)
+        .set({ cardReviews: sql`${users.cardReviews} + 1` })
+        .where(eq(users.id, user.id));
       await logStudy(tx, user.id, dayKey(Date.now(), user.timezone), { cards: 1 });
       const newAchievements = await checkAchievements(tx, user.id);
       return { card: toCard(row!), newAchievements };
@@ -250,13 +278,27 @@ export const pomodoroRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const id = param(c, 'id');
     const result = await deps.db.transaction(async (tx) => {
-      const [s] = await tx.select().from(pomodoroSessions).where(and(eq(pomodoroSessions.id, id), eq(pomodoroSessions.userId, user.id))).for('update');
+      const [s] = await tx
+        .select()
+        .from(pomodoroSessions)
+        .where(and(eq(pomodoroSessions.id, id), eq(pomodoroSessions.userId, user.id)))
+        .for('update');
       if (!s) throw notFound('session_not_found');
       const today = dayKey(Date.now(), user.timezone);
-      const [todayLog] = await tx.select({ minutes: studyLog.minutes }).from(studyLog).where(and(eq(studyLog.userId, user.id), eq(studyLog.day, today)));
+      const [todayLog] = await tx
+        .select({ minutes: studyLog.minutes })
+        .from(studyLog)
+        .where(and(eq(studyLog.userId, user.id), eq(studyLog.day, today)));
       if (s.completedAt) {
         const [u] = await tx.select({ xp: users.xp }).from(users).where(eq(users.id, user.id));
-        return { sessionId: s.id, minutes: s.minutes, alreadyCompleted: true, newAchievements: [], todayMinutes: todayLog?.minutes ?? 0, ...xpRewardMeta(u?.xp ?? 0, u?.xp ?? 0, 0) };
+        return {
+          sessionId: s.id,
+          minutes: s.minutes,
+          alreadyCompleted: true,
+          newAchievements: [],
+          todayMinutes: todayLog?.minutes ?? 0,
+          ...xpRewardMeta(u?.xp ?? 0, u?.xp ?? 0, 0),
+        };
       }
       // Server-enforced duration: completing early is rejected (20s tolerance for clock drift).
       const elapsed = Date.now() - s.startedAt.getTime();
@@ -269,7 +311,10 @@ export const pomodoroRoutes = new Hono<AppEnv>()
         .update(users)
         .set({ pomodoroCount: sql`${users.pomodoroCount} + 1`, studyMinutes: sql`${users.studyMinutes} + ${s.minutes}` })
         .where(eq(users.id, user.id));
-      await tx.update(pomodoroSessions).set({ xpEarned: award.awarded ? xp : 0 }).where(eq(pomodoroSessions.id, s.id));
+      await tx
+        .update(pomodoroSessions)
+        .set({ xpEarned: award.awarded ? xp : 0 })
+        .where(eq(pomodoroSessions.id, s.id));
       await logStudy(tx, user.id, today, { minutes: s.minutes });
       await touchStreak(tx, user.id, user.timezone);
       const newAchievements = await checkAchievements(tx, user.id);
@@ -301,7 +346,12 @@ async function challengeFor(deps: Deps, user: AuthUser | null): Promise<DailyCha
   const day = dayKey(Date.now(), user?.timezone ?? 'UTC');
   const [row] = await deps.db.select().from(dailyChallenges).where(eq(dailyChallenges.day, day));
   if (!row) return null;
-  const [claim] = user ? await deps.db.select().from(dailyClaims).where(and(eq(dailyClaims.userId, user.id), eq(dailyClaims.day, day))) : [];
+  const [claim] = user
+    ? await deps.db
+        .select()
+        .from(dailyClaims)
+        .where(and(eq(dailyClaims.userId, user.id), eq(dailyClaims.day, day)))
+    : [];
   return {
     day,
     type: row.type,
@@ -329,7 +379,11 @@ export const dailyRoutes = new Hono<AppEnv>()
       const correct = row.type === 'social' ? true : answer !== undefined && answer === row.answer;
       if (row.type === 'quiz' && answer === undefined) throw badRequest('answer_required');
       const xpEarned = correct ? Math.min(XP_RULES.dailyChallengeMax, row.xp) : 0;
-      const inserted = await tx.insert(dailyClaims).values({ userId: user.id, day, correct, answer: answer ?? null, xpEarned }).onConflictDoNothing().returning();
+      const inserted = await tx
+        .insert(dailyClaims)
+        .values({ userId: user.id, day, correct, answer: answer ?? null, xpEarned })
+        .onConflictDoNothing()
+        .returning();
       if (!inserted.length) throw conflict('already_claimed');
       await awardXp(tx, user.id, xpEarned, 'daily_challenge', day, day);
       await touchStreak(tx, user.id, user.timezone);
@@ -371,7 +425,11 @@ export const taskRoutes = new Hono<AppEnv>()
     const id = param(c, 'id');
     const prev = await own((await db.select().from(tasks).where(eq(tasks.id, id)))[0], user);
     const input = await body(c, taskInputSchema.partial());
-    const patch: Partial<typeof tasks.$inferInsert> = { ...input, dueAt: input.dueAt === undefined ? undefined : input.dueAt ? new Date(input.dueAt) : null, updatedAt: new Date() };
+    const patch: Partial<typeof tasks.$inferInsert> = {
+      ...input,
+      dueAt: input.dueAt === undefined ? undefined : input.dueAt ? new Date(input.dueAt) : null,
+      updatedAt: new Date(),
+    };
     if (input.status && input.status !== prev.status) patch.completedAt = input.status === 'done' ? new Date() : null;
     const [row] = await db.update(tasks).set(patch).where(eq(tasks.id, id)).returning();
     return c.json(toTask(row!));
@@ -394,7 +452,10 @@ export const noteRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, noteInputSchema);
-    const [row] = await db.insert(notes).values({ ...input, userId: user.id }).returning();
+    const [row] = await db
+      .insert(notes)
+      .values({ ...input, userId: user.id })
+      .returning();
     return c.json(toNote(row!), 201);
   })
   .patch('/:id', async (c) => {
@@ -403,7 +464,11 @@ export const noteRoutes = new Hono<AppEnv>()
     const id = param(c, 'id');
     await own((await db.select().from(notes).where(eq(notes.id, id)))[0], user);
     const input = await body(c, noteInputSchema.partial());
-    const [row] = await db.update(notes).set({ ...input, updatedAt: new Date() }).where(eq(notes.id, id)).returning();
+    const [row] = await db
+      .update(notes)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(notes.id, id))
+      .returning();
     return c.json(toNote(row!));
   })
   .delete('/:id', async (c) => {
@@ -448,14 +513,21 @@ export const examRoutes = new Hono<AppEnv>()
     }
     lines.push('END:VCALENDAR');
     return new Response(lines.join('\r\n'), {
-      headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="qubedu-exams.ics"', 'Cache-Control': 'no-store' },
+      headers: {
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="qubedu-exams.ics"',
+        'Cache-Control': 'no-store',
+      },
     });
   })
   .post('/', async (c) => {
     const user = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, examInputSchema);
-    const [row] = await db.insert(exams).values({ ...input, userId: user.id }).returning();
+    const [row] = await db
+      .insert(exams)
+      .values({ ...input, userId: user.id })
+      .returning();
     return c.json(toExam(row!), 201);
   })
   .patch('/:id', async (c) => {
@@ -491,7 +563,10 @@ export const studySessionRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, studySessionSchema);
-    const [row] = await db.insert(studySessions).values({ ...input, userId: user.id }).returning();
+    const [row] = await db
+      .insert(studySessions)
+      .values({ ...input, userId: user.id })
+      .returning();
     return c.json(toSession(row!), 201);
   })
   .patch('/:id', async (c) => {
@@ -504,7 +579,10 @@ export const studySessionRoutes = new Hono<AppEnv>()
     if (input.completed && !prev.completed) {
       await deps.db.transaction(async (tx) => {
         await logStudy(tx, user.id, dayKey(Date.now(), user.timezone), { minutes: row!.minutes });
-        await tx.update(users).set({ studyMinutes: sql`${users.studyMinutes} + ${row!.minutes}` }).where(eq(users.id, user.id));
+        await tx
+          .update(users)
+          .set({ studyMinutes: sql`${users.studyMinutes} + ${row!.minutes}` })
+          .where(eq(users.id, user.id));
         await touchStreak(tx, user.id, user.timezone);
       });
     }
@@ -545,13 +623,28 @@ export const academicRoutes = new Hono<AppEnv>()
     const { db } = deps;
     const today = dayKey(Date.now(), user.timezone);
     const [[due], me, upcoming, openTasks, weak, week, assigns, sessionsToday] = await Promise.all([
-      db.select({ n: count() }).from(flashcards).where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date()))),
+      db
+        .select({ n: count() })
+        .from(flashcards)
+        .where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date()))),
       db.select({ goal: users.dailyGoalMinutes, streak: users.streak }).from(users).where(eq(users.id, user.id)),
-      db.select().from(exams).where(and(eq(exams.userId, user.id), gte(exams.day, today))).orderBy(asc(exams.day)).limit(5),
+      db
+        .select()
+        .from(exams)
+        .where(and(eq(exams.userId, user.id), gte(exams.day, today)))
+        .orderBy(asc(exams.day))
+        .limit(5),
       db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.userId, user.id), sql`${tasks.status} <> 'done'`, sql`${tasks.dueAt} is not null`, lte(tasks.dueAt, new Date(Date.now() + 2 * 86400_000))))
+        .where(
+          and(
+            eq(tasks.userId, user.id),
+            sql`${tasks.status} <> 'done'`,
+            sql`${tasks.dueAt} is not null`,
+            lte(tasks.dueAt, new Date(Date.now() + 2 * 86400_000)),
+          ),
+        )
         .orderBy(asc(tasks.dueAt))
         .limit(10),
       masteryFor(deps, user.id),
@@ -561,16 +654,22 @@ export const academicRoutes = new Hono<AppEnv>()
         .where(and(eq(studyLog.userId, user.id), gte(studyLog.day, addDays(today, -6))))
         .orderBy(asc(studyLog.day)),
       pendingAssignments(deps, user.id, 7),
-      db.select().from(studySessions).where(and(eq(studySessions.userId, user.id), eq(studySessions.day, today), eq(studySessions.completed, false))),
+      db
+        .select()
+        .from(studySessions)
+        .where(and(eq(studySessions.userId, user.id), eq(studySessions.day, today), eq(studySessions.completed, false))),
     ]);
     const weakTopics = weak.filter((m) => m.level === 'needs_review' || m.level === 'developing').slice(0, 5);
     const inbox: StudyInboxItem[] = [];
     if ((due?.n ?? 0) > 0) inbox.push({ kind: 'flashcards', title: 'flashcards', dueAt: null, link: '/academic?tab=cards', count: due!.n });
     for (const s of sessionsToday) inbox.push({ kind: 'session', title: s.title, dueAt: null, link: '/academic?tab=sessions', refId: s.id });
-    for (const a of assigns) inbox.push({ kind: 'assignment', title: a.title, dueAt: ms(a.dueAt), link: `/school/${a.courseId}?assignment=${a.id}`, refId: a.id });
+    for (const a of assigns)
+      inbox.push({ kind: 'assignment', title: a.title, dueAt: ms(a.dueAt), link: `/school/${a.courseId}?assignment=${a.id}`, refId: a.id });
     for (const t of openTasks) inbox.push({ kind: 'task', title: t.title, dueAt: ms(t.dueAt), link: '/organizer?tab=tasks', refId: t.id });
-    for (const e of upcoming.slice(0, 2)) inbox.push({ kind: 'exam', title: e.subject, dueAt: Date.parse(`${e.day}T${e.time ?? '09:00'}:00Z`), link: '/academic?tab=exams', refId: e.id });
-    for (const w of weakTopics.slice(0, 3)) inbox.push({ kind: 'weak-topic', title: w.topic, dueAt: null, link: `/quiz?adaptive=1&topic=${encodeURIComponent(w.topic)}` });
+    for (const e of upcoming.slice(0, 2))
+      inbox.push({ kind: 'exam', title: e.subject, dueAt: Date.parse(`${e.day}T${e.time ?? '09:00'}:00Z`), link: '/academic?tab=exams', refId: e.id });
+    for (const w of weakTopics.slice(0, 3))
+      inbox.push({ kind: 'weak-topic', title: w.topic, dueAt: null, link: `/quiz?adaptive=1&topic=${encodeURIComponent(w.topic)}` });
     const weekMap = new Map(week.map((w) => [w.day, w.minutes]));
     const dto: AcademicDashboardDto = {
       today,
@@ -595,11 +694,23 @@ export const academicRoutes = new Hono<AppEnv>()
     const today = dayKey(Date.now(), user.timezone);
     const horizon = q.days ?? 7;
     const [examRows, taskRows, [due], assigns, sessionRows, me] = await Promise.all([
-      deps.db.select().from(exams).where(and(eq(exams.userId, user.id), gte(exams.day, today))),
-      deps.db.select().from(tasks).where(and(eq(tasks.userId, user.id), sql`${tasks.status} <> 'done'`)),
-      deps.db.select({ n: count() }).from(flashcards).where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date(Date.now() + 86400_000)))),
+      deps.db
+        .select()
+        .from(exams)
+        .where(and(eq(exams.userId, user.id), gte(exams.day, today))),
+      deps.db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.userId, user.id), sql`${tasks.status} <> 'done'`)),
+      deps.db
+        .select({ n: count() })
+        .from(flashcards)
+        .where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date(Date.now() + 86400_000)))),
       pendingAssignments(deps, user.id, horizon + 1),
-      deps.db.select().from(studySessions).where(and(eq(studySessions.userId, user.id), gte(studySessions.day, today), lte(studySessions.day, addDays(today, horizon - 1)))),
+      deps.db
+        .select()
+        .from(studySessions)
+        .where(and(eq(studySessions.userId, user.id), gte(studySessions.day, today), lte(studySessions.day, addDays(today, horizon - 1)))),
       deps.db.select({ goal: users.dailyGoalMinutes }).from(users).where(eq(users.id, user.id)),
     ]);
     const plan = buildWeeklyPlan({
@@ -607,7 +718,12 @@ export const academicRoutes = new Hono<AppEnv>()
       horizonDays: horizon,
       dailyBudgetMinutes: q.budget ?? me[0]?.goal ?? 90,
       exams: examRows.map((e) => ({ id: e.id, subject: e.subject, day: e.day })),
-      assignments: assigns.map((a) => ({ id: a.id, title: a.title, dueDay: dayKey(a.dueAt!, user.timezone), releaseDay: a.releaseAt ? dayKey(a.releaseAt, user.timezone) : null })),
+      assignments: assigns.map((a) => ({
+        id: a.id,
+        title: a.title,
+        dueDay: dayKey(a.dueAt!, user.timezone),
+        releaseDay: a.releaseAt ? dayKey(a.releaseAt, user.timezone) : null,
+      })),
       tasks: taskRows.map((t) => ({ id: t.id, title: t.title, dueDay: t.dueAt ? dayKey(t.dueAt, user.timezone) : null, done: t.status === 'done' })),
       dueCards: due?.n ?? 0,
       sessions: sessionRows.map((s) => ({ id: s.id, title: s.title, day: s.day, minutes: s.minutes })),
@@ -619,6 +735,10 @@ export const academicRoutes = new Hono<AppEnv>()
     const { db } = c.get('deps');
     const q = query(c, paginationSchema.extend({ days: z.coerce.number().int().min(1).max(366).default(90) }));
     const since = dayKey(Date.now() - q.days * 86400_000, user.timezone);
-    const rows = await db.select().from(studyLog).where(and(eq(studyLog.userId, user.id), gte(studyLog.day, since))).orderBy(asc(studyLog.day));
+    const rows = await db
+      .select()
+      .from(studyLog)
+      .where(and(eq(studyLog.userId, user.id), gte(studyLog.day, since)))
+      .orderBy(asc(studyLog.day));
     return c.json({ items: rows.map((r) => ({ day: r.day, minutes: r.minutes, quizzes: r.quizzes, cards: r.cards })) });
   });

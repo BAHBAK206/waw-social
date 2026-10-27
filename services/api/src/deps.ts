@@ -33,7 +33,12 @@ export async function createDeps(env: Env, overrides: Partial<Deps> = {}): Promi
     log,
     storage: overrides.storage ?? createStorage(env),
     mailer: overrides.mailer ?? createMailer(env, log),
-    realtime: overrides.realtime ?? createRealtime(kv, (err) => log.warn({ err }, 'realtime publish failed')),
+    realtime:
+      overrides.realtime ??
+      createRealtime(kv, (err) => log.warn({ err }, 'realtime publish failed'), {
+        hubUrl: env.REALTIME_INTERNAL_URL,
+        internalToken: env.INTERNAL_TOKEN,
+      }),
     ai: overrides.ai ?? createAiClient(env.AI_SERVICE_URL, env.INTERNAL_TOKEN),
   };
 }

@@ -54,6 +54,8 @@ describe('http client', () => {
 
   it('builds query strings without empty values', () => {
     const api = createApi({ baseUrl: 'http://api.test/', platform: 'web' });
-    expect(api.http.url('/quizzes', { q: 'كسور', limit: 10, empty: '', none: undefined })).toBe('http://api.test/api/v1/quizzes?q=%D9%83%D8%B3%D9%88%D8%B1&limit=10');
+    expect(api.http.url('/quizzes', { q: 'كسور', limit: 10, empty: '', none: undefined })).toBe(
+      'http://api.test/api/v1/quizzes?q=%D9%83%D8%B3%D9%88%D8%B1&limit=10',
+    );
   });
 });

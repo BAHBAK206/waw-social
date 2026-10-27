@@ -59,9 +59,23 @@ export async function retrieveChunks(deps: Deps, userId: string, text: string, c
   const courseFilter = courseId
     ? eq(knowledgeChunks.courseId, courseId)
     : inArray(knowledgeChunks.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, userId)));
-  const wordMatch = words.length ? sql`(${sql.join(words.map((w) => sql`${knowledgeChunks.searchText} ilike ${`%${w}%`}`), sql` or `)})` : sql`false`;
+  const wordMatch = words.length
+    ? sql`(${sql.join(
+        words.map((w) => sql`${knowledgeChunks.searchText} ilike ${`%${w}%`}`),
+        sql` or `,
+      )})`
+    : sql`false`;
   const rows = await deps.db
-    .select({ id: knowledgeChunks.id, heading: knowledgeChunks.heading, page: knowledgeChunks.page, text: knowledgeChunks.text, materialId: knowledgeChunks.materialId, title: courseMaterials.title, visible: courseMaterials.visibleToStudents, courseId: knowledgeChunks.courseId })
+    .select({
+      id: knowledgeChunks.id,
+      heading: knowledgeChunks.heading,
+      page: knowledgeChunks.page,
+      text: knowledgeChunks.text,
+      materialId: knowledgeChunks.materialId,
+      title: courseMaterials.title,
+      visible: courseMaterials.visibleToStudents,
+      courseId: knowledgeChunks.courseId,
+    })
     .from(knowledgeChunks)
     .innerJoin(courseMaterials, eq(courseMaterials.id, knowledgeChunks.materialId))
     .where(and(courseFilter, sql`(${wordMatch} or similarity(${knowledgeChunks.searchText}, ${term}) > 0.05)`))
@@ -83,7 +97,11 @@ async function synonymsFor(deps: Deps, userId: string, courseId?: string | null)
   const rows = await deps.db
     .select({ term: courseSynonyms.term, synonyms: courseSynonyms.synonyms })
     .from(courseSynonyms)
-    .where(courseId ? eq(courseSynonyms.courseId, courseId) : inArray(courseSynonyms.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, userId))))
+    .where(
+      courseId
+        ? eq(courseSynonyms.courseId, courseId)
+        : inArray(courseSynonyms.courseId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, userId))),
+    )
     .limit(500);
   return Object.fromEntries(rows.map((r) => [r.term, r.synonyms]));
 }
@@ -95,7 +113,12 @@ export const aiRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     const { db } = c.get('deps');
     const rows = await db
-      .select({ id: courses.id, title: courses.title, subject: courses.subject, materials: sql<number>`(select count(*)::int from course_materials m where m.course_id = ${courses.id})` })
+      .select({
+        id: courses.id,
+        title: courses.title,
+        subject: courses.subject,
+        materials: sql<number>`(select count(*)::int from course_materials m where m.course_id = ${courses.id})`,
+      })
       .from(courseMembers)
       .innerJoin(courses, eq(courses.id, courseMembers.courseId))
       .where(and(eq(courseMembers.userId, user.id), eq(courses.archived, false)))
@@ -106,7 +129,10 @@ export const aiRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     const deps = c.get('deps');
     const settings = await getSettings(deps.db, deps.env.AI_DAILY_QUOTA);
-    const [row] = await deps.db.select({ count: aiUsage.count }).from(aiUsage).where(and(eq(aiUsage.userId, user.id), eq(aiUsage.day, dayKey(Date.now(), user.timezone))));
+    const [row] = await deps.db
+      .select({ count: aiUsage.count })
+      .from(aiUsage)
+      .where(and(eq(aiUsage.userId, user.id), eq(aiUsage.day, dayKey(Date.now(), user.timezone))));
     return c.json({ enabled: settings.ai.enabled, limit: settings.ai.dailyQuota, used: row?.count ?? 0 });
   })
   .post('/solve', async (c) => {
@@ -148,7 +174,13 @@ export const aiRoutes = new Hono<AppEnv>()
     }
     if (!keyPoints.length) throw new AppError(400, 'key_points_required');
     await consumeQuota(deps, user);
-    const result: EssayGradeDto = await deps.ai.gradeEssay({ answer: input.answer, modelAnswer, keyPoints, synonyms: await synonymsFor(deps, user.id, courseId), language: languageOf(c) });
+    const result: EssayGradeDto = await deps.ai.gradeEssay({
+      answer: input.answer,
+      modelAnswer,
+      keyPoints,
+      synonyms: await synonymsFor(deps, user.id, courseId),
+      language: languageOf(c),
+    });
     return c.json(result);
   })
   .post('/explain', async (c) => {
@@ -156,18 +188,38 @@ export const aiRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'ai', limit: 20, windowSec: 60, by: 'user' });
     const deps = c.get('deps');
     const { attemptId, questionId } = await body(c, z.object({ attemptId: z.string().uuid(), questionId: z.string().uuid() }));
-    const [attempt] = await deps.db.select().from(quizAttempts).where(and(eq(quizAttempts.id, attemptId), eq(quizAttempts.userId, user.id)));
+    const [attempt] = await deps.db
+      .select()
+      .from(quizAttempts)
+      .where(and(eq(quizAttempts.id, attemptId), eq(quizAttempts.userId, user.id)));
     // Explanations are only available after submission, never during an attempt.
     if (!attempt?.submittedAt || !attempt.questionIds.includes(questionId)) throw notFound('attempt_not_found');
     const [q] = await deps.db.select().from(quizQuestions).where(eq(quizQuestions.id, questionId));
     if (!q) throw notFound();
     const correct = Array.isArray(q.answer) ? q.answer.map((a) => (typeof a === 'number' ? q.options[a] : a)).join('، ') : q.options[q.answer as number];
     if (q.explanation) {
-      return c.json({ answer: q.explanation, steps: [], confidence: 'high', kind: 'retrieval', sources: [], choice: null, provider: 'teacher', remainingQuota: null } satisfies AiAnswerDto);
+      return c.json({
+        answer: q.explanation,
+        steps: [],
+        confidence: 'high',
+        kind: 'retrieval',
+        sources: [],
+        choice: null,
+        provider: 'teacher',
+        remainingQuota: null,
+      } satisfies AiAnswerDto);
     }
     const remaining = await consumeQuota(deps, user);
     const chunks = await retrieveChunks(deps, user.id, `${q.prompt} ${correct ?? ''}`, null, 15);
-    const result = await deps.ai.solve({ question: q.prompt, options: q.options.length ? q.options : undefined, chunks, synonyms: {}, mode: 'explain', language: languageOf(c), material: undefined });
+    const result = await deps.ai.solve({
+      question: q.prompt,
+      options: q.options.length ? q.options : undefined,
+      chunks,
+      synonyms: {},
+      mode: 'explain',
+      language: languageOf(c),
+      material: undefined,
+    });
     return c.json({ ...result, remainingQuota: remaining } satisfies AiAnswerDto);
   });
 
@@ -185,7 +237,10 @@ const toMessage = (m: typeof assistantMessages.$inferSelect): AssistantMessageDt
 });
 
 async function ownThread(deps: Deps, user: AuthUser, id: string) {
-  const [t] = await deps.db.select().from(assistantThreads).where(and(eq(assistantThreads.id, id), eq(assistantThreads.userId, user.id)));
+  const [t] = await deps.db
+    .select()
+    .from(assistantThreads)
+    .where(and(eq(assistantThreads.id, id), eq(assistantThreads.userId, user.id)));
   if (!t) throw notFound('thread_not_found');
   return t;
 }
@@ -201,7 +256,12 @@ export const assistantRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     const deps = c.get('deps');
     const t = await ownThread(deps, user, param(c, 'id'));
-    const rows = await deps.db.select().from(assistantMessages).where(eq(assistantMessages.threadId, t.id)).orderBy(asc(assistantMessages.createdAt)).limit(500);
+    const rows = await deps.db
+      .select()
+      .from(assistantMessages)
+      .where(eq(assistantMessages.threadId, t.id))
+      .orderBy(asc(assistantMessages.createdAt))
+      .limit(500);
     return c.json({ thread: { id: t.id, title: t.title, updatedAt: t.updatedAt.getTime() }, messages: rows.map(toMessage) });
   })
   .delete('/threads/:id', async (c) => {
@@ -217,7 +277,12 @@ export const assistantRoutes = new Hono<AppEnv>()
     const input = await body(c, assistantMessageSchema);
     const thread = input.threadId
       ? await ownThread(deps, user, input.threadId)
-      : (await deps.db.insert(assistantThreads).values({ userId: user.id, title: truncate(input.text, 60) }).returning())[0]!;
+      : (
+          await deps.db
+            .insert(assistantThreads)
+            .values({ userId: user.id, title: truncate(input.text, 60) })
+            .returning()
+        )[0]!;
     const remaining = await consumeQuota(deps, user);
     const term = normalizeSearch(input.text).slice(0, 300);
     const [history, knowledge, chunks] = await Promise.all([
@@ -241,7 +306,14 @@ export const assistantRoutes = new Hono<AppEnv>()
     });
     const [assistantMsg] = await deps.db
       .insert(assistantMessages)
-      .values({ threadId: thread.id, role: 'assistant', content: reply.content, sources: reply.sources as unknown as Record<string, unknown>[], actions: reply.actions, provider: reply.provider })
+      .values({
+        threadId: thread.id,
+        role: 'assistant',
+        content: reply.content,
+        sources: reply.sources as unknown as Record<string, unknown>[],
+        actions: reply.actions,
+        provider: reply.provider,
+      })
       .returning();
     await deps.db.update(assistantThreads).set({ updatedAt: new Date() }).where(eq(assistantThreads.id, thread.id));
     return c.json({ threadId: thread.id, userMessage: toMessage(userMsg!), message: toMessage(assistantMsg!), remainingQuota: remaining }, 201);
@@ -256,7 +328,10 @@ export const assistantRoutes = new Hono<AppEnv>()
       .innerJoin(assistantThreads, eq(assistantThreads.id, assistantMessages.threadId))
       .where(and(eq(assistantMessages.id, input.messageId), eq(assistantThreads.userId, user.id), eq(assistantMessages.role, 'assistant')));
     if (!m) throw notFound();
-    await db.update(assistantMessages).set({ rating: input.rating, feedback: input.comment ?? null }).where(eq(assistantMessages.id, m.id));
+    await db
+      .update(assistantMessages)
+      .set({ rating: input.rating, feedback: input.comment ?? null })
+      .where(eq(assistantMessages.id, m.id));
     return c.json({ ok: true });
   })
   .get('/stats', async (c) => {

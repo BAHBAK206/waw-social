@@ -89,7 +89,9 @@ export const sessions = pgTable(
   'sessions',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     tokenHash: text('token_hash').notNull(),
     previousTokenHash: text('previous_token_hash'),
     rotatedAt: ts('rotated_at'),
@@ -101,18 +103,16 @@ export const sessions = pgTable(
     expiresAt: ts('expires_at').notNull(),
     revokedAt: ts('revoked_at'),
   },
-  (t) => [
-    uniqueIndex('sessions_token_uq').on(t.tokenHash),
-    index('sessions_prev_token_idx').on(t.previousTokenHash),
-    index('sessions_user_idx').on(t.userId),
-  ],
+  (t) => [uniqueIndex('sessions_token_uq').on(t.tokenHash), index('sessions_prev_token_idx').on(t.previousTokenHash), index('sessions_user_idx').on(t.userId)],
 );
 
 export const emailTokens = pgTable(
   'email_tokens',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     kind: text('kind').$type<'verify' | 'reset'>().notNull(),
     tokenHash: text('token_hash').notNull(),
     expiresAt: ts('expires_at').notNull(),
@@ -125,8 +125,12 @@ export const emailTokens = pgTable(
 export const follows = pgTable(
   'follows',
   {
-    followerId: uuid('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    followeeId: uuid('followee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    followerId: uuid('follower_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    followeeId: uuid('followee_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.followerId, t.followeeId] }), index('follows_followee_idx').on(t.followeeId)],
@@ -135,8 +139,12 @@ export const follows = pgTable(
 export const blocks = pgTable(
   'blocks',
   {
-    blockerId: uuid('blocker_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    blockedId: uuid('blocked_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    blockerId: uuid('blocker_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: uuid('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
@@ -145,7 +153,9 @@ export const blocks = pgTable(
 export const userAchievements = pgTable(
   'user_achievements',
   {
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     achievementId: text('achievement_id').notNull(),
     unlockedAt: ts('unlocked_at').notNull().defaultNow(),
   },
@@ -156,7 +166,9 @@ export const xpLedger = pgTable(
   'xp_ledger',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     amount: integer('amount').notNull(),
     reason: text('reason').notNull(),
     ref: text('ref').notNull(),
@@ -169,7 +181,9 @@ export const xpLedger = pgTable(
 export const studyLog = pgTable(
   'study_log',
   {
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     day: date('day', { mode: 'string' }).notNull(),
     minutes: integer('minutes').notNull().default(0),
     quizzes: integer('quizzes').notNull().default(0),
@@ -192,7 +206,9 @@ export const groups = pgTable(
     avatarUrl: text('avatar_url'),
     coverUrl: text('cover_url'),
     tags: jsonb('tags').$type<string[]>().notNull().default([]),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     memberCount: integer('member_count').notNull().default(0),
     postCount: integer('post_count').notNull().default(0),
     conversationId: uuid('conversation_id'),
@@ -206,8 +222,12 @@ export const groups = pgTable(
 export const groupMembers = pgTable(
   'group_members',
   {
-    groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     role: groupRoleEnum('role').notNull().default('member'),
     points: integer('points').notNull().default(0),
     joinedAt: ts('joined_at').notNull().defaultNow(),
@@ -218,8 +238,12 @@ export const groupMembers = pgTable(
 export const groupJoinRequests = pgTable(
   'group_join_requests',
   {
-    groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     message: text('message').notNull().default(''),
     createdAt: createdAt(),
   },
@@ -230,7 +254,9 @@ export const groupChannels = pgTable(
   'group_channels',
   {
     id: id(),
-    groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     kind: text('kind').$type<'text' | 'announcement'>().notNull().default('text'),
     conversationId: uuid('conversation_id').notNull(),
@@ -244,8 +270,12 @@ export const groupResources = pgTable(
   'group_resources',
   {
     id: id(),
-    groupId: uuid('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
-    uploaderId: uuid('uploader_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    uploaderId: uuid('uploader_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     url: text('url').notNull(),
     kind: text('kind').$type<'file' | 'link'>().notNull(),
@@ -260,7 +290,9 @@ export const posts = pgTable(
   'posts',
   {
     id: id(),
-    authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }),
     text: text('text').notNull().default(''),
     searchText: text('search_text').notNull().default(''),
@@ -283,8 +315,12 @@ export const posts = pgTable(
 export const postReactions = pgTable(
   'post_reactions',
   {
-    postId: uuid('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     reaction: text('reaction').notNull(),
     createdAt: createdAt(),
   },
@@ -295,8 +331,12 @@ export const comments = pgTable(
   'comments',
   {
     id: id(),
-    postId: uuid('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
-    authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     text: text('text').notNull(),
     deletedAt: ts('deleted_at'),
     createdAt: createdAt(),
@@ -308,7 +348,9 @@ export const notifications = pgTable(
   'notifications',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     type: text('type').notNull(),
     title: text('title').notNull(),
     body: text('body').notNull().default(''),
@@ -326,7 +368,9 @@ export const reports = pgTable(
   'reports',
   {
     id: id(),
-    reporterId: uuid('reporter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    reporterId: uuid('reporter_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     targetType: text('target_type').notNull(),
     targetId: text('target_id').notNull(),
     reason: text('reason').notNull(),
@@ -361,8 +405,12 @@ export const conversations = pgTable(
 export const conversationMembers = pgTable(
   'conversation_members',
   {
-    conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     lastReadAt: ts('last_read_at'),
     muted: boolean('muted').notNull().default(false),
     hidden: boolean('hidden').notNull().default(false),
@@ -375,8 +423,12 @@ export const messages = pgTable(
   'messages',
   {
     id: id(),
-    conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
-    senderId: uuid('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    senderId: uuid('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     text: text('text').notNull().default(''),
     attachment: jsonb('attachment').$type<Record<string, unknown> | null>(),
     replyToId: uuid('reply_to_id'),
@@ -385,17 +437,18 @@ export const messages = pgTable(
     deletedAt: ts('deleted_at'),
     createdAt: createdAt(),
   },
-  (t) => [
-    index('messages_conv_idx').on(t.conversationId, t.createdAt),
-    uniqueIndex('messages_client_uq').on(t.senderId, t.clientId),
-  ],
+  (t) => [index('messages_conv_idx').on(t.conversationId, t.createdAt), uniqueIndex('messages_client_uq').on(t.senderId, t.clientId)],
 );
 
 export const messageReactions = pgTable(
   'message_reactions',
   {
-    messageId: uuid('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     emoji: text('emoji').notNull(),
     createdAt: createdAt(),
   },
@@ -415,7 +468,9 @@ export const eduMaterials = pgTable(
   'edu_materials',
   {
     id: id(),
-    sectionId: uuid('section_id').notNull().references(() => eduSections.id, { onDelete: 'cascade' }),
+    sectionId: uuid('section_id')
+      .notNull()
+      .references(() => eduSections.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     sort: integer('sort').notNull().default(0),
     createdAt: createdAt(),
@@ -457,7 +512,9 @@ export const quizQuestions = pgTable(
   'quiz_questions',
   {
     id: id(),
-    quizId: uuid('quiz_id').notNull().references(() => quizzes.id, { onDelete: 'cascade' }),
+    quizId: uuid('quiz_id')
+      .notNull()
+      .references(() => quizzes.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
     type: text('type').$type<'mc' | 'tf' | 'multi' | 'short'>().notNull(),
     prompt: text('prompt').notNull(),
@@ -476,7 +533,9 @@ export const quizAttempts = pgTable(
   {
     id: id(),
     quizId: uuid('quiz_id').references(() => quizzes.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     questionIds: jsonb('question_ids').$type<string[]>().notNull(),
     review: boolean('review').notNull().default(false),
     adaptive: boolean('adaptive').notNull().default(false),
@@ -497,8 +556,12 @@ export const quizAttempts = pgTable(
 export const quizBest = pgTable(
   'quiz_best',
   {
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    quizId: uuid('quiz_id').notNull().references(() => quizzes.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    quizId: uuid('quiz_id')
+      .notNull()
+      .references(() => quizzes.id, { onDelete: 'cascade' }),
     pct: integer('pct').notNull(),
     correct: integer('correct').notNull(),
     total: integer('total').notNull(),
@@ -513,7 +576,9 @@ export const topicSamples = pgTable(
   'topic_samples',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     topicKey: text('topic_key').notNull(),
     topic: text('topic').notNull(),
     courseId: uuid('course_id'),
@@ -541,7 +606,9 @@ export const dailyChallenges = pgTable('daily_challenges', {
 export const dailyClaims = pgTable(
   'daily_claims',
   {
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     day: date('day', { mode: 'string' }).notNull(),
     correct: boolean('correct').notNull(),
     answer: integer('answer'),
@@ -555,7 +622,9 @@ export const pomodoroSessions = pgTable(
   'pomodoro_sessions',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     minutes: integer('minutes').notNull(),
     label: text('label'),
     startedAt: ts('started_at').notNull().defaultNow(),
@@ -570,7 +639,9 @@ export const flashcards = pgTable(
   'flashcards',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     front: text('front').notNull(),
     back: text('back').notNull(),
     deck: text('deck').notNull().default('general'),
@@ -592,7 +663,9 @@ export const tasks = pgTable(
   'tasks',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     notes: text('notes').notNull().default(''),
     dueAt: ts('due_at'),
@@ -611,7 +684,9 @@ export const notes = pgTable(
   'notes',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull().default(''),
     body: text('body').notNull().default(''),
     color: text('color').notNull().default('default'),
@@ -627,7 +702,9 @@ export const exams = pgTable(
   'exams',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     subject: text('subject').notNull(),
     day: date('day', { mode: 'string' }).notNull(),
     time: text('time'),
@@ -642,7 +719,9 @@ export const studySessions = pgTable(
   'study_sessions',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     subject: text('subject'),
     day: date('day', { mode: 'string' }).notNull(),
@@ -667,7 +746,9 @@ export const courses = pgTable(
     subject: text('subject'),
     coverUrl: text('cover_url'),
     color: text('color'),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     joinCode: text('join_code').notNull(),
     memberCount: integer('member_count').notNull().default(0),
     archived: boolean('archived').notNull().default(false),
@@ -680,8 +761,12 @@ export const courses = pgTable(
 export const courseMembers = pgTable(
   'course_members',
   {
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     role: courseRoleEnum('role').notNull().default('student'),
     joinedAt: ts('joined_at').notNull().defaultNow(),
   },
@@ -692,8 +777,12 @@ export const courseAnnouncements = pgTable(
   'course_announcements',
   {
     id: id(),
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
-    authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     text: text('text').notNull(),
     attachments: jsonb('attachments').$type<Record<string, unknown>[]>().notNull().default([]),
     createdAt: createdAt(),
@@ -703,7 +792,9 @@ export const courseAnnouncements = pgTable(
 
 export const rubrics = pgTable('rubrics', {
   id: id(),
-  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  courseId: uuid('course_id')
+    .notNull()
+    .references(() => courses.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   criteria: jsonb('criteria').$type<{ title: string; description: string; levels: { label: string; points: number }[] }[]>().notNull(),
   createdAt: createdAt(),
@@ -713,7 +804,9 @@ export const assignments = pgTable(
   'assignments',
   {
     id: id(),
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     description: text('description').notNull().default(''),
     dueAt: ts('due_at'),
@@ -735,8 +828,12 @@ export const submissions = pgTable(
   'submissions',
   {
     id: id(),
-    assignmentId: uuid('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
-    studentId: uuid('student_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    assignmentId: uuid('assignment_id')
+      .notNull()
+      .references(() => assignments.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     text: text('text').notNull().default(''),
     attachments: jsonb('attachments').$type<Record<string, unknown>[]>().notNull().default([]),
     status: text('status').$type<'submitted' | 'graded' | 'returned'>().notNull().default('submitted'),
@@ -755,7 +852,9 @@ export const attendanceSessions = pgTable(
   'attendance_sessions',
   {
     id: id(),
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
     title: text('title').notNull().default(''),
     day: date('day', { mode: 'string' }).notNull(),
     createdAt: createdAt(),
@@ -766,8 +865,12 @@ export const attendanceSessions = pgTable(
 export const attendanceRecords = pgTable(
   'attendance_records',
   {
-    sessionId: uuid('session_id').notNull().references(() => attendanceSessions.id, { onDelete: 'cascade' }),
-    studentId: uuid('student_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => attendanceSessions.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     status: text('status').$type<'present' | 'absent' | 'late' | 'excused'>().notNull(),
   },
   (t) => [primaryKey({ columns: [t.sessionId, t.studentId] })],
@@ -777,7 +880,9 @@ export const courseMaterials = pgTable(
   'course_materials',
   {
     id: id(),
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     topic: text('topic'),
     fileUrl: text('file_url'),
@@ -793,23 +898,26 @@ export const knowledgeChunks = pgTable(
   'knowledge_chunks',
   {
     id: id(),
-    materialId: uuid('material_id').notNull().references(() => courseMaterials.id, { onDelete: 'cascade' }),
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+    materialId: uuid('material_id')
+      .notNull()
+      .references(() => courseMaterials.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
     heading: text('heading'),
     page: integer('page'),
     text: text('text').notNull(),
     searchText: text('search_text').notNull(),
   },
-  (t) => [
-    index('knowledge_chunks_course_idx').on(t.courseId),
-    index('knowledge_chunks_trgm').using('gin', sql`${t.searchText} gin_trgm_ops`),
-  ],
+  (t) => [index('knowledge_chunks_course_idx').on(t.courseId), index('knowledge_chunks_trgm').using('gin', sql`${t.searchText} gin_trgm_ops`)],
 );
 
 export const essayKeys = pgTable('essay_keys', {
   id: id(),
-  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  courseId: uuid('course_id')
+    .notNull()
+    .references(() => courses.id, { onDelete: 'cascade' }),
   prompt: text('prompt').notNull(),
   modelAnswer: text('model_answer').notNull().default(''),
   keyPoints: jsonb('key_points').$type<string[]>().notNull(),
@@ -821,7 +929,9 @@ export const courseSynonyms = pgTable(
   'course_synonyms',
   {
     id: id(),
-    courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
     term: text('term').notNull(),
     synonyms: jsonb('synonyms').$type<string[]>().notNull(),
   },
@@ -837,7 +947,9 @@ export const liveRooms = pgTable(
     title: text('title').notNull(),
     scopeType: text('scope_type').$type<'group' | 'community' | 'course' | 'open'>().notNull(),
     scopeId: uuid('scope_id'),
-    hostId: uuid('host_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    hostId: uuid('host_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     status: text('status').$type<'scheduled' | 'live' | 'ended'>().notNull().default('scheduled'),
     scheduledAt: ts('scheduled_at'),
     startedAt: ts('started_at'),
@@ -868,7 +980,9 @@ export const forms = pgTable(
   'forms',
   {
     id: id(),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     slug: text('slug').notNull(),
     title: text('title').notNull(),
     description: text('description').notNull().default(''),
@@ -887,7 +1001,9 @@ export const formResponses = pgTable(
   'form_responses',
   {
     id: id(),
-    formId: uuid('form_id').notNull().references(() => forms.id, { onDelete: 'cascade' }),
+    formId: uuid('form_id')
+      .notNull()
+      .references(() => forms.id, { onDelete: 'cascade' }),
     respondentId: uuid('respondent_id').references(() => users.id, { onDelete: 'set null' }),
     email: text('email'),
     answers: jsonb('answers').$type<Record<string, unknown>>().notNull(),
@@ -913,7 +1029,9 @@ export const libraryItems = pgTable(
     mime: text('mime').notNull(),
     size: integer('size').notNull().default(0),
     coverUrl: text('cover_url'),
-    uploaderId: uuid('uploader_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    uploaderId: uuid('uploader_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     downloads: integer('downloads').notNull().default(0),
     approved: boolean('approved').notNull().default(false),
     deletedAt: ts('deleted_at'),
@@ -926,7 +1044,9 @@ export const workspaceFolders = pgTable(
   'workspace_folders',
   {
     id: id(),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     parentId: uuid('parent_id'),
     createdAt: createdAt(),
@@ -938,7 +1058,9 @@ export const workspaceFiles = pgTable(
   'workspace_files',
   {
     id: id(),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     folderId: uuid('folder_id').references(() => workspaceFolders.id, { onDelete: 'set null' }),
     title: text('title').notNull(),
     kind: text('kind').$type<'doc' | 'sheet' | 'slides' | 'whiteboard'>().notNull(),
@@ -954,7 +1076,9 @@ export const savedCollections = pgTable(
   'saved_collections',
   {
     id: id(),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     description: text('description').notNull().default(''),
     isPublic: boolean('is_public').notNull().default(false),
@@ -968,7 +1092,9 @@ export const savedItems = pgTable(
   'saved_items',
   {
     id: id(),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     collectionId: uuid('collection_id').references(() => savedCollections.id, { onDelete: 'set null' }),
     itemType: text('item_type').notNull(),
     refId: text('ref_id'),
@@ -984,7 +1110,9 @@ export const uploads = pgTable(
   'uploads',
   {
     id: id(),
-    ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     key: text('key').notNull(),
     mime: text('mime').notNull(),
     size: integer('size').notNull(),
@@ -1002,7 +1130,9 @@ export const assistantThreads = pgTable(
   'assistant_threads',
   {
     id: id(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -1014,7 +1144,9 @@ export const assistantMessages = pgTable(
   'assistant_messages',
   {
     id: id(),
-    threadId: uuid('thread_id').notNull().references(() => assistantThreads.id, { onDelete: 'cascade' }),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => assistantThreads.id, { onDelete: 'cascade' }),
     role: text('role').$type<'user' | 'assistant'>().notNull(),
     content: text('content').notNull(),
     sources: jsonb('sources').$type<Record<string, unknown>[]>().notNull().default([]),
@@ -1045,7 +1177,9 @@ export const assistantKnowledge = pgTable(
 export const aiUsage = pgTable(
   'ai_usage',
   {
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     day: date('day', { mode: 'string' }).notNull(),
     count: integer('count').notNull().default(0),
   },

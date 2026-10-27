@@ -35,7 +35,11 @@ type FormRow = typeof forms.$inferSelect & Record<string, unknown>;
 type Answer = string | string[] | number;
 
 async function loadForm(deps: Deps, where: ReturnType<typeof eq>) {
-  const [row] = await deps.db.select({ f: forms, ...ownerCols }).from(forms).innerJoin(users, eq(users.id, forms.ownerId)).where(and(where, isNull(forms.deletedAt)));
+  const [row] = await deps.db
+    .select({ f: forms, ...ownerCols })
+    .from(forms)
+    .innerJoin(users, eq(users.id, forms.ownerId))
+    .where(and(where, isNull(forms.deletedAt)));
   if (!row) throw notFound('form_not_found');
   return { ...row.f, ...row } as FormRow;
 }
@@ -43,11 +47,16 @@ async function loadForm(deps: Deps, where: ReturnType<typeof eq>) {
 async function toDto(deps: Deps, viewer: AuthUser | null, f: FormRow, opts: { stripAnswers: boolean }): Promise<FormDto> {
   let already = false;
   if (viewer) {
-    const [r] = await deps.db.select({ n: count() }).from(formResponses).where(and(eq(formResponses.formId, f.id), eq(formResponses.respondentId, viewer.id)));
+    const [r] = await deps.db
+      .select({ n: count() })
+      .from(formResponses)
+      .where(and(eq(formResponses.formId, f.id), eq(formResponses.respondentId, viewer.id)));
     already = (r?.n ?? 0) > 0;
   }
   const settings = formSettingsSchema.parse(f.settings ?? {});
-  const questions = (f.questions as FormQuestion[]).map((q) => (opts.stripAnswers ? { ...q, correct: undefined, points: settings.quizMode ? q.points : undefined } : q));
+  const questions = (f.questions as FormQuestion[]).map((q) =>
+    opts.stripAnswers ? { ...q, correct: undefined, points: settings.quizMode ? q.points : undefined } : q,
+  );
   return {
     id: f.id,
     slug: f.slug,
@@ -151,7 +160,15 @@ export const formRoutes = new Hono<AppEnv>()
     if (ids.size !== input.questions.length) throw badRequest('duplicate_question_ids');
     const [row] = await deps.db
       .insert(forms)
-      .values({ ownerId: viewer.id, slug: randomCode(10), title: input.title, description: input.description, settings: input.settings, questions: input.questions, published: input.published })
+      .values({
+        ownerId: viewer.id,
+        slug: randomCode(10),
+        title: input.title,
+        description: input.description,
+        settings: input.settings,
+        questions: input.questions,
+        published: input.published,
+      })
       .returning({ id: forms.id });
     return c.json(await toDto(deps, viewer, await loadForm(deps, eq(forms.id, row!.id)), { stripAnswers: false }), 201);
   })
@@ -182,14 +199,20 @@ export const formRoutes = new Hono<AppEnv>()
     const id = await deps.db.transaction(async (tx) => {
       if (settings.oneResponsePerUser && viewer) {
         await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${f.id}:${viewer.id}`}))`);
-        const [prev] = await tx.select({ n: count() }).from(formResponses).where(and(eq(formResponses.formId, f.id), eq(formResponses.respondentId, viewer.id)));
+        const [prev] = await tx
+          .select({ n: count() })
+          .from(formResponses)
+          .where(and(eq(formResponses.formId, f.id), eq(formResponses.respondentId, viewer.id)));
         if ((prev?.n ?? 0) > 0) throw conflict('already_responded');
       }
       const [row] = await tx
         .insert(formResponses)
         .values({ formId: f.id, respondentId: viewer?.id ?? null, email: settings.collectEmail ? (input.email ?? null) : null, answers: clean, score })
         .returning({ id: formResponses.id });
-      await tx.update(forms).set({ responseCount: sql`${forms.responseCount} + 1` }).where(eq(forms.id, f.id));
+      await tx
+        .update(forms)
+        .set({ responseCount: sql`${forms.responseCount} + 1` })
+        .where(eq(forms.id, f.id));
       return row!.id;
     });
     return c.json({ id, score, confirmationMessage: settings.confirmationMessage }, 201);
@@ -210,7 +233,14 @@ export const formRoutes = new Hono<AppEnv>()
     if (new Set(input.questions.map((q) => q.id)).size !== input.questions.length) throw badRequest('duplicate_question_ids');
     await deps.db
       .update(forms)
-      .set({ title: input.title, description: input.description, settings: input.settings, questions: input.questions, published: input.published, updatedAt: new Date() })
+      .set({
+        title: input.title,
+        description: input.description,
+        settings: input.settings,
+        questions: input.questions,
+        published: input.published,
+        updatedAt: new Date(),
+      })
       .where(eq(forms.id, f.id));
     return c.json(await toDto(deps, viewer, await loadForm(deps, eq(forms.id, f.id)), { stripAnswers: false }));
   })
@@ -221,7 +251,15 @@ export const formRoutes = new Hono<AppEnv>()
     if (f.ownerId !== viewer.id) throw notFound('form_not_found');
     const [row] = await deps.db
       .insert(forms)
-      .values({ ownerId: viewer.id, slug: randomCode(10), title: `${f.title} (2)`.slice(0, 200), description: f.description, settings: f.settings, questions: f.questions, published: false })
+      .values({
+        ownerId: viewer.id,
+        slug: randomCode(10),
+        title: `${f.title} (2)`.slice(0, 200),
+        description: f.description,
+        settings: f.settings,
+        questions: f.questions,
+        published: false,
+      })
       .returning({ id: forms.id });
     return c.json(await toDto(deps, viewer, await loadForm(deps, eq(forms.id, row!.id)), { stripAnswers: false }), 201);
   })
@@ -244,7 +282,12 @@ export const formRoutes = new Hono<AppEnv>()
       .select({ r: formResponses, ...ownerCols })
       .from(formResponses)
       .leftJoin(users, eq(users.id, formResponses.respondentId))
-      .where(and(eq(formResponses.formId, f.id), cursor ? sql`(${formResponses.createdAt}, ${formResponses.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined))
+      .where(
+        and(
+          eq(formResponses.formId, f.id),
+          cursor ? sql`(${formResponses.createdAt}, ${formResponses.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
+        ),
+      )
       .orderBy(desc(formResponses.createdAt), desc(formResponses.id))
       .limit(q.limit + 1);
     const page = pageOf(rows, q.limit, (r) => ({ t: r.r.createdAt, id: r.r.id }));
@@ -263,8 +306,15 @@ export const formRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const f = await loadForm(deps, eq(forms.id, param(c, 'id')));
     if (f.ownerId !== viewer.id) throw notFound('form_not_found');
-    const removed = await deps.db.delete(formResponses).where(and(eq(formResponses.id, param(c, 'responseId')), eq(formResponses.formId, f.id))).returning();
-    if (removed.length) await deps.db.update(forms).set({ responseCount: sql`greatest(${forms.responseCount} - 1, 0)` }).where(eq(forms.id, f.id));
+    const removed = await deps.db
+      .delete(formResponses)
+      .where(and(eq(formResponses.id, param(c, 'responseId')), eq(formResponses.formId, f.id)))
+      .returning();
+    if (removed.length)
+      await deps.db
+        .update(forms)
+        .set({ responseCount: sql`greatest(${forms.responseCount} - 1, 0)` })
+        .where(eq(forms.id, f.id));
     return c.json({ ok: true });
   })
   .get('/:id/analytics', async (c) => {
@@ -291,7 +341,14 @@ export const formRoutes = new Hono<AppEnv>()
             } else if (['single', 'dropdown'].includes(q.type)) counts[v] = (counts[v] ?? 0) + 1;
             else if (texts.length < 50) texts.push(v);
           }
-          return { id: q.id, title: q.title, type: q.type, counts, average: nums.length ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100 : null, textAnswers: texts };
+          return {
+            id: q.id,
+            title: q.title,
+            type: q.type,
+            counts,
+            average: nums.length ? Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 100) / 100 : null,
+            textAnswers: texts,
+          };
         }),
     };
     return c.json(dto);
@@ -315,7 +372,7 @@ export const formRoutes = new Hono<AppEnv>()
       const a = r.answers as Record<string, Answer>;
       lines.push([r.createdAt.toISOString(), name ?? '', r.email ?? '', ...qs.map((q) => a[q.id]), r.score ?? ''].map(csvCell).join(','));
     }
-    return new Response(`﻿${lines.join('\r\n')}`, {
+    return new Response(`\uFEFF${lines.join('\r\n')}`, {
       headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="form-${f.slug}.csv"`, 'Cache-Control': 'no-store' },
     });
   });

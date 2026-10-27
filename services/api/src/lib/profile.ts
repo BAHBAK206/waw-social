@@ -9,16 +9,7 @@ import {
   type Me,
   type PublicProfile,
 } from '@qubedu/shared';
-import {
-  conversationMembers,
-  conversations,
-  follows,
-  messages,
-  notifications,
-  studyLog,
-  userAchievements,
-  users,
-} from '../db/schema';
+import { conversationMembers, conversations, follows, messages, notifications, studyLog, userAchievements, users } from '../db/schema';
 import type { Deps } from './context';
 import { notFound } from './errors';
 import { ms, onlineKey, toSummary } from './mappers';
@@ -51,10 +42,16 @@ export async function buildProfile(deps: Deps, row: UserRow, viewerId: string | 
     db.select({ n: count() }).from(follows).where(eq(follows.followeeId, row.id)),
     db.select({ n: count() }).from(follows).where(eq(follows.followerId, row.id)),
     viewerId
-      ? db.select({ n: count() }).from(follows).where(and(eq(follows.followerId, viewerId), eq(follows.followeeId, row.id)))
+      ? db
+          .select({ n: count() })
+          .from(follows)
+          .where(and(eq(follows.followerId, viewerId), eq(follows.followeeId, row.id)))
       : Promise.resolve([{ n: 0 }]),
     viewerId
-      ? db.select({ n: count() }).from(follows).where(and(eq(follows.followerId, row.id), eq(follows.followeeId, viewerId)))
+      ? db
+          .select({ n: count() })
+          .from(follows)
+          .where(and(eq(follows.followerId, row.id), eq(follows.followeeId, viewerId)))
       : Promise.resolve([{ n: 0 }]),
     db.select().from(userAchievements).where(eq(userAchievements.userId, row.id)),
     kv.existsMany([onlineKey(row.id)]),
@@ -104,13 +101,22 @@ export async function unreadMessageCount(deps: Deps, userId: string): Promise<nu
 }
 
 export async function buildMe(deps: Deps, userId: string): Promise<Me> {
-  const [row] = await deps.db.select().from(users).where(and(eq(users.id, userId), isNull(users.deletedAt)));
+  const [row] = await deps.db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)));
   if (!row) throw notFound('user_not_found');
   const today = dayKey(Date.now(), row.timezone);
   const [profile, [unread], [todayLog], unreadMessages] = await Promise.all([
     buildProfile(deps, row, userId),
-    deps.db.select({ n: count() }).from(notifications).where(and(eq(notifications.userId, userId), isNull(notifications.readAt))),
-    deps.db.select({ minutes: studyLog.minutes }).from(studyLog).where(and(eq(studyLog.userId, userId), eq(studyLog.day, today))),
+    deps.db
+      .select({ n: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), isNull(notifications.readAt))),
+    deps.db
+      .select({ minutes: studyLog.minutes })
+      .from(studyLog)
+      .where(and(eq(studyLog.userId, userId), eq(studyLog.day, today))),
     unreadMessageCount(deps, userId),
   ]);
   const banned = !!row.bannedAt && (!row.bannedUntil || row.bannedUntil.getTime() > Date.now());

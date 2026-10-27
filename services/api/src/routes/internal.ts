@@ -48,6 +48,9 @@ export const internalRoutes = new Hono<AppEnv>()
   .post('/presence', async (c) => {
     const { db } = c.get('deps');
     const input = await body(c, z.object({ uid: z.string().regex(uuid), online: z.boolean() }));
-    await db.update(users).set({ lastSeenAt: new Date() }).where(and(eq(users.id, input.uid)));
+    await db
+      .update(users)
+      .set({ lastSeenAt: new Date() })
+      .where(and(eq(users.id, input.uid)));
     return c.json({ ok: true });
   });

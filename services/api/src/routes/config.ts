@@ -13,11 +13,32 @@ import { checkRate } from '../middleware';
 export const APP_VERSION = '2.0.0';
 
 export function toAnnouncement(a: typeof announcements.$inferSelect): AnnouncementDto {
-  return { id: a.id, title: a.title, text: a.text, imageUrl: a.imageUrl, link: a.link, level: a.level, active: a.active, expiresAt: ms(a.expiresAt), createdAt: a.createdAt.getTime() };
+  return {
+    id: a.id,
+    title: a.title,
+    text: a.text,
+    imageUrl: a.imageUrl,
+    link: a.link,
+    level: a.level,
+    active: a.active,
+    expiresAt: ms(a.expiresAt),
+    createdAt: a.createdAt.getTime(),
+  };
 }
 
 export function toAd(a: typeof ads.$inferSelect): AdDto {
-  return { id: a.id, title: a.title, subtitle: a.subtitle, link: a.link, imageUrl: a.imageUrl, placement: a.placement, active: a.active, clicks: a.clicks, impressions: a.impressions, createdAt: a.createdAt.getTime() };
+  return {
+    id: a.id,
+    title: a.title,
+    subtitle: a.subtitle,
+    link: a.link,
+    imageUrl: a.imageUrl,
+    placement: a.placement,
+    active: a.active,
+    clicks: a.clicks,
+    impressions: a.impressions,
+    createdAt: a.createdAt.getTime(),
+  };
 }
 
 export const configRoutes = new Hono<AppEnv>()
@@ -52,14 +73,21 @@ export const configRoutes = new Hono<AppEnv>()
   .post('/ads/:id/click', async (c) => {
     await checkRate(c, { bucket: 'ad-click', limit: 30, windowSec: 600 });
     const { db } = c.get('deps');
-    await db.update(ads).set({ clicks: sql`${ads.clicks} + 1` }).where(eq(ads.id, param(c, 'id')));
+    await db
+      .update(ads)
+      .set({ clicks: sql`${ads.clicks} + 1` })
+      .where(eq(ads.id, param(c, 'id')));
     return c.json({ ok: true });
   })
   .post('/ads/impressions', async (c) => {
     await checkRate(c, { bucket: 'ad-imp', limit: 60, windowSec: 600 });
     const { db } = c.get('deps');
     const { ids } = await body(c, z.object({ ids: z.array(z.string().uuid()).max(10) }));
-    for (const id of ids) await db.update(ads).set({ impressions: sql`${ads.impressions} + 1` }).where(eq(ads.id, id));
+    for (const id of ids)
+      await db
+        .update(ads)
+        .set({ impressions: sql`${ads.impressions} + 1` })
+        .where(eq(ads.id, id));
     return c.json({ ok: true });
   })
   .post('/client-errors', async (c) => {
@@ -70,7 +98,15 @@ export const configRoutes = new Hono<AppEnv>()
     const fingerprint = sha256(`${input.kind}|${input.message}|${(input.stack ?? '').split('\n').slice(0, 3).join('|')}`);
     await db
       .insert(clientErrors)
-      .values({ fingerprint, message: input.message, kind: input.kind, url: input.url ?? null, release: input.release ?? null, sampleStack: input.stack ?? null, userId: user?.id ?? null })
+      .values({
+        fingerprint,
+        message: input.message,
+        kind: input.kind,
+        url: input.url ?? null,
+        release: input.release ?? null,
+        sampleStack: input.stack ?? null,
+        userId: user?.id ?? null,
+      })
       .onConflictDoUpdate({ target: clientErrors.fingerprint, set: { count: sql`${clientErrors.count} + 1`, lastSeenAt: new Date(), url: input.url ?? null } });
     return c.json({ ok: true }, 202);
   });

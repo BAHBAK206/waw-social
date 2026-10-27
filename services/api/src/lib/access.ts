@@ -15,7 +15,10 @@ export async function groupRole(db: Db, groupId: string, userId: string): Promis
 }
 
 export async function loadGroup(db: Db, groupId: string) {
-  const [g] = await db.select().from(groups).where(and(eq(groups.id, groupId), isNull(groups.deletedAt)));
+  const [g] = await db
+    .select()
+    .from(groups)
+    .where(and(eq(groups.id, groupId), isNull(groups.deletedAt)));
   if (!g) throw notFound('group_not_found');
   return g;
 }

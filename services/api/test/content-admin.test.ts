@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { AdminOverviewDto, AssistantMessageDto, FormAnalyticsDto, FormDto, LibraryItemDto, Page, PublicConfigDto, SavedItemDto, SearchResultsDto, WorkspaceFileDto } from '@qubedu/shared';
+import type {
+  AdminOverviewDto,
+  AssistantMessageDto,
+  FormAnalyticsDto,
+  FormDto,
+  LibraryItemDto,
+  Page,
+  PublicConfigDto,
+  SavedItemDto,
+  SearchResultsDto,
+  WorkspaceFileDto,
+} from '@qubedu/shared';
 import { call, newUser, rootUser } from './helpers';
 
 describe('forms', () => {
@@ -28,10 +39,15 @@ describe('forms', () => {
     });
     expect(bad.status).toBe(400);
     expect(bad.body.error.details.map((d) => d.code).sort()).toEqual(['invalid_option', 'out_of_range', 'required']);
-    const ok = await call<{ score: number }>('POST', `/forms/public/${form.body.slug}/responses`, { token: resp.token, body: { answers: { name: '=cmd()', track: 'AI', rate: 4 } } });
+    const ok = await call<{ score: number }>('POST', `/forms/public/${form.body.slug}/responses`, {
+      token: resp.token,
+      body: { answers: { name: '=cmd()', track: 'AI', rate: 4 } },
+    });
     expect(ok.status).toBe(201);
     expect(ok.body.score).toBe(2);
-    expect((await call('POST', `/forms/public/${form.body.slug}/responses`, { token: resp.token, body: { answers: { name: 'x', track: 'AI' } } })).status).toBe(409);
+    expect((await call('POST', `/forms/public/${form.body.slug}/responses`, { token: resp.token, body: { answers: { name: 'x', track: 'AI' } } })).status).toBe(
+      409,
+    );
     expect((await call('POST', `/forms/public/${form.body.slug}/responses`, { body: { answers: { name: 'x', track: 'AI' } } })).status).toBe(401);
     const an = await call<FormAnalyticsDto>('GET', `/forms/${form.body.id}/analytics`, { token: owner.token });
     expect(an.body.questions.find((q) => q.id === 'track')!.counts).toEqual({ AI: 1 });
@@ -62,7 +78,10 @@ describe('library, workspace, saved, search', () => {
 
   it('workspace optimistic concurrency', async () => {
     const u = await newUser();
-    const f = await call<WorkspaceFileDto>('POST', '/workspace/files', { token: u.token, body: { title: 'Notes', kind: 'doc', content: { html: '<p>a</p>' } } });
+    const f = await call<WorkspaceFileDto>('POST', '/workspace/files', {
+      token: u.token,
+      body: { title: 'Notes', kind: 'doc', content: { html: '<p>a</p>' } },
+    });
     const v1 = await call<WorkspaceFileDto>('PATCH', `/workspace/files/${f.body.id}`, { token: u.token, body: { version: 1, content: { html: '<p>b</p>' } } });
     expect(v1.body.version).toBe(2);
     const stale = await call<{ error: { code: string; details: WorkspaceFileDto } }>('PATCH', `/workspace/files/${f.body.id}`, {
@@ -77,8 +96,14 @@ describe('library, workspace, saved, search', () => {
 
   it('saved collections share publicly; search finds people and posts', async () => {
     const u = await newUser({ name: 'Zeinab Searchable' });
-    const col = await call<{ id: string; shareSlug: string }>('POST', '/saved/collections', { token: u.token, body: { name: 'Physics links', isPublic: true } });
-    const s = await call<SavedItemDto>('POST', '/saved', { token: u.token, body: { itemType: 'link', title: 'Khan', url: 'https://khanacademy.org', collectionId: col.body.id } });
+    const col = await call<{ id: string; shareSlug: string }>('POST', '/saved/collections', {
+      token: u.token,
+      body: { name: 'Physics links', isPublic: true },
+    });
+    const s = await call<SavedItemDto>('POST', '/saved', {
+      token: u.token,
+      body: { itemType: 'link', title: 'Khan', url: 'https://khanacademy.org', collectionId: col.body.id },
+    });
     expect(s.status).toBe(201);
     const pub = await call<{ items: SavedItemDto[] }>('GET', `/saved/public/${col.body.shareSlug}`);
     expect(pub.body.items).toHaveLength(1);
@@ -94,11 +119,18 @@ describe('assistant & admin', () => {
   it('assistant uses the admin knowledge base and stores threads', async () => {
     const root = await rootUser();
     expect(
-      (await call('POST', '/admin/assistant-knowledge', { token: root.token, body: { question: 'How do I reset my password?', answer: 'Open settings → security → reset.', tags: ['password'] } }))
-        .status,
+      (
+        await call('POST', '/admin/assistant-knowledge', {
+          token: root.token,
+          body: { question: 'How do I reset my password?', answer: 'Open settings → security → reset.', tags: ['password'] },
+        })
+      ).status,
     ).toBe(201);
     const u = await newUser();
-    const r = await call<{ threadId: string; message: AssistantMessageDto }>('POST', '/assistant/messages', { token: u.token, body: { text: 'how to reset password' } });
+    const r = await call<{ threadId: string; message: AssistantMessageDto }>('POST', '/assistant/messages', {
+      token: u.token,
+      body: { text: 'how to reset password' },
+    });
     expect(r.status).toBe(201);
     expect(r.body.message.content).toContain('reset');
     const fb = await call('POST', '/assistant/feedback', { token: u.token, body: { messageId: r.body.message.id, rating: 'up' } });
@@ -129,7 +161,10 @@ describe('assistant & admin', () => {
     const s = await newUser();
     expect((await call('POST', '/ai/solve', { token: s.token, body: { question: '2 + 3' } })).status).toBe(200);
     expect((await call('POST', '/ai/solve', { token: s.token, body: { question: '2 + 3' } })).status).toBe(429);
-    await call('PUT', '/admin/settings', { token: root.token, body: { ai: { enabled: true, dailyQuota: 60 }, maintenance: { enabled: true, message: 'brb' } } });
+    await call('PUT', '/admin/settings', {
+      token: root.token,
+      body: { ai: { enabled: true, dailyQuota: 60 }, maintenance: { enabled: true, message: 'brb' } },
+    });
     expect((await call('GET', '/posts', { token: s.token })).status).toBe(503);
     expect((await call('GET', '/posts', { token: root.token })).status).toBe(200);
     await call('PUT', '/admin/settings', { token: root.token, body: { maintenance: { enabled: false, message: '' } } });

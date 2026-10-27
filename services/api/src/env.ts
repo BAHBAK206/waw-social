@@ -12,6 +12,8 @@ const schema = z.object({
   APP_URL: z.string().default('http://localhost:5173'),
   API_PUBLIC_URL: z.string().default('http://localhost:8787'),
   REALTIME_PUBLIC_URL: z.string().default('ws://localhost:8788/ws'),
+  /** Used to push events to the hub over HTTP when Redis is not configured (single-node dev). */
+  REALTIME_INTERNAL_URL: z.string().optional(),
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:8081,http://localhost:19006'),
   DATABASE_URL: z.string().default('postgres://qubedu:qubedu@localhost:5432/qubedu'),
   DATABASE_POOL: z.coerce.number().int().default(10),

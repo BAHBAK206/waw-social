@@ -16,11 +16,7 @@ export async function awardXp(tx: Tx, userId: string, amount: number, reason: st
   const [before] = await tx.select({ xp: users.xp }).from(users).where(eq(users.id, userId));
   const xpBefore = before?.xp ?? 0;
   if (amount <= 0) return { awarded: false, xpBefore, xpAfter: xpBefore };
-  const inserted = await tx
-    .insert(xpLedger)
-    .values({ userId, amount, reason, ref, day })
-    .onConflictDoNothing()
-    .returning({ id: xpLedger.id });
+  const inserted = await tx.insert(xpLedger).values({ userId, amount, reason, ref, day }).onConflictDoNothing().returning({ id: xpLedger.id });
   if (!inserted.length) return { awarded: false, xpBefore, xpAfter: xpBefore };
   const [after] = await tx
     .update(users)
@@ -28,7 +24,10 @@ export async function awardXp(tx: Tx, userId: string, amount: number, reason: st
     .where(eq(users.id, userId))
     .returning({ xp: users.xp });
   const xpAfter = after?.xp ?? xpBefore + amount;
-  await tx.update(users).set({ level: levelFromXp(xpAfter) }).where(eq(users.id, userId));
+  await tx
+    .update(users)
+    .set({ level: levelFromXp(xpAfter) })
+    .where(eq(users.id, userId));
   return { awarded: true, xpBefore, xpAfter };
 }
 
@@ -84,7 +83,10 @@ export async function checkAchievements(tx: Tx, userId: string): Promise<string[
   const [[f], [g], [p], have] = await Promise.all([
     tx.select({ n: count() }).from(follows).where(eq(follows.followerId, userId)),
     tx.select({ n: count() }).from(groupMembers).where(eq(groupMembers.userId, userId)),
-    tx.select({ n: count() }).from(posts).where(and(eq(posts.authorId, userId), sql`${posts.deletedAt} is null`)),
+    tx
+      .select({ n: count() })
+      .from(posts)
+      .where(and(eq(posts.authorId, userId), sql`${posts.deletedAt} is null`)),
     tx.select({ id: userAchievements.achievementId }).from(userAchievements).where(eq(userAchievements.userId, userId)),
   ]);
   const earned = evaluateAchievements(

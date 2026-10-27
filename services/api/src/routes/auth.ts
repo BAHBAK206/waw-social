@@ -59,12 +59,13 @@ async function issueSession(c: Ctx, userId: string): Promise<AuthResult> {
 
 async function finishAuth(c: Ctx, userId: string, sessionId: string, rawRefresh: string): Promise<AuthResult> {
   const deps = c.get('deps');
-  const [u] = await deps.db
-    .select({ role: users.role, name: users.displayName, tv: users.tokenVersion })
-    .from(users)
-    .where(eq(users.id, userId));
+  const [u] = await deps.db.select({ role: users.role, name: users.displayName, tv: users.tokenVersion }).from(users).where(eq(users.id, userId));
   if (!u) throw unauthorized();
-  const access = await signAccessToken(deps.env.JWT_SECRET, { sub: userId, sid: sessionId, role: u.role, name: u.name, tv: u.tv }, deps.env.ACCESS_TOKEN_TTL_SEC);
+  const access = await signAccessToken(
+    deps.env.JWT_SECRET,
+    { sub: userId, sid: sessionId, role: u.role, name: u.name, tv: u.tv },
+    deps.env.ACCESS_TOKEN_TTL_SEC,
+  );
   const me = await buildMe(deps, userId);
   if (isMobile(c)) return { accessToken: access.token, accessTokenExpiresAt: access.expiresAt, refreshToken: rawRefresh, user: me };
   setCookie(c, REFRESH_COOKIE, rawRefresh, cookieOptions(deps));
@@ -89,7 +90,12 @@ async function sendEmailToken(deps: Deps, user: { id: string; email: string; lan
       : ar
         ? emailTemplate('إعادة تعيين كلمة المرور', 'طلبت إعادة تعيين كلمة المرور. الرابط صالح لمدة ساعة.', 'تعيين كلمة مرور جديدة', url, 'rtl')
         : emailTemplate('Reset your password', 'You asked to reset your password. The link is valid for one hour.', 'Set a new password', url, 'ltr');
-  await deps.mailer.send({ to: user.email, subject: kind === 'verify' ? (ar ? 'تأكيد البريد — Qubedu' : 'Confirm your email — Qubedu') : ar ? 'إعادة تعيين كلمة المرور — Qubedu' : 'Reset password — Qubedu', ...t });
+  await deps.mailer.send({
+    to: user.email,
+    subject:
+      kind === 'verify' ? (ar ? 'تأكيد البريد — Qubedu' : 'Confirm your email — Qubedu') : ar ? 'إعادة تعيين كلمة المرور — Qubedu' : 'Reset password — Qubedu',
+    ...t,
+  });
   return raw;
 }
 
@@ -135,10 +141,7 @@ export const authRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const input = await body(c, loginSchema);
     await checkRate(c, { bucket: `login:${sha256(input.email).slice(0, 16)}`, limit: 10, windowSec: 900 });
-    const [user] = await deps.db
-      .select({ id: users.id, hash: users.passwordHash, deletedAt: users.deletedAt })
-      .from(users)
-      .where(eq(users.email, input.email));
+    const [user] = await deps.db.select({ id: users.id, hash: users.passwordHash, deletedAt: users.deletedAt }).from(users).where(eq(users.email, input.email));
     // Always run a hash verification to keep timing similar for unknown emails.
     const ok = await verifyPassword(user?.hash ?? (await getDummyHash()), input.password);
     if (!user || !user.hash || !ok || user.deletedAt) throw unauthorized('invalid_credentials');
@@ -191,7 +194,11 @@ export const authRoutes = new Hono<AppEnv>()
     let raw: string | undefined;
     if (isMobile(c)) raw = (await c.req.json().catch(() => ({})))?.refreshToken;
     else raw = getCookie(c, REFRESH_COOKIE);
-    if (raw) await deps.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.tokenHash, sha256(raw)));
+    if (raw)
+      await deps.db
+        .update(sessions)
+        .set({ revokedAt: new Date() })
+        .where(eq(sessions.tokenHash, sha256(raw)));
     if (user) await deps.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.id, user.sessionId));
     deleteCookie(c, REFRESH_COOKIE, { path: '/api/v1/auth' });
     return c.json({ ok: true });
@@ -199,7 +206,10 @@ export const authRoutes = new Hono<AppEnv>()
   .post('/logout-all', async (c) => {
     const user = requireUser(c);
     const { db } = c.get('deps');
-    await db.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, user.id), isNull(sessions.revokedAt)));
+    await db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.userId, user.id), isNull(sessions.revokedAt)));
     deleteCookie(c, REFRESH_COOKIE, { path: '/api/v1/auth' });
     return c.json({ ok: true });
   })
@@ -252,7 +262,10 @@ export const authRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'reset', limit: 5, windowSec: 3600 });
     const deps = c.get('deps');
     const { email } = await body(c, requestResetSchema);
-    const [u] = await deps.db.select().from(users).where(and(eq(users.email, email), isNull(users.deletedAt)));
+    const [u] = await deps.db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), isNull(users.deletedAt)));
     if (u) await sendEmailToken(deps, { id: u.id, email: u.email, language: String((u.appearance as { language?: string }).language ?? 'ar') }, 'reset');
     // Same response whether or not the account exists (no account enumeration).
     return c.json({ ok: true });
@@ -284,7 +297,10 @@ export const authRoutes = new Hono<AppEnv>()
         .update(users)
         .set({ passwordHash: await hashPassword(input.newPassword), tokenVersion: u.tokenVersion + 1 })
         .where(eq(users.id, user.id));
-      await tx.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, user.id)));
+      await tx
+        .update(sessions)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(sessions.userId, user.id)));
     });
     return c.json(await issueSession(c, user.id));
   });

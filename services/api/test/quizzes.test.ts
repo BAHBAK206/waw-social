@@ -18,7 +18,14 @@ const sampleQuiz = {
 
 describe('grading', () => {
   it('grades each question type and normalizes short answers', () => {
-    const qs = sampleQuiz.questions.map((q, i) => ({ id: `q${i}`, type: q.type as 'mc', answer: q.answer as number, points: 1, topic: q.topic, explanation: null }));
+    const qs = sampleQuiz.questions.map((q, i) => ({
+      id: `q${i}`,
+      type: q.type as 'mc',
+      answer: q.answer as number,
+      points: 1,
+      topic: q.topic,
+      explanation: null,
+    }));
     const g = grade(qs, [0, 0, [2, 0], ' القاهره ']);
     expect(g.correct).toBe(4);
     expect(g.perfect).toBe(true);
@@ -45,7 +52,10 @@ describe('quizzes', () => {
     expect(JSON.stringify(start.body)).not.toContain('"answer"');
     expect(start.body.questions).toHaveLength(4);
 
-    const r1 = await call<QuizResultDto>('POST', `/quizzes/attempts/${start.body.attemptId}/submit`, { token: student.token, body: { answers: [0, 1, [0], null] } });
+    const r1 = await call<QuizResultDto>('POST', `/quizzes/attempts/${start.body.attemptId}/submit`, {
+      token: student.token,
+      body: { answers: [0, 1, [0], null] },
+    });
     expect(r1.status).toBe(200);
     expect(r1.body.correct).toBe(1);
     expect(r1.body.pct).toBe(25);
@@ -54,17 +64,26 @@ describe('quizzes', () => {
     expect(r1.body.newAchievements).toContain('ach_quiz1');
     expect(r1.body.breakdown[0]!.explanation).toBe('نصفان = واحد');
 
-    const again = await call<QuizResultDto>('POST', `/quizzes/attempts/${start.body.attemptId}/submit`, { token: student.token, body: { answers: [0, 0, [0, 2], 'cairo'] } });
+    const again = await call<QuizResultDto>('POST', `/quizzes/attempts/${start.body.attemptId}/submit`, {
+      token: student.token,
+      body: { answers: [0, 0, [0, 2], 'cairo'] },
+    });
     expect(again.body.pct).toBe(25);
 
     const review = await call<QuizAttemptDto>('POST', `/quizzes/${quiz.body.id}/attempts`, { token: student.token, body: { review: true } });
     expect(review.body.questions).toHaveLength(3);
-    const rr = await call<QuizResultDto>('POST', `/quizzes/attempts/${review.body.attemptId}/submit`, { token: student.token, body: { answers: [0, [0, 2], 'Cairo'] } });
+    const rr = await call<QuizResultDto>('POST', `/quizzes/attempts/${review.body.attemptId}/submit`, {
+      token: student.token,
+      body: { answers: [0, [0, 2], 'Cairo'] },
+    });
     expect(rr.body.xpEarned).toBe(0);
     expect(rr.body.review).toBe(true);
 
     const s2 = await call<QuizAttemptDto>('POST', `/quizzes/${quiz.body.id}/attempts`, { token: student.token, body: {} });
-    const r2 = await call<QuizResultDto>('POST', `/quizzes/attempts/${s2.body.attemptId}/submit`, { token: student.token, body: { answers: [0, 0, [2, 0], 'القاهرة'] } });
+    const r2 = await call<QuizResultDto>('POST', `/quizzes/attempts/${s2.body.attemptId}/submit`, {
+      token: student.token,
+      body: { answers: [0, 0, [2, 0], 'القاهرة'] },
+    });
     expect(r2.body.perfect).toBe(true);
     expect(r2.body.xpEarned).toBe(30);
     expect(r2.body.xpAfter).toBe(33);
@@ -77,7 +96,9 @@ describe('quizzes', () => {
     expect(edit.body.questions[2]!.answer).toEqual([0, 2]);
     expect((await call('GET', `/quizzes/${quiz.body.id}/edit`, { token: student.token })).status).toBe(403);
 
-    const stats = await call<{ attempts: number; questions: { correct: number; total: number }[] }>('GET', `/quizzes/${quiz.body.id}/stats`, { token: teacher.token });
+    const stats = await call<{ attempts: number; questions: { correct: number; total: number }[] }>('GET', `/quizzes/${quiz.body.id}/stats`, {
+      token: teacher.token,
+    });
     expect(stats.body.attempts).toBe(2);
     expect(stats.body.questions[0]).toMatchObject({ correct: 2, total: 2 });
 
@@ -89,7 +110,10 @@ describe('quizzes', () => {
   it('exams can only be taken once and respect schedule', async () => {
     const teacher = await newUser({ accountType: 'teacher' });
     const student = await newUser();
-    const future = await call<QuizSummaryDto>('POST', '/quizzes', { token: teacher.token, body: { ...sampleQuiz, kind: 'exam', scheduledAt: Date.now() + 3600_000 } });
+    const future = await call<QuizSummaryDto>('POST', '/quizzes', {
+      token: teacher.token,
+      body: { ...sampleQuiz, kind: 'exam', scheduledAt: Date.now() + 3600_000 },
+    });
     expect((await call('POST', `/quizzes/${future.body.id}/attempts`, { token: student.token, body: {} })).status).toBe(403);
     const exam = await call<QuizSummaryDto>('POST', '/quizzes', { token: teacher.token, body: { ...sampleQuiz, kind: 'exam' } });
     const a = await call<QuizAttemptDto>('POST', `/quizzes/${exam.body.id}/attempts`, { token: student.token, body: {} });

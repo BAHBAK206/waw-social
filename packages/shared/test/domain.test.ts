@@ -131,7 +131,16 @@ describe('text', () => {
 describe('mastery', () => {
   it('levels by mastery', () => {
     const now = Date.now();
-    const m = computeMastery('k', 'Fractions', null, [{ pct: 40, total: 5, ts: now - 1000 }, { pct: 70, total: 5, ts: now }], now);
+    const m = computeMastery(
+      'k',
+      'Fractions',
+      null,
+      [
+        { pct: 40, total: 5, ts: now - 1000 },
+        { pct: 70, total: 5, ts: now },
+      ],
+      now,
+    );
     expect(m.level).toBe('needs_review');
     expect(m.trend).toBe('improving');
   });

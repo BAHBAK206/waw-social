@@ -13,20 +13,7 @@ import {
   type Page,
   type UserSummary,
 } from '@qubedu/shared';
-import {
-  blocks,
-  exams,
-  flashcards,
-  follows,
-  notes,
-  posts,
-  quizBest,
-  reports,
-  studyLog,
-  tasks,
-  users,
-  xpLedger,
-} from '../db/schema';
+import { blocks, exams, flashcards, follows, notes, posts, quizBest, reports, studyLog, tasks, users, xpLedger } from '../db/schema';
 import type { AppEnv } from '../lib/context';
 import { verifyPassword } from '../lib/crypto';
 import { decodeCursor, pageOf } from '../lib/cursor';
@@ -74,7 +61,10 @@ export const meRoutes = new Hono<AppEnv>()
     await deps.db.update(users).set(patch).where(eq(users.id, user.id));
     if (patch.displayName || patch.username !== undefined) {
       const [u] = await deps.db.select({ d: users.displayName, n: users.username }).from(users).where(eq(users.id, user.id));
-      await deps.db.update(users).set({ searchName: normalizeSearch(`${u?.d ?? ''} ${u?.n ?? ''}`) }).where(eq(users.id, user.id));
+      await deps.db
+        .update(users)
+        .set({ searchName: normalizeSearch(`${u?.d ?? ''} ${u?.n ?? ''}`) })
+        .where(eq(users.id, user.id));
     }
     return c.json(await buildMe(deps, user.id));
   })
@@ -114,7 +104,10 @@ export const meRoutes = new Hono<AppEnv>()
     const { db } = c.get('deps');
     const [me, myPosts, myTasks, myNotes, myExams, myCards, myResults, myStudy] = await Promise.all([
       buildMe(c.get('deps'), user.id),
-      db.select().from(posts).where(and(eq(posts.authorId, user.id), isNull(posts.deletedAt))),
+      db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.authorId, user.id), isNull(posts.deletedAt))),
       db.select().from(tasks).where(eq(tasks.userId, user.id)),
       db.select().from(notes).where(eq(notes.userId, user.id)),
       db.select().from(exams).where(eq(exams.userId, user.id)),
@@ -175,13 +168,7 @@ export const userRoutes = new Hono<AppEnv>()
     const rows = await deps.db
       .select(summaryColumns)
       .from(users)
-      .where(
-        and(
-          isNull(users.deletedAt),
-          ne(users.id, viewer.id),
-          sql`${users.id} not in (select followee_id from follows where follower_id = ${viewer.id})`,
-        ),
-      )
+      .where(and(isNull(users.deletedAt), ne(users.id, viewer.id), sql`${users.id} not in (select followee_id from follows where follower_id = ${viewer.id})`))
       .orderBy(desc(users.xp))
       .limit(12);
     return c.json({ items: await withOnline(deps.kv, rows.map(toSummary)) });
@@ -222,14 +209,20 @@ export const userRoutes = new Hono<AppEnv>()
     const viewer = requireUser(c);
     const deps = c.get('deps');
     const username = c.req.param('username').toLowerCase();
-    const [row] = await deps.db.select().from(users).where(and(eq(users.username, username), isNull(users.deletedAt)));
+    const [row] = await deps.db
+      .select()
+      .from(users)
+      .where(and(eq(users.username, username), isNull(users.deletedAt)));
     if (!row) throw notFound('user_not_found');
     return c.json(await buildProfile(deps, row, viewer.id));
   })
   .get('/:id', async (c) => {
     const viewer = requireUser(c);
     const deps = c.get('deps');
-    const [row] = await deps.db.select().from(users).where(and(eq(users.id, param(c, 'id')), isNull(users.deletedAt)));
+    const [row] = await deps.db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, param(c, 'id')), isNull(users.deletedAt)));
     if (!row) throw notFound('user_not_found');
     return c.json(await buildProfile(deps, row, viewer.id));
   })
@@ -239,7 +232,10 @@ export const userRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const targetId = param(c, 'id');
     if (targetId === viewer.id) throw badRequest('cannot_follow_self');
-    const [target] = await deps.db.select({ id: users.id }).from(users).where(and(eq(users.id, targetId), isNull(users.deletedAt)));
+    const [target] = await deps.db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, targetId), isNull(users.deletedAt)));
     if (!target) throw notFound('user_not_found');
     const [blocked] = await deps.db
       .select({ n: count() })
@@ -274,9 +270,11 @@ export const userRoutes = new Hono<AppEnv>()
     const targetId = param(c, 'id');
     if (targetId === viewer.id) throw badRequest('cannot_block_self');
     await db.insert(blocks).values({ blockerId: viewer.id, blockedId: targetId }).onConflictDoNothing();
-    await db.delete(follows).where(
-      or(and(eq(follows.followerId, viewer.id), eq(follows.followeeId, targetId)), and(eq(follows.followerId, targetId), eq(follows.followeeId, viewer.id))),
-    );
+    await db
+      .delete(follows)
+      .where(
+        or(and(eq(follows.followerId, viewer.id), eq(follows.followeeId, targetId)), and(eq(follows.followerId, targetId), eq(follows.followeeId, viewer.id))),
+      );
     return c.json({ blocked: true });
   })
   .delete('/:id/block', async (c) => {
@@ -343,4 +341,3 @@ export const reportRoutes = new Hono<AppEnv>().post('/', async (c) => {
     .returning({ id: reports.id });
   return c.json({ id: row!.id }, 201);
 });
-

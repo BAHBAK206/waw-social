@@ -55,7 +55,14 @@ const upCols = {
 
 /* ───────── Library ───────── */
 
-function libDto(viewer: AuthUser | null, r: Record<string, unknown> & { l: typeof libraryItems.$inferSelect; s: { id: string | null; name: string | null } | null; m: { id: string | null; name: string | null } | null }): LibraryItemDto {
+function libDto(
+  viewer: AuthUser | null,
+  r: Record<string, unknown> & {
+    l: typeof libraryItems.$inferSelect;
+    s: { id: string | null; name: string | null } | null;
+    m: { id: string | null; name: string | null } | null;
+  },
+): LibraryItemDto {
   const l = r.l;
   const staff = !!viewer && hasPermission(viewer.role, viewer.permissions, 'library.manage');
   return {
@@ -133,7 +140,10 @@ export const libraryRoutes = new Hono<AppEnv>()
     const viewer = requireUser(c);
     if (!hasPermission(viewer.role, viewer.permissions, 'library.manage')) throw forbidden();
     const { db } = c.get('deps');
-    await db.update(libraryItems).set({ approved: true }).where(eq(libraryItems.id, param(c, 'id')));
+    await db
+      .update(libraryItems)
+      .set({ approved: true })
+      .where(eq(libraryItems.id, param(c, 'id')));
     return c.json({ ok: true });
   })
   .post('/:id/download', async (c) => {
@@ -150,7 +160,10 @@ export const libraryRoutes = new Hono<AppEnv>()
   .delete('/:id', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
-    const [row] = await db.select().from(libraryItems).where(eq(libraryItems.id, param(c, 'id')));
+    const [row] = await db
+      .select()
+      .from(libraryItems)
+      .where(eq(libraryItems.id, param(c, 'id')));
     if (!row) throw notFound();
     if (row.uploaderId !== viewer.id && !hasPermission(viewer.role, viewer.permissions, 'library.manage')) throw forbidden();
     await db.update(libraryItems).set({ deletedAt: new Date() }).where(eq(libraryItems.id, row.id));
@@ -159,7 +172,12 @@ export const libraryRoutes = new Hono<AppEnv>()
 
 /* ───────── Workspace (cloud documents, sheets, slides, whiteboards) ───────── */
 
-const toFolder = (r: typeof workspaceFolders.$inferSelect): WorkspaceFolderDto => ({ id: r.id, name: r.name, parentId: r.parentId, createdAt: r.createdAt.getTime() });
+const toFolder = (r: typeof workspaceFolders.$inferSelect): WorkspaceFolderDto => ({
+  id: r.id,
+  name: r.name,
+  parentId: r.parentId,
+  createdAt: r.createdAt.getTime(),
+});
 const toFile = (r: typeof workspaceFiles.$inferSelect, withContent = false): WorkspaceFileDto => ({
   id: r.id,
   title: r.title,
@@ -196,7 +214,10 @@ export const workspaceRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const input = await body(c, workspaceFolderSchema);
     await ownFolder(deps, viewer, input.parentId);
-    const [row] = await deps.db.insert(workspaceFolders).values({ ownerId: viewer.id, name: input.name, parentId: input.parentId ?? null }).returning();
+    const [row] = await deps.db
+      .insert(workspaceFolders)
+      .values({ ownerId: viewer.id, name: input.name, parentId: input.parentId ?? null })
+      .returning();
     return c.json(toFolder(row!), 201);
   })
   .patch('/folders/:id', async (c) => {
@@ -205,7 +226,11 @@ export const workspaceRoutes = new Hono<AppEnv>()
     const input = await body(c, workspaceFolderSchema.partial());
     const id = param(c, 'id');
     if (input.parentId === id) throw badRequest('invalid_folder');
-    const [row] = await db.update(workspaceFolders).set(input).where(and(eq(workspaceFolders.id, id), eq(workspaceFolders.ownerId, viewer.id))).returning();
+    const [row] = await db
+      .update(workspaceFolders)
+      .set(input)
+      .where(and(eq(workspaceFolders.id, id), eq(workspaceFolders.ownerId, viewer.id)))
+      .returning();
     if (!row) throw notFound();
     return c.json(toFolder(row));
   })
@@ -213,7 +238,10 @@ export const workspaceRoutes = new Hono<AppEnv>()
     const viewer = requireUser(c);
     const { db } = c.get('deps');
     const id = param(c, 'id');
-    await db.update(workspaceFolders).set({ parentId: null }).where(and(eq(workspaceFolders.parentId, id), eq(workspaceFolders.ownerId, viewer.id)));
+    await db
+      .update(workspaceFolders)
+      .set({ parentId: null })
+      .where(and(eq(workspaceFolders.parentId, id), eq(workspaceFolders.ownerId, viewer.id)));
     await db.delete(workspaceFolders).where(and(eq(workspaceFolders.id, id), eq(workspaceFolders.ownerId, viewer.id)));
     return c.json({ ok: true });
   })
@@ -234,7 +262,10 @@ export const workspaceRoutes = new Hono<AppEnv>()
   .get('/files/:id', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
-    const [row] = await db.select().from(workspaceFiles).where(and(eq(workspaceFiles.id, param(c, 'id')), eq(workspaceFiles.ownerId, viewer.id)));
+    const [row] = await db
+      .select()
+      .from(workspaceFiles)
+      .where(and(eq(workspaceFiles.id, param(c, 'id')), eq(workspaceFiles.ownerId, viewer.id)));
     if (!row) throw notFound('file_not_found');
     return c.json(toFile(row, true));
   })
@@ -258,7 +289,10 @@ export const workspaceRoutes = new Hono<AppEnv>()
       .where(and(eq(workspaceFiles.id, id), eq(workspaceFiles.ownerId, viewer.id), eq(workspaceFiles.version, input.version)))
       .returning();
     if (!row) {
-      const [current] = await deps.db.select().from(workspaceFiles).where(and(eq(workspaceFiles.id, id), eq(workspaceFiles.ownerId, viewer.id)));
+      const [current] = await deps.db
+        .select()
+        .from(workspaceFiles)
+        .where(and(eq(workspaceFiles.id, id), eq(workspaceFiles.ownerId, viewer.id)));
       if (!current) throw notFound('file_not_found');
       throw conflict('version_conflict', toFile(current, true));
     }
@@ -271,7 +305,7 @@ export const workspaceRoutes = new Hono<AppEnv>()
     return c.json({ ok: true });
   })
   .post('/import', async (c) => {
-    const viewer = requireUser(c);
+    requireUser(c);
     await checkRate(c, { bucket: 'workspace-import', limit: 20, windowSec: 600, by: 'user' });
     const deps = c.get('deps');
     const form = await c.req.formData().catch(() => null);
@@ -314,7 +348,13 @@ export const savedRoutes = new Hono<AppEnv>()
       db
         .select()
         .from(savedItems)
-        .where(and(eq(savedItems.ownerId, viewer.id), q.collectionId ? eq(savedItems.collectionId, q.collectionId) : undefined, q.type ? eq(savedItems.itemType, q.type) : undefined))
+        .where(
+          and(
+            eq(savedItems.ownerId, viewer.id),
+            q.collectionId ? eq(savedItems.collectionId, q.collectionId) : undefined,
+            q.type ? eq(savedItems.itemType, q.type) : undefined,
+          ),
+        )
         .orderBy(desc(savedItems.createdAt))
         .limit(1000),
       db.select().from(savedCollections).where(eq(savedCollections.ownerId, viewer.id)).orderBy(savedCollections.name),
@@ -334,7 +374,10 @@ export const savedRoutes = new Hono<AppEnv>()
     const [row] = await db
       .insert(savedItems)
       .values({ ...input, ownerId: viewer.id })
-      .onConflictDoUpdate({ target: [savedItems.ownerId, savedItems.itemType, savedItems.refId], set: { collectionId: input.collectionId ?? null, note: input.note, title: input.title } })
+      .onConflictDoUpdate({
+        target: [savedItems.ownerId, savedItems.itemType, savedItems.refId],
+        set: { collectionId: input.collectionId ?? null, note: input.note, title: input.title },
+      })
       .returning();
     return c.json(toSaved(row!), 201);
   })
@@ -342,7 +385,11 @@ export const savedRoutes = new Hono<AppEnv>()
     const viewer = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, savedItemSchema.pick({ note: true, collectionId: true, title: true }).partial());
-    const [row] = await db.update(savedItems).set(input).where(and(eq(savedItems.id, param(c, 'id')), eq(savedItems.ownerId, viewer.id))).returning();
+    const [row] = await db
+      .update(savedItems)
+      .set(input)
+      .where(and(eq(savedItems.id, param(c, 'id')), eq(savedItems.ownerId, viewer.id)))
+      .returning();
     if (!row) throw notFound();
     return c.json(toSaved(row));
   })
@@ -355,21 +402,30 @@ export const savedRoutes = new Hono<AppEnv>()
   .delete('/by-ref/:type/:refId', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
-    await db.delete(savedItems).where(and(eq(savedItems.ownerId, viewer.id), eq(savedItems.itemType, c.req.param('type')), eq(savedItems.refId, c.req.param('refId'))));
+    await db
+      .delete(savedItems)
+      .where(and(eq(savedItems.ownerId, viewer.id), eq(savedItems.itemType, c.req.param('type')), eq(savedItems.refId, c.req.param('refId'))));
     return c.json({ ok: true });
   })
   .post('/collections', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, savedCollectionSchema);
-    const [row] = await db.insert(savedCollections).values({ ...input, ownerId: viewer.id, shareSlug: randomCode(12) }).returning();
+    const [row] = await db
+      .insert(savedCollections)
+      .values({ ...input, ownerId: viewer.id, shareSlug: randomCode(12) })
+      .returning();
     return c.json(toCollection(row!, 0), 201);
   })
   .patch('/collections/:id', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, savedCollectionSchema.partial());
-    const [row] = await db.update(savedCollections).set(input).where(and(eq(savedCollections.id, param(c, 'id')), eq(savedCollections.ownerId, viewer.id))).returning();
+    const [row] = await db
+      .update(savedCollections)
+      .set(input)
+      .where(and(eq(savedCollections.id, param(c, 'id')), eq(savedCollections.ownerId, viewer.id)))
+      .returning();
     if (!row) throw notFound();
     return c.json(toCollection(row, 0));
   })
@@ -404,7 +460,12 @@ export const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
   const like = `%${term.replace(/[%_]/g, '')}%`;
   const { db } = deps;
   const [u, g, qz, p, l, cs] = await Promise.all([
-    db.select(summaryColumns).from(users).where(and(isNull(users.deletedAt), or(ilike(users.searchName, like), sql`${users.searchName} % ${term}`))).orderBy(desc(users.xp)).limit(8),
+    db
+      .select(summaryColumns)
+      .from(users)
+      .where(and(isNull(users.deletedAt), or(ilike(users.searchName, like), sql`${users.searchName} % ${term}`)))
+      .orderBy(desc(users.xp))
+      .limit(8),
     db
       .select({ id: groups.id, name: groups.name, kind: groups.kind, avatarUrl: groups.avatarUrl, memberCount: groups.memberCount, privacy: groups.privacy })
       .from(groups)
@@ -414,7 +475,14 @@ export const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
     db
       .select({ id: quizzes.id, title: quizzes.title, difficulty: quizzes.difficulty, questionCount: quizzes.questionCount })
       .from(quizzes)
-      .where(and(isNull(quizzes.deletedAt), eq(quizzes.published, true), isNull(quizzes.courseId), or(ilike(quizzes.searchTitle, like), sql`${quizzes.searchTitle} % ${term}`)))
+      .where(
+        and(
+          isNull(quizzes.deletedAt),
+          eq(quizzes.published, true),
+          isNull(quizzes.courseId),
+          or(ilike(quizzes.searchTitle, like), sql`${quizzes.searchTitle} % ${term}`),
+        ),
+      )
       .limit(8),
     db
       .select({ id: posts.id, text: posts.text, createdAt: posts.createdAt, ...upCols })
@@ -426,7 +494,13 @@ export const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
     db
       .select({ id: libraryItems.id, title: libraryItems.title, category: libraryItems.category })
       .from(libraryItems)
-      .where(and(isNull(libraryItems.deletedAt), eq(libraryItems.approved, true), or(ilike(libraryItems.searchTitle, like), sql`${libraryItems.searchTitle} % ${term}`)))
+      .where(
+        and(
+          isNull(libraryItems.deletedAt),
+          eq(libraryItems.approved, true),
+          or(ilike(libraryItems.searchTitle, like), sql`${libraryItems.searchTitle} % ${term}`),
+        ),
+      )
       .limit(8),
     db
       .select({ id: courses.id, title: courses.title, subject: courses.subject })
@@ -439,10 +513,14 @@ export const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
     users: await withOnline(deps.kv, u.map(toSummary)),
     groups: g,
     quizzes: qz,
-    posts: p.map((x) => ({ id: x.id, text: x.text.slice(0, 200), createdAt: x.createdAt.getTime(), author: toSummary(pickSummary('up', x as unknown as Record<string, unknown>)) })),
+    posts: p.map((x) => ({
+      id: x.id,
+      text: x.text.slice(0, 200),
+      createdAt: x.createdAt.getTime(),
+      author: toSummary(pickSummary('up', x as unknown as Record<string, unknown>)),
+    })),
     library: l.map((x) => ({ id: x.id, title: x.title, category: x.category as LibraryItemDto['category'] })),
     courses: cs,
   };
   return c.json(result);
 });
-

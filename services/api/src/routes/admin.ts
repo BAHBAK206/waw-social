@@ -100,25 +100,41 @@ export const adminRoutes = new Hono<AppEnv>()
     const week = new Date(Date.now() - 7 * 86400_000);
     // Raw SQL parameters must be strings: drizzle's postgres-js driver does not serialize Date objects there.
     const since14 = new Date(Date.now() - 14 * 86400_000).toISOString();
-    const recent = await db.select({ id: users.id }).from(users).where(gte(users.lastSeenAt, new Date(Date.now() - 15 * 60_000))).limit(5000);
+    const recent = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(gte(users.lastSeenAt, new Date(Date.now() - 15 * 60_000)))
+      .limit(5000);
     const online = (await kv.existsMany(recent.map((r) => onlineKey(r.id)))).filter(Boolean).length;
-    const [[total], [todayN], [weekN], [teachers], [banned], [postN], [quizN], [attemptN], [groupN], [courseN], [formN], [libN], [openReports], [errors]] = await Promise.all([
-      db.select({ n: count() }).from(users),
-      db.select({ n: count() }).from(users).where(gte(users.createdAt, today)),
-      db.select({ n: count() }).from(users).where(gte(users.createdAt, week)),
-      db.select({ n: count() }).from(users).where(eq(users.accountType, 'teacher')),
-      db.select({ n: count() }).from(users).where(sql`${users.bannedAt} is not null`),
-      db.select({ n: count() }).from(posts).where(isNull(posts.deletedAt)),
-      db.select({ n: count() }).from(quizzes).where(isNull(quizzes.deletedAt)),
-      db.select({ n: count() }).from(quizAttempts).where(sql`${quizAttempts.submittedAt} is not null`),
-      db.select({ n: count() }).from(groups).where(isNull(groups.deletedAt)),
-      db.select({ n: count() }).from(courses),
-      db.select({ n: count() }).from(forms).where(isNull(forms.deletedAt)),
-      db.select({ n: count() }).from(libraryItems).where(isNull(libraryItems.deletedAt)),
-      db.select({ n: count() }).from(reports).where(eq(reports.status, 'open')),
-      db.select({ n: sql<number>`coalesce(sum(${clientErrors.count}), 0)::int` }).from(clientErrors).where(gte(clientErrors.lastSeenAt, new Date(Date.now() - 86400_000))),
-    ]);
-    const signups = await db.execute<{ day: string; n: number }>(sql`select to_char(created_at at time zone 'UTC', 'YYYY-MM-DD') as day, count(*)::int as n from users where created_at >= ${since14} group by 1 order by 1`);
+    const [[total], [todayN], [weekN], [teachers], [banned], [postN], [quizN], [attemptN], [groupN], [courseN], [formN], [libN], [openReports], [errors]] =
+      await Promise.all([
+        db.select({ n: count() }).from(users),
+        db.select({ n: count() }).from(users).where(gte(users.createdAt, today)),
+        db.select({ n: count() }).from(users).where(gte(users.createdAt, week)),
+        db.select({ n: count() }).from(users).where(eq(users.accountType, 'teacher')),
+        db
+          .select({ n: count() })
+          .from(users)
+          .where(sql`${users.bannedAt} is not null`),
+        db.select({ n: count() }).from(posts).where(isNull(posts.deletedAt)),
+        db.select({ n: count() }).from(quizzes).where(isNull(quizzes.deletedAt)),
+        db
+          .select({ n: count() })
+          .from(quizAttempts)
+          .where(sql`${quizAttempts.submittedAt} is not null`),
+        db.select({ n: count() }).from(groups).where(isNull(groups.deletedAt)),
+        db.select({ n: count() }).from(courses),
+        db.select({ n: count() }).from(forms).where(isNull(forms.deletedAt)),
+        db.select({ n: count() }).from(libraryItems).where(isNull(libraryItems.deletedAt)),
+        db.select({ n: count() }).from(reports).where(eq(reports.status, 'open')),
+        db
+          .select({ n: sql<number>`coalesce(sum(${clientErrors.count}), 0)::int` })
+          .from(clientErrors)
+          .where(gte(clientErrors.lastSeenAt, new Date(Date.now() - 86400_000))),
+      ]);
+    const signups = await db.execute<{ day: string; n: number }>(
+      sql`select to_char(created_at at time zone 'UTC', 'YYYY-MM-DD') as day, count(*)::int as n from users where created_at >= ${since14} group by 1 order by 1`,
+    );
     const activity = await db.execute<{ day: string; attempts: number; posts: number; messages: number }>(sql`
       with days as (select to_char(d, 'YYYY-MM-DD') as day from generate_series(${since14}::timestamptz, now(), interval '1 day') d)
       select days.day,
@@ -128,7 +144,15 @@ export const adminRoutes = new Hono<AppEnv>()
       from days order by days.day`);
     const dto: AdminOverviewDto = {
       users: { total: total?.n ?? 0, today: todayN?.n ?? 0, week: weekN?.n ?? 0, teachers: teachers?.n ?? 0, banned: banned?.n ?? 0, online },
-      content: { posts: postN?.n ?? 0, quizzes: quizN?.n ?? 0, attempts: attemptN?.n ?? 0, groups: groupN?.n ?? 0, courses: courseN?.n ?? 0, forms: formN?.n ?? 0, library: libN?.n ?? 0 },
+      content: {
+        posts: postN?.n ?? 0,
+        quizzes: quizN?.n ?? 0,
+        attempts: attemptN?.n ?? 0,
+        groups: groupN?.n ?? 0,
+        courses: courseN?.n ?? 0,
+        forms: formN?.n ?? 0,
+        library: libN?.n ?? 0,
+      },
       openReports: openReports?.n ?? 0,
       errors24h: errors?.n ?? 0,
       signupsByDay: signups.map((s) => ({ day: s.day, count: Number(s.n) })),
@@ -140,7 +164,15 @@ export const adminRoutes = new Hono<AppEnv>()
   .get('/users', async (c) => {
     requirePerm(c, 'users.view');
     const { db } = c.get('deps');
-    const q = query(c, paginationSchema.extend({ q: z.string().trim().max(120).default(''), role: z.enum(['user', 'moderator', 'admin', 'root']).optional(), banned: z.coerce.boolean().optional(), accountType: z.enum(['student', 'teacher']).optional() }));
+    const q = query(
+      c,
+      paginationSchema.extend({
+        q: z.string().trim().max(120).default(''),
+        role: z.enum(['user', 'moderator', 'admin', 'root']).optional(),
+        banned: z.coerce.boolean().optional(),
+        accountType: z.enum(['student', 'teacher']).optional(),
+      }),
+    );
     const cursor = decodeCursor(q.cursor);
     const term = normalizeSearch(q.q);
     const rows = await db
@@ -167,8 +199,16 @@ export const adminRoutes = new Hono<AppEnv>()
     const [[postsN], [attemptsN], [reportsN], sessionRows] = await Promise.all([
       db.select({ n: count() }).from(posts).where(eq(posts.authorId, u.id)),
       db.select({ n: count() }).from(quizAttempts).where(eq(quizAttempts.userId, u.id)),
-      db.select({ n: count() }).from(reports).where(and(eq(reports.targetType, 'user'), eq(reports.targetId, u.id))),
-      db.select().from(sessions).where(and(eq(sessions.userId, u.id), isNull(sessions.revokedAt))).orderBy(desc(sessions.lastUsedAt)).limit(10),
+      db
+        .select({ n: count() })
+        .from(reports)
+        .where(and(eq(reports.targetType, 'user'), eq(reports.targetId, u.id))),
+      db
+        .select()
+        .from(sessions)
+        .where(and(eq(sessions.userId, u.id), isNull(sessions.revokedAt)))
+        .orderBy(desc(sessions.lastUsedAt))
+        .limit(10),
     ]);
     return c.json({
       user: toAdminUser(u),
@@ -183,7 +223,10 @@ export const adminRoutes = new Hono<AppEnv>()
     if (u.role === 'root' || (u.role === 'admin' && actor.role !== 'root')) throw forbidden('cannot_ban_admin');
     if (u.id === actor.id) throw badRequest('cannot_ban_self');
     const input = await body(c, banSchema);
-    await deps.db.update(users).set({ bannedAt: new Date(), bannedUntil: input.until ? new Date(input.until) : null, banReason: input.reason || null, tokenVersion: u.tokenVersion + 1 }).where(eq(users.id, u.id));
+    await deps.db
+      .update(users)
+      .set({ bannedAt: new Date(), bannedUntil: input.until ? new Date(input.until) : null, banReason: input.reason || null, tokenVersion: u.tokenVersion + 1 })
+      .where(eq(users.id, u.id));
     await deps.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.userId, u.id));
     await audit(deps.db, actor.id, 'user.ban', 'user', u.id, { reason: input.reason, until: input.until ?? null });
     return c.json({ ok: true });
@@ -203,7 +246,10 @@ export const adminRoutes = new Hono<AppEnv>()
     const { role } = await body(c, setRoleSchema);
     if (u.role === 'root') throw forbidden('cannot_change_root');
     if ((role === 'admin' || u.role === 'admin') && actor.role !== 'root') throw forbidden('root_only');
-    await db.update(users).set({ role, tokenVersion: u.tokenVersion + 1 }).where(eq(users.id, u.id));
+    await db
+      .update(users)
+      .set({ role, tokenVersion: u.tokenVersion + 1 })
+      .where(eq(users.id, u.id));
     await audit(db, actor.id, 'user.role', 'user', u.id, { from: u.role, to: role });
     return c.json({ ok: true, role });
   })
@@ -223,7 +269,10 @@ export const adminRoutes = new Hono<AppEnv>()
     const { db } = c.get('deps');
     const u = await targetUser(db, param(c, 'id'));
     const badge = await body(c, badgeSchema);
-    await db.update(users).set({ badge: badge.enabled ? badge : null }).where(eq(users.id, u.id));
+    await db
+      .update(users)
+      .set({ badge: badge.enabled ? badge : null })
+      .where(eq(users.id, u.id));
     await audit(db, actor.id, 'user.badge', 'user', u.id, badge);
     return c.json({ ok: true });
   })
@@ -231,7 +280,10 @@ export const adminRoutes = new Hono<AppEnv>()
     const actor = requirePerm(c, 'users.manage');
     const { db } = c.get('deps');
     const u = await targetUser(db, param(c, 'id'));
-    await db.update(users).set({ tokenVersion: u.tokenVersion + 1 }).where(eq(users.id, u.id));
+    await db
+      .update(users)
+      .set({ tokenVersion: u.tokenVersion + 1 })
+      .where(eq(users.id, u.id));
     await db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.userId, u.id));
     await audit(db, actor.id, 'user.revoke_sessions', 'user', u.id);
     return c.json({ ok: true });
@@ -255,7 +307,9 @@ export const adminRoutes = new Hono<AppEnv>()
       .select({ r: reports, ...reporterCols })
       .from(reports)
       .innerJoin(users, eq(users.id, reports.reporterId))
-      .where(and(eq(reports.status, q.status), cursor ? sql`(${reports.createdAt}, ${reports.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined))
+      .where(
+        and(eq(reports.status, q.status), cursor ? sql`(${reports.createdAt}, ${reports.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined),
+      )
       .orderBy(desc(reports.createdAt), desc(reports.id))
       .limit(q.limit + 1);
     const page = pageOf(rows, q.limit, (r) => ({ t: r.r.createdAt, id: r.r.id }));
@@ -263,19 +317,34 @@ export const adminRoutes = new Hono<AppEnv>()
     for (const r of page.items) {
       let target: ReportDto['target'] = null;
       if (r.r.targetType === 'user') {
-        const [u] = await db.select({ name: users.displayName }).from(users).where(sql`${users.id}::text = ${r.r.targetId}`);
+        const [u] = await db
+          .select({ name: users.displayName })
+          .from(users)
+          .where(sql`${users.id}::text = ${r.r.targetId}`);
         target = u ? { label: u.name, link: `/people/${r.r.targetId}` } : null;
       } else if (r.r.targetType === 'post') {
-        const [p] = await db.select({ text: posts.text, groupId: posts.groupId }).from(posts).where(sql`${posts.id}::text = ${r.r.targetId}`);
+        const [p] = await db
+          .select({ text: posts.text, groupId: posts.groupId })
+          .from(posts)
+          .where(sql`${posts.id}::text = ${r.r.targetId}`);
         target = p ? { label: p.text.slice(0, 120), link: p.groupId ? `/groups/${p.groupId}?post=${r.r.targetId}` : `/feed?post=${r.r.targetId}` } : null;
       } else if (r.r.targetType === 'message') {
-        const [m] = await db.select({ text: messages.text, conv: messages.conversationId }).from(messages).where(sql`${messages.id}::text = ${r.r.targetId}`);
+        const [m] = await db
+          .select({ text: messages.text, conv: messages.conversationId })
+          .from(messages)
+          .where(sql`${messages.id}::text = ${r.r.targetId}`);
         target = m ? { label: m.text.slice(0, 120), link: null } : null;
       } else if (r.r.targetType === 'group') {
-        const [g] = await db.select({ name: groups.name }).from(groups).where(sql`${groups.id}::text = ${r.r.targetId}`);
+        const [g] = await db
+          .select({ name: groups.name })
+          .from(groups)
+          .where(sql`${groups.id}::text = ${r.r.targetId}`);
         target = g ? { label: g.name, link: `/groups/${r.r.targetId}` } : null;
       } else if (r.r.targetType === 'comment') {
-        const [cm] = await db.select({ text: comments.text }).from(comments).where(sql`${comments.id}::text = ${r.r.targetId}`);
+        const [cm] = await db
+          .select({ text: comments.text })
+          .from(comments)
+          .where(sql`${comments.id}::text = ${r.r.targetId}`);
         target = cm ? { label: cm.text.slice(0, 120), link: null } : null;
       }
       items.push({
@@ -297,16 +366,41 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/reports/:id/resolve', async (c) => {
     const actor = requirePerm(c, 'reports.manage');
     const deps = c.get('deps');
-    const input = await body(c, z.object({ status: z.enum(['resolved', 'dismissed']), resolution: z.string().trim().max(500).default(''), removeContent: z.boolean().default(false) }));
-    const [r] = await deps.db.select().from(reports).where(eq(reports.id, param(c, 'id')));
+    const input = await body(
+      c,
+      z.object({ status: z.enum(['resolved', 'dismissed']), resolution: z.string().trim().max(500).default(''), removeContent: z.boolean().default(false) }),
+    );
+    const [r] = await deps.db
+      .select()
+      .from(reports)
+      .where(eq(reports.id, param(c, 'id')));
     if (!r) throw notFound();
     if (input.removeContent) {
-      if (r.targetType === 'post') await deps.db.update(posts).set({ deletedAt: new Date() }).where(sql`${posts.id}::text = ${r.targetId}`);
-      if (r.targetType === 'comment') await deps.db.update(comments).set({ deletedAt: new Date() }).where(sql`${comments.id}::text = ${r.targetId}`);
-      if (r.targetType === 'message') await deps.db.update(messages).set({ deletedAt: new Date() }).where(sql`${messages.id}::text = ${r.targetId}`);
-      if (r.targetType === 'group') await deps.db.update(groups).set({ deletedAt: new Date() }).where(sql`${groups.id}::text = ${r.targetId}`);
+      if (r.targetType === 'post')
+        await deps.db
+          .update(posts)
+          .set({ deletedAt: new Date() })
+          .where(sql`${posts.id}::text = ${r.targetId}`);
+      if (r.targetType === 'comment')
+        await deps.db
+          .update(comments)
+          .set({ deletedAt: new Date() })
+          .where(sql`${comments.id}::text = ${r.targetId}`);
+      if (r.targetType === 'message')
+        await deps.db
+          .update(messages)
+          .set({ deletedAt: new Date() })
+          .where(sql`${messages.id}::text = ${r.targetId}`);
+      if (r.targetType === 'group')
+        await deps.db
+          .update(groups)
+          .set({ deletedAt: new Date() })
+          .where(sql`${groups.id}::text = ${r.targetId}`);
     }
-    await deps.db.update(reports).set({ status: input.status, resolution: input.resolution, resolvedBy: actor.id, resolvedAt: new Date() }).where(eq(reports.id, r.id));
+    await deps.db
+      .update(reports)
+      .set({ status: input.status, resolution: input.resolution, resolvedBy: actor.id, resolvedAt: new Date() })
+      .where(eq(reports.id, r.id));
     await audit(deps.db, actor.id, 'report.resolve', 'report', r.id, input);
     await notify(deps, { userId: r.reporterId, type: 'report_resolved', icon: 'shield-check', data: { status: input.status }, pref: 'system' });
     return c.json({ ok: true });
@@ -321,7 +415,10 @@ export const adminRoutes = new Hono<AppEnv>()
     const actor = requirePerm(c, 'content.manage');
     const deps = c.get('deps');
     const input = await body(c, announcementSchema);
-    const [row] = await deps.db.insert(announcements).values({ ...input, expiresAt: input.expiresAt ? new Date(input.expiresAt) : null, createdBy: actor.id }).returning();
+    const [row] = await deps.db
+      .insert(announcements)
+      .values({ ...input, expiresAt: input.expiresAt ? new Date(input.expiresAt) : null, createdBy: actor.id })
+      .returning();
     await deps.realtime.publish(ch.site(), 'config:changed', {});
     return c.json(toAnnouncement(row!), 201);
   })
@@ -329,7 +426,11 @@ export const adminRoutes = new Hono<AppEnv>()
     requirePerm(c, 'content.manage');
     const deps = c.get('deps');
     const input = await body(c, announcementSchema);
-    const [row] = await deps.db.update(announcements).set({ ...input, expiresAt: input.expiresAt ? new Date(input.expiresAt) : null }).where(eq(announcements.id, param(c, 'id'))).returning();
+    const [row] = await deps.db
+      .update(announcements)
+      .set({ ...input, expiresAt: input.expiresAt ? new Date(input.expiresAt) : null })
+      .where(eq(announcements.id, param(c, 'id')))
+      .returning();
     if (!row) throw notFound();
     await deps.realtime.publish(ch.site(), 'config:changed', {});
     return c.json(toAnnouncement(row));
@@ -350,14 +451,21 @@ export const adminRoutes = new Hono<AppEnv>()
     const actor = requirePerm(c, 'content.manage');
     const { db } = c.get('deps');
     const input = await body(c, adSchema);
-    const [row] = await db.insert(ads).values({ ...input, createdBy: actor.id }).returning();
+    const [row] = await db
+      .insert(ads)
+      .values({ ...input, createdBy: actor.id })
+      .returning();
     return c.json(toAd(row!), 201);
   })
   .put('/ads/:id', async (c) => {
     requirePerm(c, 'content.manage');
     const { db } = c.get('deps');
     const input = await body(c, adSchema);
-    const [row] = await db.update(ads).set(input).where(eq(ads.id, param(c, 'id'))).returning();
+    const [row] = await db
+      .update(ads)
+      .set(input)
+      .where(eq(ads.id, param(c, 'id')))
+      .returning();
     if (!row) throw notFound();
     return c.json(toAd(row));
   })
@@ -370,13 +478,27 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/broadcast', async (c) => {
     const actor = requirePerm(c, 'content.manage');
     const deps = c.get('deps');
-    const input = await body(c, z.object({ title: z.string().trim().min(1).max(160), body: z.string().trim().max(1000).default(''), link: z.string().trim().max(500).optional(), audience: z.enum(['all', 'students', 'teachers']).default('all') }));
+    const input = await body(
+      c,
+      z.object({
+        title: z.string().trim().min(1).max(160),
+        body: z.string().trim().max(1000).default(''),
+        link: z.string().trim().max(500).optional(),
+        audience: z.enum(['all', 'students', 'teachers']).default('all'),
+      }),
+    );
     const ids = await deps.db
       .select({ id: users.id })
       .from(users)
       .where(and(isNull(users.deletedAt), input.audience === 'all' ? undefined : eq(users.accountType, input.audience === 'teachers' ? 'teacher' : 'student')));
     for (let i = 0; i < ids.length; i += 500) {
-      await deps.db.insert(notifications).values(ids.slice(i, i + 500).map((u) => ({ userId: u.id, type: 'broadcast', title: input.title, body: input.body, icon: 'megaphone', link: input.link ?? null })));
+      await deps.db
+        .insert(notifications)
+        .values(
+          ids
+            .slice(i, i + 500)
+            .map((u) => ({ userId: u.id, type: 'broadcast', title: input.title, body: input.body, icon: 'megaphone', link: input.link ?? null })),
+        );
     }
     await deps.realtime.publish(ch.site(), 'notification', { type: 'broadcast' });
     await audit(deps.db, actor.id, 'broadcast', undefined, undefined, { title: input.title, recipients: ids.length });
@@ -386,13 +508,20 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/sections', async (c) => {
     requirePerm(c, 'education.manage');
     const { db } = c.get('deps');
-    const [row] = await db.insert(eduSections).values(await body(c, sectionSchema)).returning();
+    const [row] = await db
+      .insert(eduSections)
+      .values(await body(c, sectionSchema))
+      .returning();
     return c.json(row, 201);
   })
   .put('/sections/:id', async (c) => {
     requirePerm(c, 'education.manage');
     const { db } = c.get('deps');
-    const [row] = await db.update(eduSections).set(await body(c, sectionSchema)).where(eq(eduSections.id, param(c, 'id'))).returning();
+    const [row] = await db
+      .update(eduSections)
+      .set(await body(c, sectionSchema))
+      .where(eq(eduSections.id, param(c, 'id')))
+      .returning();
     if (!row) throw notFound();
     return c.json(row);
   })
@@ -405,13 +534,20 @@ export const adminRoutes = new Hono<AppEnv>()
   .post('/materials', async (c) => {
     requirePerm(c, 'education.manage');
     const { db } = c.get('deps');
-    const [row] = await db.insert(eduMaterials).values(await body(c, materialSchema)).returning();
+    const [row] = await db
+      .insert(eduMaterials)
+      .values(await body(c, materialSchema))
+      .returning();
     return c.json(row, 201);
   })
   .put('/materials/:id', async (c) => {
     requirePerm(c, 'education.manage');
     const { db } = c.get('deps');
-    const [row] = await db.update(eduMaterials).set(await body(c, materialSchema)).where(eq(eduMaterials.id, param(c, 'id'))).returning();
+    const [row] = await db
+      .update(eduMaterials)
+      .set(await body(c, materialSchema))
+      .where(eq(eduMaterials.id, param(c, 'id')))
+      .returning();
     if (!row) throw notFound();
     return c.json(row);
   })
@@ -425,7 +561,12 @@ export const adminRoutes = new Hono<AppEnv>()
   .get('/daily-challenges', async (c) => {
     requirePerm(c, 'challenge.manage');
     const { db } = c.get('deps');
-    const rows = await db.select().from(dailyChallenges).where(gte(dailyChallenges.day, dayKey(Date.now() - 30 * 86400_000))).orderBy(desc(dailyChallenges.day)).limit(120);
+    const rows = await db
+      .select()
+      .from(dailyChallenges)
+      .where(gte(dailyChallenges.day, dayKey(Date.now() - 30 * 86400_000)))
+      .orderBy(desc(dailyChallenges.day))
+      .limit(120);
     return c.json({ items: rows.map((r) => ({ ...r, createdAt: r.createdAt.getTime() })) });
   })
   .put('/daily-challenges', async (c) => {
@@ -478,7 +619,16 @@ export const adminRoutes = new Hono<AppEnv>()
     const { db } = c.get('deps');
     const rows = await db.select().from(clientErrors).orderBy(desc(clientErrors.lastSeenAt)).limit(200);
     return c.json({
-      items: rows.map((e): ClientErrorDto => ({ id: e.id, message: e.message, kind: e.kind, url: e.url, count: e.count, lastSeenAt: e.lastSeenAt.getTime(), firstSeenAt: e.firstSeenAt.getTime(), sampleStack: e.sampleStack })),
+      items: rows.map((e): ClientErrorDto => ({
+        id: e.id,
+        message: e.message,
+        kind: e.kind,
+        url: e.url,
+        count: e.count,
+        lastSeenAt: e.lastSeenAt.getTime(),
+        firstSeenAt: e.firstSeenAt.getTime(),
+        sampleStack: e.sampleStack,
+      })),
     });
   })
   .delete('/errors', async (c) => {
@@ -517,14 +667,26 @@ export const adminRoutes = new Hono<AppEnv>()
     requirePerm(c, 'assistant.manage');
     const { db } = c.get('deps');
     const rows = await db.select().from(assistantKnowledge).orderBy(desc(assistantKnowledge.createdAt)).limit(1000);
-    return c.json({ items: rows.map((k): AssistantKnowledgeDto => ({ id: k.id, question: k.question, answer: k.answer, tags: k.tags, language: k.language as AssistantKnowledgeDto['language'], link: k.link, createdAt: k.createdAt.getTime() })) });
+    return c.json({
+      items: rows.map((k): AssistantKnowledgeDto => ({
+        id: k.id,
+        question: k.question,
+        answer: k.answer,
+        tags: k.tags,
+        language: k.language as AssistantKnowledgeDto['language'],
+        link: k.link,
+        createdAt: k.createdAt.getTime(),
+      })),
+    });
   })
   .post('/assistant-knowledge', async (c) => {
     requirePerm(c, 'assistant.manage');
     const { db } = c.get('deps');
     const input = await body(c, z.union([assistantKnowledgeSchema, z.object({ items: z.array(assistantKnowledgeSchema).min(1).max(500) })]));
     const list = 'items' in input ? input.items : [input];
-    await db.insert(assistantKnowledge).values(list.map((k) => ({ ...k, link: k.link ?? null, searchText: normalizeSearch(`${k.question} ${k.tags.join(' ')} ${k.answer.slice(0, 300)}`) })));
+    await db
+      .insert(assistantKnowledge)
+      .values(list.map((k) => ({ ...k, link: k.link ?? null, searchText: normalizeSearch(`${k.question} ${k.tags.join(' ')} ${k.answer.slice(0, 300)}`) })));
     return c.json({ ok: true, added: list.length }, 201);
   })
   .put('/assistant-knowledge/:id', async (c) => {
@@ -549,7 +711,13 @@ export const adminRoutes = new Hono<AppEnv>()
     requirePerm(c, 'assistant.manage');
     const { db } = c.get('deps');
     const rows = await db
-      .select({ id: assistantMessages.id, content: assistantMessages.content, rating: assistantMessages.rating, feedback: assistantMessages.feedback, createdAt: assistantMessages.createdAt })
+      .select({
+        id: assistantMessages.id,
+        content: assistantMessages.content,
+        rating: assistantMessages.rating,
+        feedback: assistantMessages.feedback,
+        createdAt: assistantMessages.createdAt,
+      })
       .from(assistantMessages)
       .where(sql`${assistantMessages.rating} is not null`)
       .orderBy(desc(assistantMessages.createdAt))
@@ -563,11 +731,25 @@ export const adminRoutes = new Hono<AppEnv>()
     const actor = requirePerm(c, 'site.manage');
     const { db } = c.get('deps');
     const now = new Date();
-    const s = await db.delete(sessions).where(or(lt(sessions.expiresAt, now), lt(sessions.revokedAt, new Date(Date.now() - 7 * 86400_000)))).returning({ id: sessions.id });
+    const s = await db
+      .delete(sessions)
+      .where(or(lt(sessions.expiresAt, now), lt(sessions.revokedAt, new Date(Date.now() - 7 * 86400_000))))
+      .returning({ id: sessions.id });
     const t = await db.delete(emailTokens).where(lt(emailTokens.expiresAt, now)).returning({ id: emailTokens.id });
-    const n = await db.delete(notifications).where(and(lt(notifications.createdAt, new Date(Date.now() - 180 * 86400_000)), sql`${notifications.readAt} is not null`)).returning({ id: notifications.id });
-    const a = await db.delete(quizAttempts).where(and(isNull(quizAttempts.submittedAt), lt(quizAttempts.expiresAt, new Date(Date.now() - 86400_000)))).returning({ id: quizAttempts.id });
-    await audit(db, actor.id, 'maintenance.cleanup', undefined, undefined, { sessions: s.length, tokens: t.length, notifications: n.length, attempts: a.length });
+    const n = await db
+      .delete(notifications)
+      .where(and(lt(notifications.createdAt, new Date(Date.now() - 180 * 86400_000)), sql`${notifications.readAt} is not null`))
+      .returning({ id: notifications.id });
+    const a = await db
+      .delete(quizAttempts)
+      .where(and(isNull(quizAttempts.submittedAt), lt(quizAttempts.expiresAt, new Date(Date.now() - 86400_000))))
+      .returning({ id: quizAttempts.id });
+    await audit(db, actor.id, 'maintenance.cleanup', undefined, undefined, {
+      sessions: s.length,
+      tokens: t.length,
+      notifications: n.length,
+      attempts: a.length,
+    });
     return c.json({ sessions: s.length, tokens: t.length, notifications: n.length, abandonedAttempts: a.length });
   })
   .post('/maintenance/recompute-levels', async (c) => {

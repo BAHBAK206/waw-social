@@ -9,7 +9,8 @@ import type { AuthResult } from '@qubedu/shared';
 export const fakeAi: AiClient = {
   async solve(input) {
     const m = input.question.match(/^\s*(\d+)\s*\+\s*(\d+)\s*$/);
-    if (m) return { answer: String(Number(m[1]) + Number(m[2])), steps: ['add'], confidence: 'high', kind: 'math', sources: [], choice: null, provider: 'fake' };
+    if (m)
+      return { answer: String(Number(m[1]) + Number(m[2])), steps: ['add'], confidence: 'high', kind: 'math', sources: [], choice: null, provider: 'fake' };
     const src = input.chunks[0];
     return {
       answer: src ? src.text.slice(0, 60) : 'unknown',
@@ -65,7 +66,10 @@ export async function call<T = unknown>(method: string, path: string, opts: Req 
     headers['content-type'] = 'application/json';
     reqBody = JSON.stringify(opts.body);
   }
-  const res = await app.request(path.startsWith('/api') || path.startsWith('/files') || path.startsWith('/internal') || path === '/health' ? path : `/api/v1${path}`, { method, headers, body: reqBody });
+  const res = await app.request(
+    path.startsWith('/api') || path.startsWith('/files') || path.startsWith('/internal') || path === '/health' ? path : `/api/v1${path}`,
+    { method, headers, body: reqBody },
+  );
   const text = await res.text();
   let parsed: unknown = text;
   try {
@@ -92,7 +96,10 @@ export async function rootUser() {
   try {
     return await newUser({ email: 'root@qubedu.test', name: 'Root Admin' });
   } catch {
-    const res = await call<AuthResult>('POST', '/auth/login', { body: { email: 'root@qubedu.test', password: 'Password#123' }, headers: { 'x-client': 'mobile' } });
+    const res = await call<AuthResult>('POST', '/auth/login', {
+      body: { email: 'root@qubedu.test', password: 'Password#123' },
+      headers: { 'x-client': 'mobile' },
+    });
     return { token: res.body.accessToken, refreshToken: res.body.refreshToken!, user: res.body.user, email: 'root@qubedu.test' };
   }
 }

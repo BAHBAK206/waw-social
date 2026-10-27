@@ -50,7 +50,10 @@ export const notificationRoutes = new Hono<AppEnv>()
       read: !!r.n.readAt,
       createdAt: r.n.createdAt.getTime(),
     }));
-    const [unread] = await db.select({ n: count() }).from(notifications).where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
+    const [unread] = await db
+      .select({ n: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
     return c.json({ items, nextCursor: page.nextCursor, unread: unread?.n ?? 0 });
   })
   .post('/read', async (c) => {

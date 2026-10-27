@@ -108,7 +108,6 @@ async function assertCanSeePost(deps: Deps, viewer: AuthUser, post: { groupId: s
     throw notFound('post_not_found');
 }
 
-
 export const feedQuerySchema = paginationSchema.extend({
   scope: z.enum(['all', 'following', 'mine']).default('all'),
   authorId: z.string().uuid().optional(),
@@ -163,7 +162,10 @@ export const postRoutes = new Hono<AppEnv>()
       })
       .returning({ id: posts.id });
     if (input.groupId) {
-      await deps.db.update(groups).set({ postCount: sql`${groups.postCount} + 1` }).where(eq(groups.id, input.groupId));
+      await deps.db
+        .update(groups)
+        .set({ postCount: sql`${groups.postCount} + 1` })
+        .where(eq(groups.id, input.groupId));
       await deps.realtime.publish(ch.group(input.groupId), 'post:new', { id: row!.id }, viewer.id);
     }
     const newAchievements = await checkAchievements(deps.db, viewer.id);
@@ -184,7 +186,10 @@ export const postRoutes = new Hono<AppEnv>()
     const post = await loadPost(deps, param(c, 'id'));
     if (post.authorId !== viewer.id) throw forbidden();
     const { text } = await body(c, updatePostSchema);
-    await deps.db.update(posts).set({ text, searchText: normalizeSearch(text), editedAt: new Date() }).where(eq(posts.id, post.id));
+    await deps.db
+      .update(posts)
+      .set({ text, searchText: normalizeSearch(text), editedAt: new Date() })
+      .where(eq(posts.id, post.id));
     const [dto] = await hydratePosts(deps, viewer, [await loadPost(deps, post.id)]);
     return c.json(dto);
   })
@@ -194,7 +199,11 @@ export const postRoutes = new Hono<AppEnv>()
     const post = await loadPost(deps, param(c, 'id'));
     if (post.authorId !== viewer.id && !(await canModeratePost(deps, viewer, post))) throw forbidden();
     await deps.db.update(posts).set({ deletedAt: new Date() }).where(eq(posts.id, post.id));
-    if (post.groupId) await deps.db.update(groups).set({ postCount: sql`greatest(${groups.postCount} - 1, 0)` }).where(eq(groups.id, post.groupId));
+    if (post.groupId)
+      await deps.db
+        .update(groups)
+        .set({ postCount: sql`greatest(${groups.postCount} - 1, 0)` })
+        .where(eq(groups.id, post.groupId));
     return c.json({ ok: true });
   })
   .post('/:id/pin', async (c) => {
@@ -289,7 +298,10 @@ export const postRoutes = new Hono<AppEnv>()
     if (post.groupId && !(await groupRole(deps.db, post.groupId, viewer.id))) throw forbidden('not_a_member');
     const { text } = await body(c, commentSchema);
     const [row] = await deps.db.insert(comments).values({ postId: post.id, authorId: viewer.id, text }).returning();
-    await deps.db.update(posts).set({ commentCount: sql`${posts.commentCount} + 1` }).where(eq(posts.id, post.id));
+    await deps.db
+      .update(posts)
+      .set({ commentCount: sql`${posts.commentCount} + 1` })
+      .where(eq(posts.id, post.id));
     await notify(deps, {
       userId: post.authorId,
       type: 'comment',
@@ -315,7 +327,10 @@ export const postRoutes = new Hono<AppEnv>()
     const allowed = comment.authorId === viewer.id || post.authorId === viewer.id || (await canModeratePost(deps, viewer, post));
     if (!allowed) throw forbidden();
     await deps.db.update(comments).set({ deletedAt: new Date() }).where(eq(comments.id, comment.id));
-    await deps.db.update(posts).set({ commentCount: sql`greatest(${posts.commentCount} - 1, 0)` }).where(eq(posts.id, post.id));
+    await deps.db
+      .update(posts)
+      .set({ commentCount: sql`greatest(${posts.commentCount} - 1, 0)` })
+      .where(eq(posts.id, post.id));
     return c.json({ ok: true });
   });
 

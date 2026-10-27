@@ -26,7 +26,9 @@ import { meRoutes, reportRoutes, userRoutes } from './routes/users';
 
 export function createApp(deps: Deps) {
   const app = new Hono<AppEnv>();
-  const origins = deps.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+  const origins = deps.env.CORS_ORIGINS.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
   app.use('*', injectDeps(deps));
   app.use('*', securityHeaders);
@@ -40,7 +42,13 @@ export function createApp(deps: Deps) {
       maxAge: 600,
     }),
   );
-  app.use('/api/*', bodyLimit({ maxSize: LIMITS.uploadBytes + 1024 * 1024, onError: (c) => c.json({ error: { code: 'payload_too_large', message: 'payload_too_large' } }, 413) }));
+  app.use(
+    '/api/*',
+    bodyLimit({
+      maxSize: LIMITS.uploadBytes + 1024 * 1024,
+      onError: (c) => c.json({ error: { code: 'payload_too_large', message: 'payload_too_large' } }, 413),
+    }),
+  );
   app.use('/api/*', authenticate);
   app.use('/api/*', maintenanceGate);
 
