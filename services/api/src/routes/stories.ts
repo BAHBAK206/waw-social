@@ -40,7 +40,7 @@ function toStory(r: typeof stories.$inferSelect, seen: { reaction: string | null
   };
 }
 
-async function loadActive(c: { get: (k: 'deps') => import('../lib/context').Deps }, id: string) {
+async function loadActive(c: { get: (k: 'deps') => Deps }, id: string) {
   const [row] = await c
     .get('deps')
     .db.select()
