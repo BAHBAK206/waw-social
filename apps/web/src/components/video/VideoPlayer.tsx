@@ -6,6 +6,7 @@ import { cx } from '@/lib/cx';
 import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
+import { toast } from '@/lib/ui';
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -55,9 +56,14 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
     (completed = false) => {
       const el = ref.current;
       if (!authed || !el || !el.currentTime) return;
-      void api.videos.progress(video.id, el.currentTime, completed || el.currentTime >= video.durationSec - 3).catch(() => undefined);
+      void api.videos
+        .progress(video.id, el.currentTime, completed || el.currentTime >= video.durationSec - 3)
+        .then((r) => {
+          if (r.xpEarned > 0) toast(tr.t('watch.lessonXp', { xp: r.xpEarned }));
+        })
+        .catch(() => undefined);
     },
-    [authed, video.id, video.durationSec],
+    [authed, video.id, video.durationSec, tr],
   );
 
   // Pause + report when leaving the page or the tab.

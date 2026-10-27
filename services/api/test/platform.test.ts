@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type {
+  AcademicDashboardDto,
   EventDto,
   ExploreDto,
   HashtagPageDto,
@@ -523,5 +524,59 @@ describe('video lessons: linked quiz, subject filter and private notes', () => {
     expect((await call('DELETE', `/videos/${id}/notes/${n1.body.id}`, { token: other.token })).status).toBe(404);
     expect((await call('DELETE', `/videos/${id}/notes/${n1.body.id}`, { token: student.token })).status).toBe(200);
     expect((await call('POST', `/videos/${id}/notes`, { token: student.token, body: { atSec: 1, text: '' } })).status).toBe(400);
+  });
+});
+
+describe('lessons count as study', () => {
+  it('credits real watching time, rewards finishing once, and links the checkpoint quiz both ways', async () => {
+    const { deps } = await (await import('./helpers')).setupApp();
+    const { watchHistory } = await import('../src/db/schema');
+    const { and, eq, sql } = await import('drizzle-orm');
+    const teacher = await newUser({ name: 'Study teacher', accountType: 'teacher' });
+    const learner = await newUser({ name: 'Learner' });
+    const skimmer = await newUser({ name: 'Skimmer' });
+    const quiz = await call<{ id: string }>('POST', '/quizzes', {
+      token: teacher.token,
+      body: { title: 'Lesson check', difficulty: 'easy', durationSec: 120, questions: [{ type: 'mc', prompt: '1 + 1 = ?', options: ['2', '3'], answer: 0 }] },
+    });
+    const lesson = (await publish(teacher.token, { quizId: quiz.body.id })).body;
+    const progress = (token: string, progressSec: number, completed = false) =>
+      call<{ studyMinutes: number; xpEarned: number; completed: boolean }>('PUT', `/videos/${lesson.id}/progress`, { token, body: { progressSec, completed } });
+    const backdate = (userId: string, sec: number) =>
+      deps.db
+        .update(watchHistory)
+        .set({ watchedAt: sql`now() - make_interval(secs => ${sec})` })
+        .where(and(eq(watchHistory.userId, userId), eq(watchHistory.videoId, lesson.id)));
+
+    expect((await progress(learner.token, 40)).body.studyMinutes).toBe(0);
+    let dash = await call<AcademicDashboardDto>('GET', '/academic/dashboard', { token: learner.token });
+    expect(dash.body.inbox.some((i) => i.kind === 'lesson' && i.link === `/watch/${lesson.id}`)).toBe(true);
+
+    await backdate(learner.user.id, 60);
+    expect((await progress(learner.token, 100)).body.studyMinutes).toBe(1);
+    const done = await progress(learner.token, 120, true);
+    expect(done.body.xpEarned).toBe(5);
+    expect((await progress(learner.token, 120, true)).body.xpEarned).toBe(0);
+    dash = await call<AcademicDashboardDto>('GET', '/academic/dashboard', { token: learner.token });
+    expect(dash.body.studyMinutesToday).toBeGreaterThanOrEqual(1);
+    expect(dash.body.streak).toBeGreaterThanOrEqual(1);
+    const checkpoint = dash.body.inbox.find((i) => i.kind === 'checkpoint');
+    expect(checkpoint?.link).toBe(`/watch/${lesson.id}?checkpoint=1`);
+
+    // Jumping straight to the end is not study time and earns nothing.
+    const skim = await progress(skimmer.token, 120, true);
+    expect(skim.body).toMatchObject({ studyMinutes: 0, xpEarned: 0 });
+
+    // The quiz result points back to the lesson; once taken, the checkpoint leaves the inbox.
+    const start = await call<{ attemptId: string }>('POST', `/quizzes/${quiz.body.id}/attempts`, { token: learner.token, body: {} });
+    const result = await call<{ pct: number; lessons: { id: string; title: string }[] }>('POST', `/quizzes/attempts/${start.body.attemptId}/submit`, {
+      token: learner.token,
+      body: { answers: [1] },
+    });
+    expect(result.body.lessons).toEqual([{ id: lesson.id, title: lesson.title }]);
+    const again = await call<{ submitted: boolean; result: { lessons: unknown[] } }>('GET', `/quizzes/attempts/${start.body.attemptId}`, { token: learner.token });
+    expect(again.body.result.lessons).toHaveLength(1);
+    dash = await call<AcademicDashboardDto>('GET', '/academic/dashboard', { token: learner.token });
+    expect(dash.body.inbox.some((i) => i.kind === 'checkpoint')).toBe(false);
   });
 });

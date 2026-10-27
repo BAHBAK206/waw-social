@@ -282,6 +282,8 @@ export interface QuizResultDto extends XpRewardMeta {
   newAchievements: string[];
   breakdown: QuestionReview[];
   topicStats: { topic: string; correct: number; total: number; pct: number }[];
+  /** Video lessons that use this quiz as their checkpoint — where to go back and review. */
+  lessons?: { id: string; title: string }[];
 }
 
 export interface QuizEditorDto {
@@ -401,7 +403,7 @@ export interface MasteryDto {
 }
 
 export interface StudyInboxItem {
-  kind: 'flashcards' | 'task' | 'exam' | 'assignment' | 'weak-topic' | 'session';
+  kind: 'flashcards' | 'task' | 'exam' | 'assignment' | 'weak-topic' | 'session' | 'lesson' | 'checkpoint';
   title: string;
   dueAt: number | null;
   link: string;

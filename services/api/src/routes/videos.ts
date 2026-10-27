@@ -37,6 +37,7 @@ import {
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { sha256 } from '../lib/crypto';
 import { decodeCursor, pageOf } from '../lib/cursor';
+import { awardXp, creditStudy, xpEarnedToday } from '../lib/progress';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { removeHashtags, syncHashtags } from '../lib/hashtags';
 import { body, clientIp, param, query, requireUser } from '../lib/http';
@@ -76,6 +77,10 @@ export const videoBase = (deps: Deps) =>
     .innerJoin(users, eq(users.id, videos.ownerId))
     .leftJoin(eduSections, eq(eduSections.id, videos.sectionId))
     .leftJoin(eduMaterials, eq(eduMaterials.id, videos.materialId));
+
+/** XP for finishing a lesson you watched, with a daily cap so it rewards learning rather than skimming. */
+const LESSON_XP = 5;
+const LESSON_XP_DAILY_CAP = 40;
 
 const isStaff = (viewer: AuthUser | null) => !!viewer && hasPermission(viewer.role, viewer.permissions, 'content.manage');
 
@@ -506,25 +511,48 @@ export const videoRoutes = new Hono<AppEnv>()
     const video = await loadVideo(deps, viewer, param(c, 'id'));
     const { progressSec, completed } = await body(c, videoProgressSchema);
     const progress = Math.min(Math.round(progressSec), video.durationSec);
-    const [prev] = await deps.db
-      .select({ progressSec: watchHistory.progressSec })
-      .from(watchHistory)
-      .where(and(eq(watchHistory.userId, viewer.id), eq(watchHistory.videoId, video.id)));
-    await deps.db
-      .insert(watchHistory)
-      .values({ userId: viewer.id, videoId: video.id, progressSec: progress, completed })
-      .onConflictDoUpdate({
-        target: [watchHistory.userId, watchHistory.videoId],
-        set: { progressSec: progress, completed: sql`${watchHistory.completed} or ${completed}`, watchedAt: new Date() },
-      });
-    // Count at most 2 minutes of newly watched time per call so seeking cannot inflate watch time.
-    const delta = Math.min(Math.max(0, progress - (prev?.progressSec ?? 0)), 120);
-    if (delta)
-      await deps.db
-        .update(videos)
-        .set({ watchSeconds: sql`${videos.watchSeconds} + ${delta}` })
-        .where(eq(videos.id, video.id));
-    return c.json({ ok: true });
+    const out = await deps.db.transaction(async (tx) => {
+      const [prev] = await tx
+        .select()
+        .from(watchHistory)
+        .where(and(eq(watchHistory.userId, viewer.id), eq(watchHistory.videoId, video.id)))
+        .for('update');
+      // Only forward playback counts, and never faster than the wall clock allows (2× speed + slack) since the
+      // last sync — seeking to the end does not turn into study time.
+      const now = Date.now();
+      const forward = Math.max(0, progress - (prev?.progressSec ?? 0));
+      const elapsed = prev ? (now - prev.watchedAt.getTime()) / 1000 : 20;
+      const watched = Math.max(0, Math.min(forward, 120, Math.round(elapsed * 2 + 5)));
+      const studiedBefore = prev?.studiedSec ?? 0;
+      const studied = Math.min(studiedBefore + watched, video.durationSec * 3);
+      const finished = completed || progress >= video.durationSec - 3;
+      await tx
+        .insert(watchHistory)
+        .values({ userId: viewer.id, videoId: video.id, progressSec: progress, studiedSec: studied, completed: finished })
+        .onConflictDoUpdate({
+          target: [watchHistory.userId, watchHistory.videoId],
+          set: { progressSec: progress, studiedSec: studied, completed: sql`${watchHistory.completed} or ${finished}`, watchedAt: new Date(now) },
+        });
+      if (watched)
+        await tx
+          .update(videos)
+          .set({ watchSeconds: sql`${videos.watchSeconds} + ${watched}` })
+          .where(eq(videos.id, video.id));
+      // Whole minutes of real watching count toward the daily goal, total study time and the streak.
+      const minutes = Math.floor(studied / 60) - Math.floor(studiedBefore / 60);
+      await creditStudy(tx, viewer.id, viewer.timezone, minutes);
+      // Finishing a lesson you actually watched (at least half of it) earns a little XP, once per lesson.
+      let xpEarned = 0;
+      if (finished && !prev?.completed && video.ownerId !== viewer.id && studied >= video.durationSec * 0.5 && video.durationSec >= 20) {
+        const today = dayKey(now, viewer.timezone);
+        const earned = await xpEarnedToday(tx, viewer.id, 'lesson', today);
+        const amount = Math.min(LESSON_XP, Math.max(0, LESSON_XP_DAILY_CAP - earned));
+        const award = await awardXp(tx, viewer.id, amount, 'lesson', video.id, today);
+        xpEarned = award.awarded ? amount : 0;
+      }
+      return { studyMinutes: minutes, xpEarned, completed: finished || !!prev?.completed };
+    });
+    return c.json({ ok: true, ...out });
   })
   .put('/:id/reaction', async (c) => {
     const viewer = requireUser(c);

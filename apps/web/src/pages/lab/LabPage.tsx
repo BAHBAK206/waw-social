@@ -9,7 +9,7 @@ import {
   type PronunciationScore,
 } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AudioLines, ChevronLeft, ChevronRight, Mic, RotateCcw, Snail, Square, Volume2 } from 'lucide-react';
+import { AudioLines, ChevronLeft, ChevronRight, Layers, ListRestart, Mic, RotateCcw, Snail, Square, Volume2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NoticeCard } from '@/components/layout/Banners';
 import { Button } from '@/components/ui/Button';
@@ -23,7 +23,7 @@ import { cx } from '@/lib/cx';
 import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { canRecognize, canSpeak, listen, speak, stopSpeaking, useSpeech, type Listening } from '@/lib/speech';
-import { celebrate, toastError } from '@/lib/ui';
+import { celebrate, toast, toastError } from '@/lib/ui';
 
 const LANGUAGE_NAMES: Record<LabLanguage, string> = { ar: 'العربية', en: 'English', fr: 'Français', es: 'Español' };
 type Source = 'sets' | 'cards' | 'custom';
@@ -331,6 +331,44 @@ export default function LabPage() {
                   {w.word} <span className="muted text-xs">×{w.misses}</span>
                 </button>
               ))}
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                icon={<ListRestart className="size-4" />}
+                onClick={() => {
+                  const words = stats.data!.weakWords.filter((w) => w.language === lang).map((w) => w.word);
+                  const list = words.length ? words : stats.data!.weakWords.map((w) => w.word);
+                  if (!words.length) setLang(stats.data!.weakWords[0]!.language as LabLanguage);
+                  setSource('custom');
+                  setCustom(list.join('\n'));
+                  setCustomPhrases(list);
+                }}
+              >
+                {tr.t('lab.practiseAll')}
+              </Button>
+              <Button
+                size="sm"
+                variant="soft"
+                icon={<Layers className="size-4" />}
+                onClick={async () => {
+                  try {
+                    const res = await api.flashcards.create(
+                      stats.data!.weakWords.map((w) => ({
+                        front: w.word,
+                        back: tr.t('lab.cardBack', { language: LANGUAGE_NAMES[w.language as LabLanguage] ?? w.language }),
+                        deck: tr.t('lab.deck'),
+                      })),
+                    );
+                    toast(tr.t('ai.savedCards', { count: res.items.length }));
+                  } catch (e) {
+                    toastError(e);
+                  }
+                }}
+              >
+                {tr.t('lab.toCards')}
+              </Button>
             </div>
           </section>
         )}

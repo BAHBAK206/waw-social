@@ -28,6 +28,17 @@ describe('study tools', () => {
       },
     });
     expect(created.body.items).toHaveLength(2);
+    // Duplicates in the same deck are skipped (case/space-insensitive); the same front in another deck is fine.
+    const dup = await call<{ items: FlashcardDto[] }>('POST', '/flashcards', {
+      token: u.token,
+      body: { cards: [{ front: ' h2o ', back: 'Water again', deck: 'chem' }, { front: 'H2O', back: 'Water', deck: 'review' }, { front: 'CO2', back: 'Carbon dioxide', deck: 'review' }, { front: 'co2', back: 'dup in batch', deck: 'review' }] },
+    });
+    expect(dup.body.items.map((c) => c.front)).toEqual(['H2O', 'CO2']);
+    const none = await call<{ items: FlashcardDto[] }>('POST', '/flashcards', { token: u.token, body: { front: 'NaCl', back: 'Salt', deck: 'chem' } });
+    expect(none.status).toBe(200);
+    expect(none.body.items).toHaveLength(0);
+    await call('DELETE', `/flashcards/${dup.body.items[0]!.id}`, { token: u.token });
+    await call('DELETE', `/flashcards/${dup.body.items[1]!.id}`, { token: u.token });
     const due = await call<{ items: FlashcardDto[]; dueCount: number; decks: { name: string; count: number }[] }>('GET', '/flashcards?due=true', {
       token: u.token,
     });

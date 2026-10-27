@@ -101,3 +101,14 @@ export async function checkAchievements(tx: Tx, userId: string): Promise<string[
     .returning({ id: userAchievements.achievementId });
   return inserted.map((r) => r.id);
 }
+
+/** Credits study minutes everywhere they count: the daily log (goal + charts), the profile total and the streak. */
+export async function creditStudy(tx: Tx, userId: string, timezone: string, minutes: number) {
+  if (minutes <= 0) return;
+  await logStudy(tx, userId, dayKey(Date.now(), timezone), { minutes });
+  await tx
+    .update(users)
+    .set({ studyMinutes: sql`${users.studyMinutes} + ${minutes}` })
+    .where(eq(users.id, userId));
+  await touchStreak(tx, userId, timezone);
+}

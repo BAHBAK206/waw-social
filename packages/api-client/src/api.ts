@@ -274,7 +274,8 @@ export function createApi(options: ClientOptions) {
       deleteNote: (id: string, noteId: string) => http.del<Ok>(`/videos/${id}/notes/${noteId}`),
       remove: (id: string) => http.del<Ok>(`/videos/${id}`),
       view: (id: string) => http.post<{ counted: boolean; views: number }>(`/videos/${id}/view`),
-      progress: (id: string, progressSec: number, completed = false) => http.put<Ok>(`/videos/${id}/progress`, { progressSec, completed }),
+      progress: (id: string, progressSec: number, completed = false) =>
+        http.put<{ ok: true; studyMinutes: number; xpEarned: number; completed: boolean }>(`/videos/${id}/progress`, { progressSec, completed }),
       react: (id: string, value: 1 | -1 | 0) => http.put<{ likes: number; dislikes: number; myReaction: number }>(`/videos/${id}/reaction`, { value }),
       watchLater: (id: string, on: boolean) => http.put<{ watchLater: boolean }>(`/videos/${id}/watch-later`, { on }),
       related: (id: string) => http.get<{ items: VideoDto[] }>(`/videos/${id}/related`),

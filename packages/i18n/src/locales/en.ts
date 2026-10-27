@@ -1,5 +1,9 @@
 export const en = {
   lab: {
+    cardBack: 'Say it aloud ({{language}}), then check yourself in the Pronunciation lab.',
+    deck: 'Pronunciation',
+    toCards: 'Save as flashcards',
+    practiseAll: 'Practise these words',
     title: 'Pronunciation lab',
     subtitle: 'Listen, repeat and get instant feedback on your pronunciation in Arabic, English, French and Spanish.',
     listen: 'Listen',
@@ -519,6 +523,12 @@ export const en = {
       leaveBody: 'Your answers will be lost.',
     },
     result: {
+      mistakesDeck: 'My mistakes',
+      mistakesSaved: 'Added to your flashcards',
+      mistakesToCards: '{count, plural, one {Turn # mistake into a flashcard} other {Turn # mistakes into flashcards}}',
+      reviewLessonHint: 'This quiz checks the lesson below.',
+      reviewLessonLow: 'Watch the lesson again, then retry — most mistakes are covered there.',
+      reviewLesson: 'Review the lesson',
       title: 'Your result',
       score: '{{correct}} / {{total}} correct',
       perfect: 'Perfect score! 👑',
@@ -715,7 +725,16 @@ export const en = {
   academic: {
     title: 'My study',
     tabs: { today: 'Today', plan: 'Weekly plan', sessions: 'Sessions', exams: 'Exams', cards: 'Flashcards', mastery: 'Mastery', focus: 'Focus' },
-    inboxKinds: { flashcards: 'Flashcards due', task: 'Task', exam: 'Exam', assignment: 'Assignment', 'weak-topic': 'Review topic', session: 'Study session' },
+    inboxKinds: {
+      flashcards: 'Flashcards due',
+      task: 'Task',
+      exam: 'Exam',
+      assignment: 'Assignment',
+      'weak-topic': 'Review topic',
+      session: 'Study session',
+      lesson: 'Continue lesson',
+      checkpoint: 'Lesson quiz',
+    },
     plan: {
       title: 'Your week',
       budget: 'Daily study budget (minutes)',
@@ -1309,6 +1328,7 @@ export const en = {
     },
   },
   watch: {
+    lessonXp: 'Lesson completed! +{{xp}} XP',
     jumpTo: 'Jump to {{time}}',
     noNotes: 'No notes yet. Pause at an important moment and write one.',
     addNoteAt: 'Save at {{time}}',

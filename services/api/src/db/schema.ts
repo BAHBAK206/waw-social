@@ -1454,6 +1454,8 @@ export const watchHistory = pgTable(
       .notNull()
       .references(() => videos.id, { onDelete: 'cascade' }),
     progressSec: integer('progress_sec').notNull().default(0),
+    /** Seconds of actual watching credited as study time (capped by wall-clock time between syncs). */
+    studiedSec: integer('studied_sec').notNull().default(0),
     completed: boolean('completed').notNull().default(false),
     watchedAt: ts('watched_at').notNull().defaultNow(),
   },

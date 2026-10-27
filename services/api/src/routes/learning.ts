@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -43,8 +43,11 @@ import {
   studyLog,
   studySessions,
   submissions,
+  quizBest,
   tasks,
   users,
+  videos,
+  watchHistory,
 } from '../db/schema';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { badRequest, conflict, notFound } from '../lib/errors';
@@ -154,7 +157,21 @@ export const flashcardRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     const { db } = c.get('deps');
     const input = await body(c, z.union([flashcardInputSchema, z.object({ cards: z.array(flashcardInputSchema).min(1).max(200) })]));
-    const list = 'cards' in input ? input.cards : [input];
+    const given = 'cards' in input ? input.cards : [input];
+    // Saving the same card twice (e.g. "mistakes → flashcards" after every attempt) keeps one copy per deck.
+    const decks = [...new Set(given.map((x) => x.deck))];
+    const existing = await db
+      .select({ deck: flashcards.deck, front: flashcards.front })
+      .from(flashcards)
+      .where(and(eq(flashcards.userId, user.id), inArray(flashcards.deck, decks)));
+    const seen = new Set(existing.map((e) => `${e.deck}\u0000${e.front.trim().toLowerCase()}`));
+    const list = given.filter((x) => {
+      const key = `${x.deck}\u0000${x.front.trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (!list.length) return c.json({ items: [] }, 200);
     const [{ n }] = (await db.select({ n: count() }).from(flashcards).where(eq(flashcards.userId, user.id))) as [{ n: number }];
     if (n + list.length > 5000) throw conflict('flashcard_limit');
     const s = initialSchedulerState();
@@ -622,7 +639,7 @@ export const academicRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const { db } = deps;
     const today = dayKey(Date.now(), user.timezone);
-    const [[due], me, upcoming, openTasks, weak, week, assigns, sessionsToday] = await Promise.all([
+    const [[due], me, upcoming, openTasks, weak, week, assigns, sessionsToday, lessonRows] = await Promise.all([
       db
         .select({ n: count() })
         .from(flashcards)
@@ -658,6 +675,28 @@ export const academicRoutes = new Hono<AppEnv>()
         .select()
         .from(studySessions)
         .where(and(eq(studySessions.userId, user.id), eq(studySessions.day, today), eq(studySessions.completed, false))),
+      // Recent lessons: unfinished ones to continue, finished ones whose checkpoint quiz is still untaken.
+      db
+        .select({
+          id: videos.id,
+          title: videos.title,
+          quizId: videos.quizId,
+          progressSec: watchHistory.progressSec,
+          completed: watchHistory.completed,
+          taken: sql<boolean>`exists (select 1 from ${quizBest} where ${quizBest.userId} = ${user.id} and ${quizBest.quizId} = ${videos.quizId})`,
+        })
+        .from(watchHistory)
+        .innerJoin(videos, eq(videos.id, watchHistory.videoId))
+        .where(
+          and(
+            eq(watchHistory.userId, user.id),
+            isNull(videos.deletedAt),
+            eq(videos.kind, 'video'),
+            gte(watchHistory.watchedAt, new Date(Date.now() - 14 * 86400_000)),
+          ),
+        )
+        .orderBy(desc(watchHistory.watchedAt))
+        .limit(20),
     ]);
     const weakTopics = weak.filter((m) => m.level === 'needs_review' || m.level === 'developing').slice(0, 5);
     const inbox: StudyInboxItem[] = [];
@@ -668,6 +707,10 @@ export const academicRoutes = new Hono<AppEnv>()
     for (const t of openTasks) inbox.push({ kind: 'task', title: t.title, dueAt: ms(t.dueAt), link: '/organizer?tab=tasks', refId: t.id });
     for (const e of upcoming.slice(0, 2))
       inbox.push({ kind: 'exam', title: e.subject, dueAt: Date.parse(`${e.day}T${e.time ?? '09:00'}:00Z`), link: '/academic?tab=exams', refId: e.id });
+    for (const l of lessonRows.filter((r) => r.completed && r.quizId && !r.taken).slice(0, 2))
+      inbox.push({ kind: 'checkpoint', title: l.title, dueAt: null, link: `/watch/${l.id}?checkpoint=1`, refId: l.quizId! });
+    for (const l of lessonRows.filter((r) => !r.completed && r.progressSec >= 10).slice(0, 2))
+      inbox.push({ kind: 'lesson', title: l.title, dueAt: null, link: `/watch/${l.id}`, refId: l.id });
     for (const w of weakTopics.slice(0, 3))
       inbox.push({ kind: 'weak-topic', title: w.topic, dueAt: null, link: `/quiz?adaptive=1&topic=${encodeURIComponent(w.topic)}` });
     const weekMap = new Map(week.map((w) => [w.day, w.minutes]));

@@ -2,6 +2,10 @@ import type { Dictionary } from './en';
 
 export const fr: Dictionary = {
   lab: {
+    cardBack: 'Dites-le à voix haute ({{language}}), puis vérifiez dans le labo de prononciation.',
+    deck: 'Prononciation',
+    toCards: 'Enregistrer en cartes',
+    practiseAll: 'S’entraîner sur ces mots',
     title: 'Labo de prononciation',
     subtitle: 'Écoutez, répétez et recevez un retour immédiat sur votre prononciation en arabe, anglais, français et espagnol.',
     listen: 'Écouter',
@@ -521,6 +525,12 @@ export const fr: Dictionary = {
       leaveBody: 'Vos réponses seront perdues.',
     },
     result: {
+      mistakesDeck: 'Mes erreurs',
+      mistakesSaved: 'Ajoutées à vos cartes',
+      mistakesToCards: '{count, plural, one {Transformer # erreur en carte} other {Transformer # erreurs en cartes}}',
+      reviewLessonHint: 'Ce quiz vérifie la leçon ci-dessous.',
+      reviewLessonLow: 'Revoyez la leçon puis réessayez : la plupart des erreurs y sont expliquées.',
+      reviewLesson: 'Revoir la leçon',
       title: 'Votre résultat',
       score: '{{correct}} / {{total}} correctes',
       perfect: 'Score parfait ! 👑',
@@ -729,6 +739,8 @@ export const fr: Dictionary = {
       assignment: 'Devoir',
       'weak-topic': 'Sujet à revoir',
       session: "Séance d'étude",
+      lesson: 'Reprendre la leçon',
+      checkpoint: 'Quiz de leçon',
     },
     plan: {
       title: 'Votre semaine',
@@ -1337,6 +1349,7 @@ export const fr: Dictionary = {
     },
   },
   watch: {
+    lessonXp: 'Leçon terminée ! +{{xp}} XP',
     jumpTo: 'Aller à {{time}}',
     noNotes: 'Aucune note pour l’instant. Mettez en pause à un moment clé et écrivez-en une.',
     addNoteAt: 'Enregistrer à {{time}}',

@@ -1,0 +1,1 @@
+ALTER TABLE "watch_history" ADD COLUMN "studied_sec" integer DEFAULT 0 NOT NULL;

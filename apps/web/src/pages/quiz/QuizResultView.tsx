@@ -1,5 +1,5 @@
 import type { AiAnswerDto, QuestionReview, QuizResultDto } from '@qubedu/shared';
-import { Check, Sparkles, X } from 'lucide-react';
+import { Check, Clapperboard, Layers, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ButtonLink, Button } from '@/components/ui/Button';
@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
-import { achievementName, toastError } from '@/lib/ui';
+import { achievementName, toast, toastError } from '@/lib/ui';
 import { ACHIEVEMENTS, xpProgress } from '@qubedu/shared';
 
 function show(r: QuestionReview, v: unknown): string {
@@ -101,9 +101,44 @@ function Review({ attemptId, item, index }: { attemptId: string; item: QuestionR
   );
 }
 
+/** Turns every missed question into a flashcard (question → correct answer + explanation) for spaced review. */
+function MistakesToCards({ result }: { result: QuizResultDto }) {
+  const tr = useT();
+  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle');
+  const wrong = result.breakdown.filter((b) => !b.correct);
+  if (!wrong.length) return null;
+  return (
+    <Button
+      variant="soft"
+      icon={<Layers className="size-4" />}
+      loading={state === 'busy'}
+      disabled={state === 'done'}
+      onClick={async () => {
+        setState('busy');
+        try {
+          const cards = wrong.map((b) => ({
+            front: b.prompt.slice(0, 1000),
+            back: [show(b, b.answer), b.explanation ?? ''].filter(Boolean).join('\n').slice(0, 2000) || '—',
+            deck: tr.t('quiz.result.mistakesDeck'),
+          }));
+          const res = await api.flashcards.create(cards);
+          toast(tr.t('ai.savedCards', { count: res.items.length }));
+          setState('done');
+        } catch (e) {
+          setState('idle');
+          toastError(e);
+        }
+      }}
+    >
+      {state === 'done' ? tr.t('quiz.result.mistakesSaved') : tr.t('quiz.result.mistakesToCards', { count: wrong.length })}
+    </Button>
+  );
+}
+
 export function QuizResultView({ result, onRetry }: { result: QuizResultDto; onRetry: () => void }) {
   const tr = useT();
   const level = xpProgress(result.xpAfter);
+  const lessons = result.lessons ?? [];
   return (
     <div className="page-narrow space-y-5">
       <section className="card p-6 text-center">
@@ -146,8 +181,27 @@ export function QuizResultView({ result, onRetry }: { result: QuizResultDto; onR
           <ButtonLink to="/academic?tab=mastery" variant="soft">
             {tr.t('academic.tabs.mastery')}
           </ButtonLink>
+          {!result.review && <MistakesToCards result={result} />}
         </div>
       </section>
+
+      {lessons.length > 0 && (
+        <section className={cx('card p-4', result.pct < 70 && 'ring-2 ring-[var(--warn)]')} aria-label={tr.t('quiz.result.reviewLesson')}>
+          <h2 className="mb-1 flex items-center gap-2 font-black">
+            <Clapperboard className="size-5 text-ink" aria-hidden /> {tr.t('quiz.result.reviewLesson')}
+          </h2>
+          <p className="muted mb-3 text-sm">{result.pct < 70 ? tr.t('quiz.result.reviewLessonLow') : tr.t('quiz.result.reviewLessonHint')}</p>
+          <ul className="flex flex-wrap gap-2">
+            {lessons.map((l) => (
+              <li key={l.id}>
+                <Link to={`/watch/${l.id}`} className="chip" dir="auto">
+                  {l.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {result.topicStats.length > 0 && (
         <section className="card p-4">

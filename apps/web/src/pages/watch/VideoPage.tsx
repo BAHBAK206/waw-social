@@ -39,6 +39,13 @@ export default function VideoPage() {
   const player = useRef<HTMLVideoElement | null>(null);
   const [time, setTime] = useState(0);
   const [ended, setEnded] = useState(false);
+  // Arriving from the study inbox ("take the checkpoint quiz") jumps straight to the quiz card.
+  const wantsCheckpoint = params.get('checkpoint') === '1';
+  useEffect(() => {
+    if (!wantsCheckpoint || !q.data?.quiz) return;
+    const t = setTimeout(() => document.getElementById('lesson-checkpoint')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    return () => clearTimeout(t);
+  }, [wantsCheckpoint, q.data?.quiz]);
   const chapters = useMemo(() => (q.data ? parseChapters(q.data.description, q.data.durationSec) : []), [q.data]);
   useEffect(() => {
     setEnded(false);
@@ -116,7 +123,7 @@ export default function VideoPage() {
       <div className="min-w-0">
         <VideoPlayer
           video={video}
-          autoPlay
+          autoPlay={!wantsCheckpoint}
           className="md:rounded-[var(--radius-card)] rounded-none"
           playerRef={player}
           onTime={setTime}
@@ -249,7 +256,7 @@ export default function VideoPage() {
           </div>
 
           <LessonChapters chapters={chapters} time={time} onSeek={seek} />
-          {video.quiz && <QuizCheckpoint quiz={video.quiz} highlight={ended} />}
+          {video.quiz && <QuizCheckpoint quiz={video.quiz} highlight={ended || wantsCheckpoint} />}
           <LessonNotes videoId={video.id} time={time} onSeek={seek} />
 
           <VideoComments video={video} onCount={(d) => patch((v) => ({ ...v, commentCount: v.commentCount + d }))} />

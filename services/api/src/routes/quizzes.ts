@@ -21,7 +21,7 @@ import {
   type QuizResultDto,
   type QuizSummaryDto,
 } from '@qubedu/shared';
-import { courseMembers, eduMaterials, eduSections, quizAttempts, quizBest, quizQuestions, quizzes, topicSamples, users } from '../db/schema';
+import { courseMembers, eduMaterials, eduSections, quizAttempts, quizBest, quizQuestions, quizzes, topicSamples, users, videos } from '../db/schema';
 import { courseRole } from '../lib/access';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { decodeCursor, pageOf } from '../lib/cursor';
@@ -179,6 +179,17 @@ async function attemptDto(deps: Deps, viewer: AuthUser, attempt: typeof quizAtte
     review: attempt.review,
     adaptive: attempt.adaptive,
   };
+}
+
+/** Lessons that use this quiz as their checkpoint, so a result can send the learner back to review. */
+async function lessonsForQuiz(deps: Deps, quizId: string | null) {
+  if (!quizId) return [];
+  return deps.db
+    .select({ id: videos.id, title: videos.title })
+    .from(videos)
+    .where(and(eq(videos.quizId, quizId), isNull(videos.deletedAt), inArray(videos.visibility, ['public', 'unlisted'])))
+    .orderBy(desc(videos.createdAt))
+    .limit(3);
 }
 
 export const taxonomyRoutes = new Hono<AppEnv>().get('/', async (c) => {
@@ -377,7 +388,8 @@ export const quizRoutes = new Hono<AppEnv>()
       .from(quizAttempts)
       .where(and(eq(quizAttempts.id, param(c, 'attemptId')), eq(quizAttempts.userId, viewer.id)));
     if (!attempt) throw notFound('attempt_not_found');
-    if (attempt.submittedAt) return c.json({ submitted: true, result: attempt.result });
+    if (attempt.submittedAt)
+      return c.json({ submitted: true, result: { ...(attempt.result as unknown as QuizResultDto), lessons: await lessonsForQuiz(deps, attempt.quizId) } });
     const quiz = attempt.quizId ? ((await summaries(deps, viewer, [attempt.quizId]))[0] ?? null) : null;
     return c.json({ submitted: false, attempt: await attemptDto(deps, viewer, attempt, quiz) });
   })
@@ -506,7 +518,7 @@ export const quizRoutes = new Hono<AppEnv>()
         .where(eq(quizAttempts.id, attemptId));
       return { already: false, result: dto };
     });
-    return c.json(result.result);
+    return c.json({ ...result.result, lessons: await lessonsForQuiz(deps, result.result.quizId) });
   })
   .get('/:id', async (c) => {
     const viewer = c.get('user');

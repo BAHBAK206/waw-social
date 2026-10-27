@@ -2,6 +2,10 @@ import type { Dictionary } from './en';
 
 export const es: Dictionary = {
   lab: {
+    cardBack: 'Dilo en voz alta ({{language}}) y compruébalo en el laboratorio de pronunciación.',
+    deck: 'Pronunciación',
+    toCards: 'Guardar como tarjetas',
+    practiseAll: 'Practicar estas palabras',
     title: 'Laboratorio de pronunciación',
     subtitle: 'Escucha, repite y recibe al instante una valoración de tu pronunciación en árabe, inglés, francés y español.',
     listen: 'Escuchar',
@@ -521,6 +525,12 @@ export const es: Dictionary = {
       leaveBody: 'Perderás tus respuestas.',
     },
     result: {
+      mistakesDeck: 'Mis errores',
+      mistakesSaved: 'Añadidas a tus tarjetas',
+      mistakesToCards: '{count, plural, one {Convertir # error en tarjeta} other {Convertir # errores en tarjetas}}',
+      reviewLessonHint: 'Este cuestionario evalúa la lección de abajo.',
+      reviewLessonLow: 'Vuelve a ver la lección y reintenta: allí se explican la mayoría de los errores.',
+      reviewLesson: 'Repasar la lección',
       title: 'Tu resultado',
       score: '{{correct}} / {{total}} correctas',
       perfect: '¡Puntuación perfecta! 👑',
@@ -729,6 +739,8 @@ export const es: Dictionary = {
       assignment: 'Entrega',
       'weak-topic': 'Tema para repasar',
       session: 'Sesión de estudio',
+      lesson: 'Continuar lección',
+      checkpoint: 'Cuestionario de la lección',
     },
     plan: {
       title: 'Tu semana',
@@ -1343,6 +1355,7 @@ export const es: Dictionary = {
     },
   },
   watch: {
+    lessonXp: '¡Lección completada! +{{xp}} XP',
     jumpTo: 'Ir a {{time}}',
     noNotes: 'Aún no hay apuntes. Pausa en un momento importante y escribe uno.',
     addNoteAt: 'Guardar en {{time}}',

@@ -183,8 +183,28 @@ test('a teacher builds a quiz, links it to a lesson with chapters; a student use
   await expect(checkpoint.getByText('Lesson finished — test what you learned')).toBeVisible({ timeout: 15_000 });
   await expect(checkpoint.getByText(quizTitle)).toBeVisible();
   await expect(pageS).toHaveURL(watchUrl);
+
+  // The study inbox now suggests the lesson's quiz and links straight to it.
+  await pageS.goto('/academic');
+  const inboxItem = pageS.getByRole('link', { name: new RegExp(`Lesson quiz\\s*${title}`) });
+  await expect(inboxItem).toBeVisible();
+  await inboxItem.click();
+  await expect(pageS).toHaveURL(/checkpoint=1/);
   await checkpoint.getByRole('button', { name: 'Take the quiz' }).click();
   await expect(pageS).toHaveURL(/\/quiz\/attempt\//);
+  await expect(pageS.getByText('Half of one plus half of one equals?')).toBeVisible();
+
+  // A wrong answer: the result sends the student back to the lesson and turns the mistake into a flashcard.
+  await pageS.getByRole('radio', { name: '2' }).check();
+  await pageS.getByRole('button', { name: 'Submit answers' }).first().click();
+  await pageS.getByRole('dialog').getByRole('button', { name: 'Submit answers' }).click();
+  const review = pageS.getByRole('region', { name: 'Review the lesson' });
+  await expect(review.getByRole('link', { name: title })).toBeVisible();
+  await pageS.getByRole('button', { name: 'Turn 1 mistake into a flashcard' }).click();
+  await expect(pageS.getByRole('button', { name: 'Added to your flashcards' })).toBeDisabled();
+  await review.getByRole('link', { name: title }).click();
+  await expect(pageS).toHaveURL(watchUrl);
+  await pageS.goto('/academic?tab=cards');
   await expect(pageS.getByText('Half of one plus half of one equals?')).toBeVisible();
 
   // Notes are private to the student.

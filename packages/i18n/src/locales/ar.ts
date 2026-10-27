@@ -2,6 +2,10 @@ import type { Dictionary } from './en';
 
 export const ar: Dictionary = {
   lab: {
+    cardBack: 'انطقها بصوت مسموع ({{language}}) ثم اختبر نطقك في معمل النطق.',
+    deck: 'النطق',
+    toCards: 'احفظها كبطاقات مراجعة',
+    practiseAll: 'تدرّب على هذه الكلمات',
     title: 'معمل النطق',
     subtitle: 'استمع وكرّر واحصل على تقييم فوري لنطقك بالعربية والإنجليزية والفرنسية والإسبانية.',
     listen: 'استمع',
@@ -522,6 +526,13 @@ export const ar: Dictionary = {
       leaveBody: 'ستفقد إجاباتك.',
     },
     result: {
+      mistakesDeck: 'أخطائي',
+      mistakesSaved: 'أُضيفت إلى بطاقاتك',
+      mistakesToCards:
+        '{count, plural, one {حوّل خطأك إلى بطاقة مراجعة} two {حوّل الخطأين إلى بطاقتي مراجعة} few {حوّل # أخطاء إلى بطاقات مراجعة} many {حوّل # خطأً إلى بطاقات مراجعة} other {حوّل # خطأ إلى بطاقات مراجعة}}',
+      reviewLessonHint: 'هذا الاختبار يقيس فهمك لهذا الدرس.',
+      reviewLessonLow: 'شاهد الدرس مرة أخرى ثم أعد المحاولة؛ أغلب الأخطاء مشروحة فيه.',
+      reviewLesson: 'راجع الدرس',
       title: 'نتيجتك',
       score: '{{correct}} / {{total}} صحيحة',
       perfect: 'درجة كاملة! 👑',
@@ -709,7 +720,16 @@ export const ar: Dictionary = {
   academic: {
     title: 'دراستي',
     tabs: { today: 'اليوم', plan: 'الخطة الأسبوعية', sessions: 'الجلسات', exams: 'الامتحانات', cards: 'البطاقات', mastery: 'الإتقان', focus: 'التركيز' },
-    inboxKinds: { flashcards: 'بطاقات مستحقة', task: 'مهمة', exam: 'امتحان', assignment: 'واجب', 'weak-topic': 'موضوع للمراجعة', session: 'جلسة مذاكرة' },
+    inboxKinds: {
+      flashcards: 'بطاقات مستحقة',
+      task: 'مهمة',
+      exam: 'امتحان',
+      assignment: 'واجب',
+      'weak-topic': 'موضوع للمراجعة',
+      session: 'جلسة مذاكرة',
+      lesson: 'أكمل الدرس',
+      checkpoint: 'اختبار الدرس',
+    },
     plan: {
       title: 'أسبوعك',
       budget: 'وقت المذاكرة اليومي (دقائق)',
@@ -1303,6 +1323,7 @@ export const ar: Dictionary = {
     },
   },
   watch: {
+    lessonXp: 'أكملت الدرس! +{{xp}} نقطة',
     jumpTo: 'انتقل إلى {{time}}',
     noNotes: 'لا توجد ملاحظات بعد. أوقف الدرس عند لحظة مهمة واكتب ملاحظتك.',
     addNoteAt: 'احفظ عند {{time}}',
