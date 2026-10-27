@@ -113,7 +113,7 @@ async function listConversations(deps: Deps, viewer: AuthUser, opts: { ids?: str
       and(
         eq(conversationMembers.userId, viewer.id),
         opts.ids ? inArray(conversations.id, opts.ids) : eq(conversationMembers.hidden, false),
-        opts.ids ? undefined : sql`${conversations.lastMessageAt} is not null or ${conversations.kind} = 'direct'`,
+        opts.ids ? undefined : sql`(${conversations.lastMessageAt} is not null or ${conversations.kind} = 'direct')`,
         opts.before ? lt(conversations.lastMessageAt, new Date(opts.before)) : undefined,
       ),
     )

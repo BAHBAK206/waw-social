@@ -77,7 +77,9 @@ export function Sidebar() {
   const tr = useT();
   const open = useUi((s) => s.navOpen);
   const location = useLocation();
-  useEffect(() => useUi.getState().set({ navOpen: false }), [location.pathname]);
+  useEffect(() => {
+    useUi.getState().set({ navOpen: false });
+  }, [location.pathname]);
 
   return (
     <>

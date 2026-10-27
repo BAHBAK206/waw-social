@@ -30,3 +30,5 @@ tests/e2e/playwright-report/
 *.egg-info/
 .expo/
 expo-env.d.ts
+test-results/
+playwright-report/

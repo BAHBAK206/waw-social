@@ -231,7 +231,9 @@ export function ChatThread({
 
   const messages = useMemo(() => [...(q.data?.pages.flatMap((p) => p.items) ?? [])].reverse(), [q.data]);
   const firstRead = q.data?.pages[0]?.peerLastReadAt ?? null;
-  useEffect(() => setPeerRead(firstRead), [firstRead]);
+  useEffect(() => {
+    setPeerRead(firstRead);
+  }, [firstRead]);
 
   const markRead = useCallback(() => {
     void api.chat
@@ -239,7 +241,9 @@ export function ChatThread({
       .then(() => qc.invalidateQueries({ queryKey: qk.conversations }))
       .catch(() => undefined);
   }, [conversationId, qc]);
-  useEffect(() => markRead(), [markRead]);
+  useEffect(() => {
+    markRead();
+  }, [markRead]);
   useEffect(() => {
     useUi.getState().set({ activeConversationId: conversationId });
     return () => useUi.getState().set({ activeConversationId: null });

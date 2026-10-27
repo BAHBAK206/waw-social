@@ -51,6 +51,25 @@ describe('chat', () => {
     expect((await call('GET', `/chat/conversations/${conv.body.id}/messages`, { token: outsider.token })).status).toBe(404);
   });
 
+  it("never lists other people's conversations (regression: unparenthesised OR in the list filter)", async () => {
+    const a = await newUser({ name: 'Amal' });
+    const b = await newUser({ name: 'Basem' });
+    const stranger = await newUser({ name: 'Stranger' });
+    const conv = await call<ConversationDto>('POST', '/chat/conversations/direct', { token: a.token, body: { userId: b.user.id } });
+    expect(conv.status).toBe(201);
+    await call('POST', `/chat/conversations/${conv.body.id}/messages`, { token: a.token, body: { text: 'private hello', clientId: 'c-priv-1' } });
+
+    const strangerList = await call<{ items: ConversationDto[] }>('GET', '/chat/conversations', { token: stranger.token });
+    expect(strangerList.body.items).toEqual([]);
+
+    const mine = await call<{ items: ConversationDto[] }>('GET', '/chat/conversations', { token: a.token });
+    const ids = mine.body.items.map((c) => c.id);
+    expect(ids).toEqual([conv.body.id]);
+    expect(new Set(ids).size).toBe(ids.length);
+    const theirs = await call('GET', `/chat/conversations/${conv.body.id}/messages`, { token: stranger.token });
+    expect(theirs.status).toBe(404);
+  });
+
   it('respects message privacy', async () => {
     const a = await newUser();
     const b = await newUser();

@@ -21,6 +21,26 @@ async function loadConfig(attempt = 0): Promise<void> {
 let appearanceTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingAppearance: Record<string, unknown> = {};
 
+/** Sends queued appearance changes now; `keepalive` lets the request outlive a closing tab. */
+function flushAppearance(keepalive = false) {
+  if (appearanceTimer) clearTimeout(appearanceTimer);
+  appearanceTimer = null;
+  const appearance = pendingAppearance;
+  pendingAppearance = {};
+  if (!Object.keys(appearance).length || useSession.getState().status !== 'authed') return;
+  if (keepalive) {
+    void fetch(api.http.url('/me/prefs'), {
+      method: 'PATCH',
+      keepalive: true,
+      credentials: 'include',
+      headers: { 'content-type': 'application/json', 'x-requested-with': 'qubedu', ...(api.http.token ? { authorization: `Bearer ${api.http.token}` } : {}) },
+      body: JSON.stringify({ appearance }),
+    }).catch(() => undefined);
+  } else {
+    void api.me.prefs({ appearance }).catch(() => undefined);
+  }
+}
+
 /** Loads config + session, wires realtime events to caches and syncs appearance changes to the profile. */
 export async function boot() {
   const configP = loadConfig();
@@ -38,12 +58,10 @@ export async function boot() {
     if (useSession.getState().status !== 'authed') return;
     pendingAppearance = { ...pendingAppearance, ...patch };
     if (appearanceTimer) clearTimeout(appearanceTimer);
-    appearanceTimer = setTimeout(() => {
-      const appearance = pendingAppearance;
-      pendingAppearance = {};
-      void api.me.prefs({ appearance }).catch(() => undefined);
-    }, 600);
+    appearanceTimer = setTimeout(() => flushAppearance(), 400);
   });
+  window.addEventListener('pagehide', () => flushAppearance(true));
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushAppearance(true));
 
   realtime.onAny((frame) => {
     if (frame.type !== 'event') return;

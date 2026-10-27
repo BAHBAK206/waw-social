@@ -47,7 +47,9 @@ export function ConfirmHost() {
   const req = useUi((s) => s.confirm);
   const tr = useT();
   const [value, setValue] = useState('');
-  useEffect(() => setValue(req?.input?.defaultValue ?? ''), [req]);
+  useEffect(() => {
+    setValue(req?.input?.defaultValue ?? '');
+  }, [req]);
   if (!req) return null;
   const close = (v: string | boolean | null) => {
     req.resolve(v);

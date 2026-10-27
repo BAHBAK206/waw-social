@@ -25,6 +25,13 @@ interface PeerInternal {
   media: MediaState;
   hand: boolean;
   speaking: boolean;
+  /** Signaling messages are applied strictly in order; a candidate must never overtake the description it belongs to. */
+  queue: Promise<void>;
+  /** The newcomer always makes the first offer; the peer already in the room waits for it (avoids a rollback during the very first handshake). */
+  initiator: boolean;
+  remoteSeen: boolean;
+  /** Candidates that arrived before the matching remote description (the sender can emit them ahead of its offer). */
+  pendingCandidates: RTCIceCandidateInit[];
 }
 
 type Listener = () => void;
@@ -81,11 +88,15 @@ export class LiveSession {
     switch (f.type) {
       case 'peers':
         // We are the newcomer: connect to everyone already here and tell them our state.
-        for (const p of f.peers ?? []) this.ensure(p);
+        for (const p of f.peers ?? []) this.ensure(p, true);
         this.broadcastState();
         break;
       case 'signal':
-        if (f.from) void this.handleSignal(f.from, f.data as SignalData);
+        if (f.from) {
+          const from = f.from;
+          const entry = this.ensure(from);
+          entry.queue = entry.queue.then(() => this.handleSignal(from, f.data as SignalData));
+        }
         break;
       case 'event':
         this.handleEvent(f);
@@ -133,7 +144,7 @@ export class LiveSession {
     }
   }
 
-  private ensure(peer: Peer): PeerInternal {
+  private ensure(peer: Peer, initiator = false): PeerInternal {
     const existing = this.peers.get(peer.connId);
     if (existing) return existing;
     const pc = new RTCPeerConnection({ iceServers: this.iceServers });
@@ -147,10 +158,15 @@ export class LiveSession {
       media: { mic: false, cam: false, screen: null },
       hand: false,
       speaking: false,
+      queue: Promise.resolve(),
+      pendingCandidates: [],
+      initiator,
+      remoteSeen: false,
     };
     this.peers.set(peer.connId, entry);
     pc.onicecandidate = ({ candidate }) => candidate && this.rt.signal(this.channel, peer.connId, { candidate: candidate.toJSON() });
     pc.onnegotiationneeded = async () => {
+      if (!entry.initiator && !entry.remoteSeen) return;
       try {
         entry.makingOffer = true;
         await pc.setLocalDescription();
@@ -197,11 +213,18 @@ export class LiveSession {
         entry.ignoreOffer = !entry.polite && offerCollision;
         if (entry.ignoreOffer) return;
         await pc.setRemoteDescription(data.description);
+        entry.remoteSeen = true;
+        const early = entry.pendingCandidates.splice(0);
+        for (const c of early) await pc.addIceCandidate(c).catch(() => undefined);
         if (data.description.type === 'offer') {
           await pc.setLocalDescription();
           this.rt.signal(this.channel, from.connId, { description: pc.localDescription?.toJSON() });
         }
       } else if (data.candidate) {
+        if (!pc.remoteDescription) {
+          entry.pendingCandidates.push(data.candidate);
+          return;
+        }
         try {
           await pc.addIceCandidate(data.candidate);
         } catch (e) {

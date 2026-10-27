@@ -96,7 +96,9 @@ function RoomChat({ conversationId }: { conversationId: string }) {
   useRealtimeChannel(ch.conv(conversationId), (f) => {
     if (f.event === 'message:new' || f.event === 'message:updated') void qc.invalidateQueries({ queryKey: key });
   });
-  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [messages.length]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'end' });
+  }, [messages.length]);
   return (
     <div className="flex h-full min-h-0 flex-col">
       <ul className="scroll-thin flex-1 space-y-2 overflow-y-auto p-3" role="log" aria-live="polite">
@@ -208,8 +210,6 @@ export default function LiveRoomPage() {
   const [selfSpeaking, setSelfSpeaking] = useState(false);
   const [removed, setRemoved] = useState(false);
 
-  useRealtimeChannel(ch.live(roomId), () => undefined);
-
   const canModerate = !!room?.canModerate;
   const canCam = camOn && (canModerate || !!room?.settings.allowStudentCamera);
   const canMic = micOn && (canModerate || !!room?.settings.allowStudentMic);
@@ -219,57 +219,6 @@ export default function LiveRoomPage() {
     useCallback((cb) => sessionRef.current?.subscribe(cb) ?? (() => undefined), [joined]), // eslint-disable-line react-hooks/exhaustive-deps
     useCallback(() => peerSnapshot(sessionRef.current), []),
   );
-
-  // Room-level events: status, settings, moderation.
-  useEffect(() => {
-    const unsub = realtime.subscribe(ch.live(roomId), (f: Frame) => {
-      if (f.type !== 'event') return;
-      const s = sessionRef.current;
-      const d = f.data as Record<string, unknown> | undefined;
-      switch (f.event) {
-        case 'room:status':
-          void qc.invalidateQueries({ queryKey: qk(roomId) });
-          if (d?.status === 'ended') {
-            toast(tr.t('live.roomEnded'), 'info');
-            leave(false);
-          }
-          break;
-        case 'room:settings':
-          void qc.invalidateQueries({ queryKey: qk(roomId) });
-          break;
-        case 'room:moderate': {
-          const target = d?.targetUserId as string | undefined;
-          const action = d?.action as string;
-          const mine = target === me.id;
-          if (action === 'mute-all' && !canModerate) s?.setMic(false);
-          else if (action === 'lower-all-hands') s?.setHand(false);
-          else if (mine && action === 'mute') {
-            s?.setMic(false);
-            toast(tr.t('live.mutedByHost'), 'info');
-          } else if (mine && action === 'camera-off') s?.setCam(false);
-          else if (mine && action === 'stop-screen') s?.stopScreen();
-          else if (mine && action === 'lower-hand') s?.setHand(false);
-          else if (mine && action === 'remove') {
-            setRemoved(true);
-            leave(false);
-            toast(tr.t('live.removed'), 'err');
-          }
-          break;
-        }
-        case 'whiteboard':
-          setStrokes((prev) => [...prev, d as unknown as Stroke]);
-          break;
-        case 'whiteboard-clear':
-          setStrokes([]);
-          break;
-        case 'whiteboard-undo':
-          setStrokes((prev) => prev.slice(0, -1));
-          break;
-      }
-    });
-    return unsub;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, canModerate, me.id]);
 
   // Load the persisted board for late joiners.
   useEffect(() => {
@@ -284,6 +233,8 @@ export default function LiveRoomPage() {
     (navigateAway = true) => {
       sessionRef.current?.leave();
       sessionRef.current = null;
+      roomUnsub.current?.();
+      roomUnsub.current = null;
       setJoined(false);
       if (recordingRef.current && recordingRef.current.state !== 'inactive') recordingRef.current.stop();
       setRecording(null);
@@ -292,10 +243,62 @@ export default function LiveRoomPage() {
     [navigate],
   );
 
+  // Room-level events (status, settings, moderation, whiteboard). The subscription itself is created in join(), *before* the
+  // media session starts, so the hub's initial peer list is never swallowed by an earlier subscriber.
+  const roomHandler = useRef<(f: Frame) => void>(() => undefined);
+  roomHandler.current = (f: Frame) => {
+    if (f.type !== 'event') return;
+    const s = sessionRef.current;
+    const d = f.data as Record<string, unknown> | undefined;
+    switch (f.event) {
+      case 'room:status':
+        void qc.invalidateQueries({ queryKey: qk(roomId) });
+        if (d?.status === 'ended') {
+          toast(tr.t('live.roomEnded'), 'info');
+          leave(false);
+        }
+        break;
+      case 'room:settings':
+        void qc.invalidateQueries({ queryKey: qk(roomId) });
+        break;
+      case 'room:moderate': {
+        const target = d?.targetUserId as string | undefined;
+        const action = d?.action as string;
+        const mine = target === me.id;
+        if (action === 'mute-all' && !canModerate) s?.setMic(false);
+        else if (action === 'lower-all-hands') s?.setHand(false);
+        else if (mine && action === 'mute') {
+          s?.setMic(false);
+          toast(tr.t('live.mutedByHost'), 'info');
+        } else if (mine && action === 'camera-off') s?.setCam(false);
+        else if (mine && action === 'stop-screen') s?.stopScreen();
+        else if (mine && action === 'lower-hand') s?.setHand(false);
+        else if (mine && action === 'remove') {
+          setRemoved(true);
+          leave(false);
+          toast(tr.t('live.removed'), 'err');
+        }
+        break;
+      }
+      case 'whiteboard':
+        setStrokes((prev) => [...prev, d as unknown as Stroke]);
+        break;
+      case 'whiteboard-clear':
+        setStrokes([]);
+        break;
+      case 'whiteboard-undo':
+        setStrokes((prev) => prev.slice(0, -1));
+        break;
+    }
+  };
+  const roomUnsub = useRef<(() => void) | null>(null);
+
   useEffect(
     () => () => {
       sessionRef.current?.leave();
       sessionRef.current = null;
+      roomUnsub.current?.();
+      roomUnsub.current = null;
     },
     [],
   );
@@ -319,6 +322,7 @@ export default function LiveRoomPage() {
       realtime.connect();
       const session = new LiveSession(realtime, ch.live(room.id), room.iceServers as RTCIceServer[], () => undefined);
       sessionRef.current = session;
+      roomUnsub.current = realtime.subscribe(ch.live(room.id), (f) => roomHandler.current(f));
       session.start(local);
       // Students start muted with the camera off so a room does not begin as noise.
       if (!canModerate) {
@@ -755,12 +759,13 @@ export default function LiveRoomPage() {
 
 const qk = (id: string) => ['live', id] as const;
 
+const NO_PEERS: RemotePeer[] = [];
 let lastSession: LiveSession | null = null;
 let lastSnap: RemotePeer[] = [];
 let lastRev = '';
 /** useSyncExternalStore needs a stable snapshot: rebuild only when something actually changed. */
 function peerSnapshot(s: LiveSession | null): RemotePeer[] {
-  if (!s) return [];
+  if (!s) return NO_PEERS;
   const fresh = s.snapshot();
   const rev = fresh
     .map((p) => `${p.connId}:${p.streams.map((x) => x.id).join(',')}:${p.media.mic}${p.media.cam}${p.media.screen}:${p.hand}${p.speaking}:${p.state}`)

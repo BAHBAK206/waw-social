@@ -76,7 +76,16 @@ export function grade(questions: GradableQuestion[], answers: GivenAnswer[]): Gr
       if (ok) t.correct += 1;
       topics.set(q.topic, t);
     }
-    return { questionId: q.id, type: q.type, prompt: q.prompt ?? '', options: q.options ?? [], correct: ok, given, answer: q.answer, explanation: q.explanation };
+    return {
+      questionId: q.id,
+      type: q.type,
+      prompt: q.prompt ?? '',
+      options: q.options ?? [],
+      correct: ok,
+      given,
+      answer: q.answer,
+      explanation: q.explanation,
+    };
   });
   const pct = possible ? Math.round((earned / possible) * 100) : 0;
   return {

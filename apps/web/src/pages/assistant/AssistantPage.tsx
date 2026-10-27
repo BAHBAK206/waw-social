@@ -92,7 +92,9 @@ export default function AssistantPage() {
   const bottom = useRef<HTMLDivElement>(null);
   const messages = [...(thread.data?.messages ?? []), ...pending];
 
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), [messages.length, busy]);
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages.length, busy]);
 
   const send = async (content: string) => {
     const t = content.trim();

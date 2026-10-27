@@ -43,6 +43,8 @@ const schema = z.object({
   TURN_USERNAME: z.string().optional(),
   TURN_CREDENTIAL: z.string().optional(),
   REQUIRE_EMAIL_VERIFICATION: bool,
+  /** Development/e2e only: ignored when NODE_ENV=production. */
+  RATE_LIMIT_DISABLED: bool,
   TRUST_PROXY: bool,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });

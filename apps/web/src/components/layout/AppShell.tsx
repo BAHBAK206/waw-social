@@ -51,7 +51,9 @@ export function AppShell() {
   useEffect(() => {
     document.documentElement.dataset.zen = String(ui.zen);
   }, [ui.zen]);
-  useEffect(() => window.scrollTo({ top: 0 }), [location.pathname]);
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [location.pathname]);
 
   if (status === 'loading') return <Spinner className="min-h-dvh" />;
   if (me?.banned) return <BannedScreen />;

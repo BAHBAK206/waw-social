@@ -184,7 +184,9 @@ export default function CommandPalette() {
     return [...res, ...pages.slice(0, term ? 8 : 12), ...actions];
   }, [q, results, controls, me, tr, navigate]);
 
-  useEffect(() => setIndex(0), [q, results]);
+  useEffect(() => {
+    setIndex(0);
+  }, [q, results]);
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') close();

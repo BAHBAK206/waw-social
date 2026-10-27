@@ -136,6 +136,7 @@ export function NoticeCard({ tone = 'info', title, children }: { tone?: 'info' |
   const Icon = tone === 'info' ? Info : TriangleAlert;
   return (
     <div
+      role={tone === 'err' ? 'alert' : 'status'}
       className={cx(
         'flex gap-3 rounded-[var(--radius-control)] border p-3 text-sm',
         tone === 'info' && 'border-[color-mix(in_srgb,var(--info)_30%,transparent)] bg-[color-mix(in_srgb,var(--info)_8%,transparent)]',
