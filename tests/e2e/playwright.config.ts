@@ -6,6 +6,7 @@ const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:5173';
 
 export default defineConfig({
   testDir: './specs',
+  globalSetup: './global-setup.ts',
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
@@ -19,6 +20,6 @@ export default defineConfig({
     { name: 'phone', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: process.env.E2E_START
-    ? { command: 'node scripts/dev.mjs --no-ai', cwd: '../..', url: baseURL, reuseExistingServer: true, timeout: 180_000 }
+    ? { command: 'node scripts/dev.mjs --no-ai', cwd: '../..', url: `${baseURL}/api/v1/config`, reuseExistingServer: true, timeout: 180_000 }
     : undefined,
 });

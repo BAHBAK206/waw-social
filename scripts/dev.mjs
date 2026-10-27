@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One command for local development:  pnpm dev
-//   postgres + redis (local, no Docker) → API (:8787) → realtime hub (:8788) → AI service (:8790, if Python deps exist) → web (:5173)
+//   postgres + redis (local, no Docker; set NO_LOCAL_SERVICES=1 to use DATABASE_URL/REDIS_URL instead) → API (:8787) → realtime hub (:8788) → AI service (:8790, if Python deps exist) → web (:5173)
 // Flags:  --no-ai   skip the Python AI service      --no-services   assume Postgres/Redis are already running
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -45,7 +45,7 @@ function shutdown(code = 0) {
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
-if (!args.has('--no-services')) {
+if (!args.has('--no-services') && !process.env.NO_LOCAL_SERVICES) {
   const r = spawnSync('bash', ['scripts/local-services.sh', 'start'], { cwd: root, stdio: 'inherit' });
   if (r.status !== 0) console.warn('Could not start local Postgres/Redis — set DATABASE_URL/REDIS_URL to existing instances.');
 }
