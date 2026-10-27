@@ -56,6 +56,31 @@ export default function LearnScreen() {
               </Text>
             </View>
           </Pressable>
+          <Pressable
+            onPress={() => router.push('/lab' as never)}
+            accessibilityRole="button"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 14,
+              borderRadius: t.radiusCard,
+              backgroundColor: t.cardSolid,
+              borderWidth: 1,
+              borderColor: t.border,
+            }}
+          >
+            <Ionicons name="mic-outline" size={26} color={t.primaryInk} />
+            <View style={{ flex: 1 }}>
+              <Text weight="black" size={16}>
+                {tr.t('lab.title')}
+              </Text>
+              <Text size={12} muted>
+                {tr.t('features.lab')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={t.text3} style={{ transform: [{ scaleX: tr.dir === 'rtl' ? -1 : 1 }] }} />
+          </Pressable>
           <TextInput
             value={term}
             onChangeText={setTerm}

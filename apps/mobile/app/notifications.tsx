@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { Avatar, Button, Empty, ErrorView, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { appPath } from '@/lib/links';
 import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
@@ -17,7 +18,7 @@ function target(n: NotificationDto): string | null {
   if (d.conversationId) return `/chat/${d.conversationId}`;
   if (d.groupId) return `/group/${d.groupId}`;
   if (n.actor && n.type === 'follow') return `/user/${n.actor.id}`;
-  return null;
+  return appPath(n.link);
 }
 
 export default function NotificationsScreen() {

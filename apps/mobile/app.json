@@ -8,7 +8,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": { "image": "./assets/splash-icon.png", "resizeMode": "contain", "backgroundColor": "#6c5ce7" },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6c5ce7"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.qubedu.mobile",
@@ -19,17 +23,43 @@
     },
     "android": {
       "package": "app.qubedu.mobile",
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#6c5ce7" },
-      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6c5ce7"
+      },
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES", "RECORD_AUDIO"]
     },
-    "web": { "bundler": "metro", "favicon": "./assets/favicon.png" },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-video",
-      ["expo-splash-screen", { "backgroundColor": "#6c5ce7", "image": "./assets/splash-icon.png", "imageWidth": 200 }]
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Used to hear you in the pronunciation lab.",
+          "speechRecognitionPermission": "Used to score your pronunciation in the pronunciation lab.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#6c5ce7",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ]
     ],
-    "experiments": { "typedRoutes": false },
-    "extra": { "apiUrl": "http://localhost:8787", "webUrl": "http://localhost:5173" }
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8787",
+      "webUrl": "http://localhost:5173"
+    }
   }
 }

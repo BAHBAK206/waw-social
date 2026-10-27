@@ -9,8 +9,9 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Study hall: discussions, questions by subject, ranked answers, helpful votes, best answer (+XP), study notes, polls, bookmarks | ✅ | ✅ (questions, notes, answers, best answer, polls, save) |
 | Study tips (24 h) | ✅ | — |
 | Video lessons, one-minute lessons, teachers' channels, lesson series, history, teaching studio analytics | ✅ | ✅ (watch, comments, follow) |
-| Lesson outline from timestamps, checkpoint quiz after the lesson, private timestamped notes, subject filter | ✅ | — |
-| Pronunciation lab (listen, speak, word-by-word score, weak words, XP) | ✅ | — |
+| Lesson outline from timestamps, checkpoint quiz after the lesson, private timestamped notes, subject filter | ✅ | ✅ (outline, checkpoint, notes) |
+| Learning loop: lesson watching counts as study time + streak, lesson XP, study inbox suggests unfinished lessons and untaken checkpoints, quiz results link back to lessons, mistakes → flashcards | ✅ | ✅ |
+| Pronunciation lab (listen, speak, word-by-word score, weak words → practice or flashcards, XP) | ✅ | ✅ (speech recognition in app builds; listen-only in Expo Go) |
 | Read aloud in the text's own language | ✅ (posts, answers, quizzes, flashcards, tutor) | ✅ (posts, answers, quizzes) |
 | Groups, communities, channels, resources, group leaderboard | ✅ | ✅ (groups, posts, members) |
 | Direct and group chat, typing, read receipts, files, voice notes | ✅ | ✅ (text, images) |

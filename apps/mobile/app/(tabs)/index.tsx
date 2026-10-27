@@ -6,6 +6,7 @@ import { Pressable, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Card, Empty, GradientHeader, Loading, SectionTitle, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { appPath } from '@/lib/links';
 import { useT } from '@/lib/i18n';
 import { greetingKey } from '@/lib/greeting';
 import { useSession } from '@/lib/session';
@@ -103,14 +104,20 @@ export default function HomeScreen() {
         ) : !dash.data?.inbox.length ? (
           <Empty title={tr.t('home.inboxEmpty')} icon="checkmark-done-outline" />
         ) : (
-          dash.data.inbox.slice(0, 6).map((i) => (
-            <Card key={`${i.kind}-${i.title}`}>
-              <Text weight="bold">{i.title}</Text>
-              <Text muted size={12}>
-                {tr.tDyn(`academic.inbox.kinds.${i.kind}`, undefined, i.kind)}
-              </Text>
-            </Card>
-          ))
+          dash.data.inbox.slice(0, 6).map((i) => {
+            const href = appPath(i.link);
+            return (
+              <Card key={`${i.kind}-${i.refId ?? i.title}`} onPress={href ? () => router.push(href as never) : undefined}>
+                <Text weight="bold">
+                  {i.title}
+                  {i.count ? ` (${i.count})` : ''}
+                </Text>
+                <Text muted size={12}>
+                  {tr.tDyn(`academic.inboxKinds.${i.kind}`, undefined, i.kind)}
+                </Text>
+              </Card>
+            );
+          })
         )}
       </View>
     </Screen>

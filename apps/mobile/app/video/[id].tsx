@@ -1,26 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { VideoCommentDto, VideoDto } from '@qubedu/shared';
+import { parseChapters, type VideoCommentDto, type VideoDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEvent } from 'expo';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, View, type ScrollViewInstance } from 'react-native';
+import { Checkpoint, LessonNotes, LessonOutline } from '@/components/LessonTools';
 import { Avatar, Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { VideoItem } from '../(tabs)/watch';
 import { api, fileUrl } from '@/lib/api';
 import { compactNumber, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
-import { toastError } from '@/lib/ui';
+import { useSession } from '@/lib/session';
+import { toast, toastError } from '@/lib/ui';
 
-function Player({ video }: { video: VideoDto }) {
+type Controller = { seek: (sec: number) => void };
+
+function Player({
+  video,
+  autoPlay,
+  controller,
+  onTime,
+  onEnd,
+}: {
+  video: VideoDto;
+  autoPlay: boolean;
+  controller: { current: Controller | null };
+  onTime: (sec: number) => void;
+  onEnd: () => void;
+}) {
+  const tr = useT();
   const uri = fileUrl(video.videoUrl)!;
   const player = useVideoPlayer({ uri, headers: { 'x-client': 'mobile', authorization: `Bearer ${api.http.token ?? ''}` } }, (p) => {
-    p.timeUpdateEventInterval = 5;
+    p.timeUpdateEventInterval = 1;
     if (video.progressSec > 5 && video.progressSec < video.durationSec - 5) p.currentTime = video.progressSec;
-    p.play();
+    if (autoPlay) p.play();
   });
+  controller.current = {
+    seek: (sec) => {
+      player.currentTime = sec;
+      player.play();
+    },
+  };
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
   const counted = useRef(false);
   useEffect(() => {
@@ -29,12 +52,33 @@ function Player({ video }: { video: VideoDto }) {
       void api.videos.view(video.id).catch(() => undefined);
     }
   }, [isPlaying, video.id]);
+  // Report the position every few seconds (the server only credits real, wall-clock-bounded watching),
+  // and once more at the end so finishing the lesson counts.
+  const lastSent = useRef(0);
   useEffect(() => {
-    const sub = player.addListener('timeUpdate', ({ currentTime }) => {
-      if (currentTime > 0) void api.videos.progress(video.id, Math.floor(currentTime)).catch(() => undefined);
+    const report = (sec: number, completed = false) =>
+      api.videos
+        .progress(video.id, Math.floor(sec), completed)
+        .then((r) => {
+          if (r.xpEarned > 0) toast(tr.t('watch.lessonXp', { xp: r.xpEarned }));
+        })
+        .catch(() => undefined);
+    const time = player.addListener('timeUpdate', ({ currentTime }) => {
+      onTime(Math.floor(currentTime));
+      if (currentTime > 0 && Math.abs(currentTime - lastSent.current) >= 10) {
+        lastSent.current = currentTime;
+        void report(currentTime);
+      }
     });
-    return () => sub.remove();
-  }, [player, video.id]);
+    const end = player.addListener('playToEnd', () => {
+      void report(video.durationSec, true);
+      onEnd();
+    });
+    return () => {
+      time.remove();
+      end.remove();
+    };
+  }, [player, video.id, video.durationSec, onTime, onEnd, tr]);
   return (
     <VideoView
       player={player}
@@ -47,7 +91,13 @@ function Player({ video }: { video: VideoDto }) {
 }
 
 export default function VideoScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, checkpoint } = useLocalSearchParams<{ id: string; checkpoint?: string }>();
+  const authed = useSession((s) => s.status === 'authed');
+  const controller = useRef<Controller | null>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
+  const [time, setTime] = useState(0);
+  const [ended, setEnded] = useState(false);
+  const checkpointY = useRef(0);
   const tr = useT();
   const t = useTheme();
   const router = useRouter();
@@ -57,6 +107,14 @@ export default function VideoScreen() {
   const comments = useQuery({ queryKey: ['video', id, 'comments'], queryFn: () => api.videos.comments(id!, { limit: 30 }), enabled: !!q.data?.allowComments });
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const chapters = useMemo(() => (q.data ? parseChapters(q.data.description, q.data.durationSec) : []), [q.data]);
+  const onEnd = useMemo(
+    () => () => {
+      setEnded(true);
+      setTimeout(() => scroller.current?.scrollTo({ y: checkpointY.current, animated: true }), 200);
+    },
+    [],
+  );
   if (q.isPending) return <Loading />;
   if (q.error || !q.data) return <ErrorView onRetry={() => void q.refetch()} />;
   const v = q.data;
@@ -128,8 +186,8 @@ export default function VideoScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
       <Stack.Screen options={{ title: v.title }} />
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
-        <Player key={v.id} video={v} />
+      <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
+        <Player key={v.id} video={v} autoPlay={checkpoint !== '1'} controller={controller} onTime={setTime} onEnd={onEnd} />
         <View style={{ padding: 16, gap: 12 }}>
           <Text weight="black" size={19}>
             {v.title}
@@ -195,6 +253,18 @@ export default function VideoScreen() {
               <Text>{v.description}</Text>
             </Card>
           ) : null}
+          <LessonOutline chapters={chapters} time={time} onSeek={(sec) => controller.current?.seek(sec)} />
+          {v.quiz && (
+            <View
+              onLayout={(e) => {
+                checkpointY.current = e.nativeEvent.layout.y + 200;
+                if (checkpoint === '1') scroller.current?.scrollTo({ y: checkpointY.current, animated: true });
+              }}
+            >
+              <Checkpoint quiz={v.quiz} highlight={ended || checkpoint === '1'} />
+            </View>
+          )}
+          {authed && <LessonNotes videoId={v.id} time={time} onSeek={(sec) => controller.current?.seek(sec)} />}
           <Text weight="black" size={17}>
             {tr.t('watch.comments', { count: v.commentCount })}
           </Text>

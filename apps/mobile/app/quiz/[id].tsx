@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
-import { confirm, toastError } from '@/lib/ui';
+import { confirm, toast, toastError } from '@/lib/ui';
 
 type Answer = number | number[] | string | null;
 
@@ -20,6 +20,29 @@ function Result({ res }: { res: QuizResultDto }) {
   const t = useTheme();
   const router = useRouter();
   const level = xpProgress(res.xpAfter);
+  const [cardsSaved, setCardsSaved] = useState(false);
+  const wrong = res.breakdown.filter((b) => !b.correct);
+  const show = (b: QuizResultDto['breakdown'][number], v: unknown) =>
+    Array.isArray(v)
+      ? v.map((x) => (typeof x === 'number' ? b.options[x] : x)).join('، ')
+      : typeof v === 'number'
+        ? (b.options[v] ?? String(v))
+        : String(v ?? '');
+  const saveMistakes = async () => {
+    try {
+      const r = await api.flashcards.create(
+        wrong.map((b) => ({
+          front: b.prompt.slice(0, 1000),
+          back: [show(b, b.answer), b.explanation ?? ''].filter(Boolean).join('\n').slice(0, 2000) || '—',
+          deck: tr.t('quiz.result.mistakesDeck'),
+        })),
+      );
+      toast(tr.t('ai.savedCards', { count: r.items.length }));
+      setCardsSaved(true);
+    } catch (e) {
+      toastError(e);
+    }
+  };
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} style={{ backgroundColor: t.bg }}>
       <Card style={{ alignItems: 'center', gap: 6 }}>
@@ -45,6 +68,35 @@ function Result({ res }: { res: QuizResultDto }) {
           {tr.t('quiz.result.time', { time: formatClock(res.timeSec) })}
         </Text>
       </Card>
+      {!!res.lessons?.length && (
+        <Card style={{ gap: 8, borderWidth: res.pct < 70 ? 1.5 : 0, borderColor: t.warn }}>
+          <Text weight="black">{tr.t('quiz.result.reviewLesson')}</Text>
+          <Text muted size={13}>
+            {res.pct < 70 ? tr.t('quiz.result.reviewLessonLow') : tr.t('quiz.result.reviewLessonHint')}
+          </Text>
+          {res.lessons.map((l) => (
+            <Pressable
+              key={l.id}
+              accessibilityRole="link"
+              onPress={() => router.push(`/video/${l.id}` as never)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            >
+              <Ionicons name="play-circle-outline" size={22} color={t.primaryInk} />
+              <Text weight="bold" color={t.primaryInk} style={{ flex: 1 }}>
+                {l.title}
+              </Text>
+            </Pressable>
+          ))}
+        </Card>
+      )}
+      {!res.review && wrong.length > 0 && (
+        <Button
+          variant="soft"
+          title={cardsSaved ? tr.t('quiz.result.mistakesSaved') : tr.t('quiz.result.mistakesToCards', { count: wrong.length })}
+          disabled={cardsSaved}
+          onPress={saveMistakes}
+        />
+      )}
       {res.topicStats.length > 0 && (
         <Card style={{ gap: 6 }}>
           <Text weight="black">{tr.t('quiz.result.topics')}</Text>

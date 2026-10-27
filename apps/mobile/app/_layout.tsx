@@ -59,6 +59,7 @@ function Shell() {
         <Stack.Screen name="notifications" options={{ title: tr.t('notifications.title') }} />
         <Stack.Screen name="settings" options={{ title: tr.t('settings.title') }} />
         <Stack.Screen name="live" options={{ title: tr.t('live.title') }} />
+        <Stack.Screen name="lab" options={{ title: tr.t('lab.title') }} />
       </Stack>
       <ToastHost />
     </View>
