@@ -300,6 +300,9 @@ export const posts = pgTable(
     pinned: boolean('pinned').notNull().default(false),
     commentCount: integer('comment_count').notNull().default(0),
     reactionCounts: jsonb('reaction_counts').$type<Record<string, number>>().notNull().default({}),
+    shareCount: integer('share_count').notNull().default(0),
+    /** Re-shared post (no FK so the share survives when the original is hard-deleted). */
+    sharedPostId: uuid('shared_post_id'),
     editedAt: ts('edited_at'),
     deletedAt: ts('deleted_at'),
     createdAt: createdAt(),
@@ -1252,4 +1255,305 @@ export const clientErrors = pgTable(
     lastSeenAt: ts('last_seen_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('client_errors_fp_uq').on(t.fingerprint), index('client_errors_last_idx').on(t.lastSeenAt)],
+);
+
+/* ───────────────── Polls, hashtags ───────────────── */
+
+export const polls = pgTable('polls', {
+  postId: uuid('post_id')
+    .primaryKey()
+    .references(() => posts.id, { onDelete: 'cascade' }),
+  multiple: boolean('multiple').notNull().default(false),
+  endsAt: ts('ends_at'),
+  totalVotes: integer('total_votes').notNull().default(0),
+});
+
+export const pollOptions = pgTable(
+  'poll_options',
+  {
+    id: id(),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    text: text('text').notNull(),
+    position: integer('position').notNull(),
+    votes: integer('votes').notNull().default(0),
+  },
+  (t) => [index('poll_options_post_idx').on(t.postId, t.position)],
+);
+
+export const pollVotes = pgTable(
+  'poll_votes',
+  {
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    optionId: uuid('option_id')
+      .notNull()
+      .references(() => pollOptions.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.optionId, t.userId] }), index('poll_votes_user_idx').on(t.postId, t.userId)],
+);
+
+/** Hashtag usage across posts and videos; powers trending and tag pages. */
+export const hashtagUses = pgTable(
+  'hashtag_uses',
+  {
+    tag: text('tag').notNull(),
+    subjectType: text('subject_type').$type<'post' | 'video'>().notNull(),
+    subjectId: uuid('subject_id').notNull(),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tag, t.subjectType, t.subjectId] }),
+    index('hashtag_uses_recent_idx').on(t.createdAt, t.tag),
+    index('hashtag_uses_subject_idx').on(t.subjectType, t.subjectId),
+  ],
+);
+
+/* ───────────────── Watch: videos, shorts, playlists ───────────────── */
+
+export const videos = pgTable(
+  'videos',
+  {
+    id: id(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'video' | 'short'>().notNull().default('video'),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    searchText: text('search_text').notNull().default(''),
+    videoUrl: text('video_url').notNull(),
+    thumbnailUrl: text('thumbnail_url'),
+    durationSec: integer('duration_sec').notNull(),
+    visibility: text('visibility').$type<'public' | 'unlisted' | 'private'>().notNull().default('public'),
+    tags: jsonb('tags').$type<string[]>().notNull().default([]),
+    sectionId: uuid('section_id').references(() => eduSections.id, { onDelete: 'set null' }),
+    materialId: uuid('material_id').references(() => eduMaterials.id, { onDelete: 'set null' }),
+    allowComments: boolean('allow_comments').notNull().default(true),
+    views: integer('views').notNull().default(0),
+    likes: integer('likes').notNull().default(0),
+    dislikes: integer('dislikes').notNull().default(0),
+    commentCount: integer('comment_count').notNull().default(0),
+    watchSeconds: integer('watch_seconds').notNull().default(0),
+    deletedAt: ts('deleted_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('videos_feed_idx').on(t.visibility, t.kind, t.createdAt),
+    index('videos_owner_idx').on(t.ownerId, t.createdAt),
+    index('videos_views_idx').on(t.views),
+    index('videos_search_trgm').using('gin', sql`${t.searchText} gin_trgm_ops`),
+  ],
+);
+
+export const videoReactions = pgTable(
+  'video_reactions',
+  {
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    value: integer('value').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.videoId, t.userId] }), index('video_reactions_user_idx').on(t.userId, t.createdAt)],
+);
+
+export const videoComments = pgTable(
+  'video_comments',
+  {
+    id: id(),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id'),
+    text: text('text').notNull(),
+    likeCount: integer('like_count').notNull().default(0),
+    replyCount: integer('reply_count').notNull().default(0),
+    pinned: boolean('pinned').notNull().default(false),
+    deletedAt: ts('deleted_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('video_comments_video_idx').on(t.videoId, t.parentId, t.createdAt)],
+);
+
+export const videoCommentLikes = pgTable(
+  'video_comment_likes',
+  {
+    commentId: uuid('comment_id')
+      .notNull()
+      .references(() => videoComments.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.commentId, t.userId] })],
+);
+
+/** One row per viewer per video per day: de-duplicates view counts and feeds the Studio chart. */
+export const videoViews = pgTable(
+  'video_views',
+  {
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    viewerKey: text('viewer_key').notNull(),
+    day: date('day', { mode: 'string' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.videoId, t.viewerKey, t.day] }), index('video_views_day_idx').on(t.day)],
+);
+
+export const watchHistory = pgTable(
+  'watch_history',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    progressSec: integer('progress_sec').notNull().default(0),
+    completed: boolean('completed').notNull().default(false),
+    watchedAt: ts('watched_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.videoId] }), index('watch_history_recent_idx').on(t.userId, t.watchedAt)],
+);
+
+export const watchLater = pgTable(
+  'watch_later',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.videoId] })],
+);
+
+export const playlists = pgTable(
+  'playlists',
+  {
+    id: id(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    visibility: text('visibility').$type<'public' | 'unlisted' | 'private'>().notNull().default('public'),
+    itemCount: integer('item_count').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('playlists_owner_idx').on(t.ownerId, t.updatedAt)],
+);
+
+export const playlistItems = pgTable(
+  'playlist_items',
+  {
+    playlistId: uuid('playlist_id')
+      .notNull()
+      .references(() => playlists.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    addedAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.playlistId, t.videoId] }), index('playlist_items_pos_idx').on(t.playlistId, t.position)],
+);
+
+/* ───────────────── Stories ───────────────── */
+
+export const stories = pgTable(
+  'stories',
+  {
+    id: id(),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    mediaKind: text('media_kind').$type<'image' | 'video' | 'text'>().notNull(),
+    mediaUrl: text('media_url'),
+    text: text('text').notNull().default(''),
+    bgColor: text('bg_color').notNull().default('#6c5ce7'),
+    durationSec: integer('duration_sec').notNull().default(6),
+    viewCount: integer('view_count').notNull().default(0),
+    expiresAt: ts('expires_at').notNull(),
+    deletedAt: ts('deleted_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('stories_active_idx').on(t.expiresAt, t.authorId), index('stories_author_idx').on(t.authorId, t.createdAt)],
+);
+
+export const storyViews = pgTable(
+  'story_views',
+  {
+    storyId: uuid('story_id')
+      .notNull()
+      .references(() => stories.id, { onDelete: 'cascade' }),
+    viewerId: uuid('viewer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    reaction: text('reaction'),
+    viewedAt: ts('viewed_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.storyId, t.viewerId] }), index('story_views_viewer_idx').on(t.viewerId, t.viewedAt)],
+);
+
+/* ───────────────── Events ───────────────── */
+
+export const events = pgTable(
+  'events',
+  {
+    id: id(),
+    hostId: uuid('host_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    searchText: text('search_text').notNull().default(''),
+    coverUrl: text('cover_url'),
+    startsAt: ts('starts_at').notNull(),
+    endsAt: ts('ends_at'),
+    location: text('location').notNull().default(''),
+    onlineUrl: text('online_url'),
+    goingCount: integer('going_count').notNull().default(0),
+    interestedCount: integer('interested_count').notNull().default(0),
+    deletedAt: ts('deleted_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('events_start_idx').on(t.startsAt), index('events_host_idx').on(t.hostId), index('events_group_idx').on(t.groupId, t.startsAt)],
+);
+
+export const eventRsvps = pgTable(
+  'event_rsvps',
+  {
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status').$type<'going' | 'interested'>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.userId] }), index('event_rsvps_user_idx').on(t.userId, t.status)],
 );

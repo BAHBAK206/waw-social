@@ -39,8 +39,12 @@ export function randomCode(length = 8, rand: () => number = Math.random): string
   return out;
 }
 
-/** Extracts @mentions and #hashtags (Arabic-aware). */
+/** Unique lowercase #hashtags (Arabic-aware, max 20). Ignores URL fragments like "page#section". */
 export function extractHashtags(text: string): string[] {
-  const tags = text.match(/#[\p{L}\p{N}_]{2,40}/gu) ?? [];
-  return [...new Set(tags.map((t) => t.slice(1).toLowerCase()))];
+  const out = new Set<string>();
+  for (const m of text.matchAll(/(?:^|[\s(])#([\p{L}\p{N}_]{2,40})/gu)) {
+    out.add(m[1]!.toLowerCase());
+    if (out.size >= 20) break;
+  }
+  return [...out];
 }

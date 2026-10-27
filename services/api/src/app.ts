@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { LIMITS } from '@qubedu/shared';
@@ -6,6 +6,12 @@ import type { AppEnv, Deps } from './lib/context';
 import { AppError, errorResponse } from './lib/errors';
 import { authenticate, injectDeps, maintenanceGate, securityHeaders } from './middleware';
 import { authRoutes } from './routes/auth';
+import { channelRoutes, studioRoutes } from './routes/channels';
+import { eventRoutes } from './routes/events';
+import { exploreRoutes } from './routes/explore';
+import { playlistRoutes } from './routes/playlists';
+import { storyRoutes } from './routes/stories';
+import { videoRoutes } from './routes/videos';
 import { chatRoutes } from './routes/chat';
 import { groupRoutes } from './routes/groups';
 import { academicRoutes, dailyRoutes, examRoutes, flashcardRoutes, noteRoutes, pomodoroRoutes, studySessionRoutes, taskRoutes } from './routes/learning';
@@ -42,13 +48,11 @@ export function createApp(deps: Deps) {
       maxAge: 600,
     }),
   );
-  app.use(
-    '/api/*',
-    bodyLimit({
-      maxSize: LIMITS.uploadBytes + 1024 * 1024,
-      onError: (c) => c.json({ error: { code: 'payload_too_large', message: 'payload_too_large' } }, 413),
-    }),
-  );
+  const tooLarge = (c: Context) => c.json({ error: { code: 'payload_too_large', message: 'payload_too_large' } }, 413);
+  const jsonLimit = bodyLimit({ maxSize: LIMITS.uploadBytes + 1024 * 1024, onError: tooLarge });
+  const videoLimit = bodyLimit({ maxSize: LIMITS.videoBytes + 1024 * 1024, onError: tooLarge });
+  // Only the upload endpoint may carry video-sized bodies.
+  app.use('/api/*', (c, next) => (c.req.path === '/api/v1/uploads' ? videoLimit(c, next) : jsonLimit(c, next)));
   app.use('/api/*', authenticate);
   app.use('/api/*', maintenanceGate);
 
@@ -96,6 +100,13 @@ export function createApp(deps: Deps) {
   api.route('/search', searchRoutes);
   api.route('/ai', aiRoutes);
   api.route('/assistant', assistantRoutes);
+  api.route('/videos', videoRoutes);
+  api.route('/playlists', playlistRoutes);
+  api.route('/channels', channelRoutes);
+  api.route('/studio', studioRoutes);
+  api.route('/stories', storyRoutes);
+  api.route('/events', eventRoutes);
+  api.route('/explore', exploreRoutes);
   api.route('/admin', adminRoutes);
   app.route('/api/v1', api);
 

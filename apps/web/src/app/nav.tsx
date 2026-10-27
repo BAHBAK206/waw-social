@@ -2,7 +2,14 @@ import { FEATURES, featureMode, type FeatureCategory, type FeatureControlMap, ty
 import {
   Bell,
   Bookmark,
+  Aperture,
   Bot,
+  CalendarDays,
+  ChartColumn,
+  Clapperboard,
+  Compass,
+  Film,
+  Vote,
   CalendarClock,
   Camera,
   CircleDot,
@@ -94,6 +101,13 @@ export const ICONS: Record<string, LucideIcon> = {
   hand: Hand,
   upload: Upload,
   download: Download,
+  clapperboard: Clapperboard,
+  film: Film,
+  compass: Compass,
+  'calendar-days': CalendarDays,
+  'chart-column': ChartColumn,
+  aperture: Aperture,
+  vote: Vote,
 };
 
 export interface NavItem {

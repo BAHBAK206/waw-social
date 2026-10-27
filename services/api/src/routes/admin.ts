@@ -48,8 +48,12 @@ import {
   quizAttempts,
   quizzes,
   reports,
+  events,
   sessions,
+  stories,
   users,
+  videoComments,
+  videos,
 } from '../db/schema';
 import { audit } from '../lib/audit';
 import type { AppEnv } from '../lib/context';
@@ -321,7 +325,7 @@ export const adminRoutes = new Hono<AppEnv>()
           .select({ name: users.displayName })
           .from(users)
           .where(sql`${users.id}::text = ${r.r.targetId}`);
-        target = u ? { label: u.name, link: `/people/${r.r.targetId}` } : null;
+        target = u ? { label: u.name, link: `/u/${r.r.targetId}` } : null;
       } else if (r.r.targetType === 'post') {
         const [p] = await db
           .select({ text: posts.text, groupId: posts.groupId })
@@ -346,6 +350,30 @@ export const adminRoutes = new Hono<AppEnv>()
           .from(comments)
           .where(sql`${comments.id}::text = ${r.r.targetId}`);
         target = cm ? { label: cm.text.slice(0, 120), link: null } : null;
+      } else if (r.r.targetType === 'video') {
+        const [v] = await db
+          .select({ title: videos.title })
+          .from(videos)
+          .where(sql`${videos.id}::text = ${r.r.targetId}`);
+        target = v ? { label: v.title, link: `/watch/${r.r.targetId}` } : null;
+      } else if (r.r.targetType === 'video_comment') {
+        const [vc] = await db
+          .select({ text: videoComments.text, videoId: videoComments.videoId })
+          .from(videoComments)
+          .where(sql`${videoComments.id}::text = ${r.r.targetId}`);
+        target = vc ? { label: vc.text.slice(0, 120), link: `/watch/${vc.videoId}` } : null;
+      } else if (r.r.targetType === 'event') {
+        const [ev] = await db
+          .select({ title: events.title })
+          .from(events)
+          .where(sql`${events.id}::text = ${r.r.targetId}`);
+        target = ev ? { label: ev.title, link: `/events/${r.r.targetId}` } : null;
+      } else if (r.r.targetType === 'story') {
+        const [st] = await db
+          .select({ text: stories.text })
+          .from(stories)
+          .where(sql`${stories.id}::text = ${r.r.targetId}`);
+        target = st ? { label: st.text.slice(0, 120) || 'story', link: null } : null;
       }
       items.push({
         id: r.r.id,
@@ -396,6 +424,27 @@ export const adminRoutes = new Hono<AppEnv>()
           .update(groups)
           .set({ deletedAt: new Date() })
           .where(sql`${groups.id}::text = ${r.targetId}`);
+      const now = new Date();
+      if (r.targetType === 'video')
+        await deps.db
+          .update(videos)
+          .set({ deletedAt: now })
+          .where(sql`${videos.id}::text = ${r.targetId}`);
+      if (r.targetType === 'video_comment')
+        await deps.db
+          .update(videoComments)
+          .set({ deletedAt: now })
+          .where(sql`${videoComments.id}::text = ${r.targetId}`);
+      if (r.targetType === 'event')
+        await deps.db
+          .update(events)
+          .set({ deletedAt: now })
+          .where(sql`${events.id}::text = ${r.targetId}`);
+      if (r.targetType === 'story')
+        await deps.db
+          .update(stories)
+          .set({ deletedAt: now })
+          .where(sql`${stories.id}::text = ${r.targetId}`);
     }
     await deps.db
       .update(reports)
@@ -744,13 +793,20 @@ export const adminRoutes = new Hono<AppEnv>()
       .delete(quizAttempts)
       .where(and(isNull(quizAttempts.submittedAt), lt(quizAttempts.expiresAt, new Date(Date.now() - 86400_000))))
       .returning({ id: quizAttempts.id });
+    const st = await db
+      .delete(stories)
+      .where(lt(stories.expiresAt, new Date(Date.now() - 86400_000)))
+      .returning({ id: stories.id });
+    const vv = await db.execute(sql`delete from video_views where day < current_date - 400`);
     await audit(db, actor.id, 'maintenance.cleanup', undefined, undefined, {
+      stories: st.length,
+      videoViews: vv.count,
       sessions: s.length,
       tokens: t.length,
       notifications: n.length,
       attempts: a.length,
     });
-    return c.json({ sessions: s.length, tokens: t.length, notifications: n.length, abandonedAttempts: a.length });
+    return c.json({ sessions: s.length, tokens: t.length, notifications: n.length, abandonedAttempts: a.length, stories: st.length });
   })
   .post('/maintenance/recompute-levels', async (c) => {
     const actor = requirePerm(c, 'site.manage');

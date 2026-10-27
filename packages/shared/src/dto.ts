@@ -91,6 +91,29 @@ export interface PostDto {
   saved: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  shareCount: number;
+  poll: PollDto | null;
+  shared: SharedPostDto | null;
+  hashtags: string[];
+}
+
+export interface PollDto {
+  multiple: boolean;
+  endsAt: number | null;
+  closed: boolean;
+  totalVotes: number;
+  options: { id: string; text: string; votes: number }[];
+  myVotes: string[];
+}
+
+export interface SharedPostDto {
+  id: string;
+  author: UserSummary;
+  text: string;
+  imageUrl: string | null;
+  createdAt: number;
+  /** False when the original was deleted or is no longer visible. */
+  available: boolean;
 }
 
 export interface CommentDto {
@@ -785,4 +808,159 @@ export interface PomodoroCompleteDto extends XpRewardMeta {
   alreadyCompleted: boolean;
   newAchievements: string[];
   todayMinutes: number;
+}
+
+/* ───────── Watch (videos & shorts) ───────── */
+
+export interface VideoDto {
+  id: string;
+  kind: 'video' | 'short';
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string | null;
+  durationSec: number;
+  visibility: 'public' | 'unlisted' | 'private';
+  tags: string[];
+  section: { id: string; name: string } | null;
+  material: { id: string; name: string } | null;
+  owner: UserSummary;
+  views: number;
+  likes: number;
+  dislikes: number;
+  commentCount: number;
+  allowComments: boolean;
+  createdAt: number;
+  /** -1 | 0 | 1 */
+  myReaction: number;
+  watchLater: boolean;
+  /** Playback resume point for the viewer. */
+  progressSec: number;
+  subscribed: boolean;
+  subscribers: number;
+  canEdit: boolean;
+}
+
+export interface VideoCommentDto {
+  id: string;
+  videoId: string;
+  parentId: string | null;
+  author: UserSummary;
+  text: string;
+  likes: number;
+  liked: boolean;
+  replyCount: number;
+  pinned: boolean;
+  createdAt: number;
+  canDelete: boolean;
+}
+
+export interface PlaylistDto {
+  id: string;
+  /** Present when the list was requested for a specific video ("save to playlist"). */
+  hasVideo?: boolean;
+  title: string;
+  description: string;
+  visibility: 'public' | 'unlisted' | 'private';
+  itemCount: number;
+  owner: UserSummary;
+  thumbnailUrl: string | null;
+  updatedAt: number;
+  canEdit: boolean;
+}
+
+export interface VideoChannelDto {
+  user: PublicProfile;
+  subscribers: number;
+  videoCount: number;
+  shortCount: number;
+  totalViews: number;
+  isSubscribed: boolean;
+  playlists: PlaylistDto[];
+}
+
+export interface WatchHistoryItem {
+  video: VideoDto;
+  progressSec: number;
+  completed: boolean;
+  watchedAt: number;
+}
+
+export interface StudioOverviewDto {
+  totals: { videos: number; views: number; likes: number; comments: number; subscribers: number; watchMinutes: number };
+  viewsByDay: { day: string; views: number }[];
+  topVideos: { id: string; title: string; thumbnailUrl: string | null; views: number; likes: number; kind: 'video' | 'short' }[];
+}
+
+/* ───────── Stories ───────── */
+
+export interface StoryDto {
+  id: string;
+  mediaKind: 'image' | 'video' | 'text';
+  mediaUrl: string | null;
+  text: string;
+  bgColor: string;
+  durationSec: number;
+  createdAt: number;
+  expiresAt: number;
+  viewed: boolean;
+  viewCount: number;
+  myReaction: string | null;
+}
+
+export interface StoryGroupDto {
+  author: UserSummary;
+  stories: StoryDto[];
+  /** True when every story was already seen by the viewer. */
+  allViewed: boolean;
+  isMine: boolean;
+}
+
+export interface StoryViewerDto {
+  user: UserSummary;
+  viewedAt: number;
+  reaction: string | null;
+}
+
+/* ───────── Explore: hashtags, trending, events ───────── */
+
+export interface TrendingTagDto {
+  tag: string;
+  count: number;
+  /** Change versus the previous window, in percent (null when new). */
+  growth: number | null;
+}
+
+export interface ExploreDto {
+  tags: TrendingTagDto[];
+  videos: VideoDto[];
+  posts: PostDto[];
+  people: UserSummary[];
+  events: EventDto[];
+}
+
+export interface HashtagPageDto {
+  tag: string;
+  postCount: number;
+  videoCount: number;
+  posts: PostDto[];
+  videos: VideoDto[];
+}
+
+export interface EventDto {
+  id: string;
+  title: string;
+  description: string;
+  coverUrl: string | null;
+  startsAt: number;
+  endsAt: number | null;
+  location: string;
+  onlineUrl: string | null;
+  host: UserSummary;
+  groupId: string | null;
+  goingCount: number;
+  interestedCount: number;
+  myStatus: 'going' | 'interested' | null;
+  canEdit: boolean;
+  createdAt: number;
 }

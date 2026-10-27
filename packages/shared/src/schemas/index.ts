@@ -6,3 +6,4 @@ export * from './learning';
 export * from './school';
 export * from './content';
 export * from './admin';
+export * from './media';

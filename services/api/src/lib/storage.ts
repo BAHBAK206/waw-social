@@ -1,3 +1,5 @@
+import { createReadStream } from 'node:fs';
+import type { Readable } from 'node:stream';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -19,6 +21,10 @@ export interface Storage {
   remove(key: string): Promise<void>;
   urlFor(key: string): Promise<string>;
   verifySignature(key: string, exp: string | undefined, sig: string | undefined): boolean;
+  /** Local driver only: size without reading the file. */
+  size?(key: string): Promise<number | null>;
+  /** Local driver only: streams a byte range (inclusive) so large videos never sit in memory. */
+  stream?(key: string, start?: number, end?: number): Readable;
   readonly driver: 'local' | 's3';
 }
 
@@ -64,6 +70,16 @@ class LocalStorage implements Storage {
     } catch {
       return null;
     }
+  }
+  async size(key: string) {
+    try {
+      return (await stat(this.file(key))).size;
+    } catch {
+      return null;
+    }
+  }
+  stream(key: string, start?: number, end?: number) {
+    return createReadStream(this.file(key), { start, end });
   }
   async remove(key: string) {
     await rm(this.file(key), { force: true });

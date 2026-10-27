@@ -2,13 +2,28 @@ import { z } from 'zod';
 import { LIMITS, REACTIONS } from '../limits';
 import { attachmentSchema, idSchema, optionalUrl, trimmed } from './common';
 
+export const pollInputSchema = z.object({
+  options: z.array(trimmed(100, 1)).min(LIMITS.pollOptions.min).max(LIMITS.pollOptions.max),
+  multiple: z.boolean().default(false),
+  /** Hours until voting closes; omit for an open poll. */
+  durationHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30)
+    .optional(),
+});
+
 export const createPostSchema = z
   .object({
     text: trimmed(LIMITS.postText).default(''),
     imageUrl: optionalUrl,
     groupId: idSchema.optional().nullable(),
+    poll: pollInputSchema.optional(),
+    /** Re-share an existing post (Facebook-style share with optional comment in `text`). */
+    sharedPostId: idSchema.optional().nullable(),
   })
-  .refine((v) => v.text.length > 0 || !!v.imageUrl, { message: 'empty_post' });
+  .refine((v) => v.text.length > 0 || !!v.imageUrl || !!v.poll || !!v.sharedPostId, { message: 'empty_post' });
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 
 export const updatePostSchema = z.object({ text: trimmed(LIMITS.postText, 1) });
@@ -52,3 +67,5 @@ export const channelSchema = z.object({
   name: trimmed(60, 1),
   kind: z.enum(['text', 'announcement']).default('text'),
 });
+
+export const pollVoteSchema = z.object({ optionIds: z.array(idSchema).min(1).max(LIMITS.pollOptions.max) });

@@ -59,7 +59,7 @@ export const updatePrefsSchema = z.object({
 export type UpdatePrefsInput = z.infer<typeof updatePrefsSchema>;
 
 export const reportSchema = z.object({
-  targetType: z.enum(['user', 'post', 'comment', 'message', 'group', 'form', 'library']),
+  targetType: z.enum(['user', 'post', 'comment', 'message', 'group', 'form', 'library', 'video', 'video_comment', 'story', 'event']),
   targetId: z.string().min(1).max(64),
   reason: z.enum(['spam', 'abuse', 'inappropriate', 'impersonation', 'copyright', 'other']),
   details: trimmed(1000).optional(),

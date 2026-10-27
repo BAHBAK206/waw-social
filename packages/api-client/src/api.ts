@@ -15,6 +15,19 @@ import type {
   ChannelDto,
   ClientErrorDto,
   CommentDto,
+  EventDto,
+  ExploreDto,
+  HashtagPageDto,
+  PlaylistDto,
+  StoryDto,
+  StoryGroupDto,
+  StoryViewerDto,
+  StudioOverviewDto,
+  TrendingTagDto,
+  VideoChannelDto,
+  VideoCommentDto,
+  VideoDto,
+  WatchHistoryItem,
   ConversationDto,
   CourseAnalyticsDto,
   CourseAnnouncementDto,
@@ -169,9 +182,17 @@ export function createApi(options: ClientOptions) {
     report: (body: { targetType: string; targetId: string; reason: string; details?: string }) => http.post<{ id: string }>('/reports', body),
 
     posts: {
-      feed: (q: { scope?: 'all' | 'following' | 'mine'; authorId?: string; cursor?: string; limit?: number } = {}) => http.get<Page<PostDto>>('/posts', q),
+      feed: (q: { scope?: 'all' | 'following' | 'mine' | 'foryou'; authorId?: string; tag?: string; cursor?: string; limit?: number } = {}) =>
+        http.get<Page<PostDto>>('/posts', q),
       get: (id: string) => http.get<PostDto>(`/posts/${id}`),
-      create: (body: { text: string; imageUrl?: string | null; groupId?: string | null }) => http.post<PostDto & { newAchievements: string[] }>('/posts', body),
+      create: (body: {
+        text: string;
+        imageUrl?: string | null;
+        groupId?: string | null;
+        poll?: { options: string[]; multiple?: boolean; durationHours?: number };
+        sharedPostId?: string | null;
+      }) => http.post<PostDto & { newAchievements: string[] }>('/posts', body),
+      vote: (id: string, optionIds: string[]) => http.put<PostDto>(`/posts/${id}/vote`, { optionIds }),
       update: (id: string, text: string) => http.patch<PostDto>(`/posts/${id}`, { text }),
       remove: (id: string) => http.del<Ok>(`/posts/${id}`),
       pin: (id: string, pinned: boolean) => http.post<{ pinned: boolean }>(`/posts/${id}/pin`, { pinned }),
@@ -180,6 +201,128 @@ export function createApi(options: ClientOptions) {
       comments: (id: string, q: Q = {}) => http.get<Page<CommentDto>>(`/posts/${id}/comments`, q),
       comment: (id: string, text: string) => http.post<CommentDto>(`/posts/${id}/comments`, { text }),
       deleteComment: (id: string, commentId: string) => http.del<Ok>(`/posts/${id}/comments/${commentId}`),
+    },
+
+    videos: {
+      list: (
+        q: {
+          feed?: 'home' | 'trending' | 'subscriptions' | 'new' | 'liked';
+          kind?: 'video' | 'short';
+          q?: string;
+          tag?: string;
+          sectionId?: string;
+          ownerId?: string;
+          cursor?: string;
+          limit?: number;
+        } = {},
+      ) => http.get<Page<VideoDto>>('/videos', q),
+      get: (id: string) => http.get<VideoDto>(`/videos/${id}`),
+      create: (body: {
+        kind?: 'video' | 'short';
+        title: string;
+        description?: string;
+        videoUrl: string;
+        thumbnailUrl?: string | null;
+        durationSec: number;
+        visibility?: 'public' | 'unlisted' | 'private';
+        tags?: string[];
+        sectionId?: string | null;
+        materialId?: string | null;
+        allowComments?: boolean;
+      }) => http.post<VideoDto>('/videos', body),
+      update: (
+        id: string,
+        body: Partial<{
+          title: string;
+          description: string;
+          thumbnailUrl: string | null;
+          visibility: 'public' | 'unlisted' | 'private';
+          tags: string[];
+          sectionId: string | null;
+          materialId: string | null;
+          allowComments: boolean;
+        }>,
+      ) => http.patch<VideoDto>(`/videos/${id}`, body),
+      remove: (id: string) => http.del<Ok>(`/videos/${id}`),
+      view: (id: string) => http.post<{ counted: boolean; views: number }>(`/videos/${id}/view`),
+      progress: (id: string, progressSec: number, completed = false) => http.put<Ok>(`/videos/${id}/progress`, { progressSec, completed }),
+      react: (id: string, value: 1 | -1 | 0) => http.put<{ likes: number; dislikes: number; myReaction: number }>(`/videos/${id}/reaction`, { value }),
+      watchLater: (id: string, on: boolean) => http.put<{ watchLater: boolean }>(`/videos/${id}/watch-later`, { on }),
+      related: (id: string) => http.get<{ items: VideoDto[] }>(`/videos/${id}/related`),
+      comments: (id: string, q: { parentId?: string; sort?: 'top' | 'new'; cursor?: string; limit?: number } = {}) =>
+        http.get<Page<VideoCommentDto>>(`/videos/${id}/comments`, q),
+      comment: (id: string, text: string, parentId?: string | null) => http.post<VideoCommentDto>(`/videos/${id}/comments`, { text, parentId }),
+      deleteComment: (id: string, commentId: string) => http.del<Ok>(`/videos/${id}/comments/${commentId}`),
+      likeComment: (id: string, commentId: string, liked: boolean) =>
+        http.put<{ liked: boolean; likes: number }>(`/videos/${id}/comments/${commentId}/like`, { liked }),
+      pinComment: (id: string, commentId: string, pinned: boolean) => http.put<{ pinned: boolean }>(`/videos/${id}/comments/${commentId}/pin`, { pinned }),
+      history: (q: { cursor?: string; limit?: number } = {}) => http.get<Page<WatchHistoryItem>>('/videos/me/history', q),
+      clearHistory: () => http.del<Ok>('/videos/me/history'),
+      removeFromHistory: (id: string) => http.del<Ok>(`/videos/me/history/${id}`),
+      watchLaterList: (q: { cursor?: string; limit?: number } = {}) => http.get<Page<VideoDto>>('/videos/me/watch-later', q),
+    },
+    playlists: {
+      mine: (videoId?: string) => http.get<{ items: PlaylistDto[] }>('/playlists/mine', { videoId }),
+      create: (body: { title: string; description?: string; visibility?: 'public' | 'unlisted' | 'private' }) => http.post<PlaylistDto>('/playlists', body),
+      get: (id: string) => http.get<{ playlist: PlaylistDto; videos: VideoDto[] }>(`/playlists/${id}`),
+      update: (id: string, body: Partial<{ title: string; description: string; visibility: 'public' | 'unlisted' | 'private' }>) =>
+        http.patch<PlaylistDto>(`/playlists/${id}`, body),
+      remove: (id: string) => http.del<Ok>(`/playlists/${id}`),
+      addItem: (id: string, videoId: string) => http.post<Ok>(`/playlists/${id}/items`, { videoId }),
+      removeItem: (id: string, videoId: string) => http.del<Ok>(`/playlists/${id}/items/${videoId}`),
+      reorder: (id: string, videoIds: string[]) => http.put<Ok>(`/playlists/${id}/order`, { videoIds }),
+    },
+    channels: { get: (userId: string) => http.get<VideoChannelDto>(`/channels/${userId}`) },
+    studio: {
+      overview: () => http.get<StudioOverviewDto>('/studio/overview'),
+      videos: (q: { cursor?: string; limit?: number } = {}) => http.get<Page<VideoDto>>('/studio/videos', q),
+      comments: () =>
+        http.get<{ items: { id: string; videoId: string; text: string; createdAt: number; title: string; author: string }[] }>('/studio/comments'),
+    },
+    stories: {
+      tray: () => http.get<{ items: StoryGroupDto[] }>('/stories'),
+      create: (body: { mediaKind: 'image' | 'video' | 'text'; mediaUrl?: string | null; text?: string; bgColor?: string; durationSec?: number }) =>
+        http.post<StoryDto>('/stories', body),
+      view: (id: string) => http.post<Ok>(`/stories/${id}/view`),
+      react: (id: string, emoji: string | null) => http.put<{ myReaction: string | null }>(`/stories/${id}/reaction`, { emoji }),
+      viewers: (id: string) => http.get<{ items: StoryViewerDto[] }>(`/stories/${id}/viewers`),
+      remove: (id: string) => http.del<Ok>(`/stories/${id}`),
+    },
+    events: {
+      list: (q: { scope?: 'upcoming' | 'mine' | 'past'; groupId?: string; cursor?: string; limit?: number } = {}) => http.get<Page<EventDto>>('/events', q),
+      get: (id: string) => http.get<EventDto>(`/events/${id}`),
+      create: (body: {
+        title: string;
+        description?: string;
+        coverUrl?: string | null;
+        startsAt: number;
+        endsAt?: number | null;
+        location?: string;
+        onlineUrl?: string | null;
+        groupId?: string | null;
+      }) => http.post<EventDto>('/events', body),
+      update: (
+        id: string,
+        body: {
+          title: string;
+          description?: string;
+          coverUrl?: string | null;
+          startsAt: number;
+          endsAt?: number | null;
+          location?: string;
+          onlineUrl?: string | null;
+        },
+      ) => http.patch<EventDto>(`/events/${id}`, body),
+      remove: (id: string) => http.del<Ok>(`/events/${id}`),
+      rsvp: (id: string, status: 'going' | 'interested' | 'none') =>
+        http.put<{ myStatus: 'going' | 'interested' | null; goingCount: number; interestedCount: number }>(`/events/${id}/rsvp`, { status }),
+      attendees: (id: string) => http.get<{ items: { status: 'going' | 'interested'; user: UserSummary }[] }>(`/events/${id}/attendees`),
+    },
+    explore: {
+      home: () => http.get<ExploreDto>('/explore'),
+      tags: (q: { hours?: number; limit?: number } = {}) => http.get<{ items: TrendingTagDto[] }>('/explore/tags', q),
+      suggestTags: (q: string, signal?: AbortSignal) => http.get<{ items: { tag: string; count: number }[] }>('/explore/tags/suggest', { q }, signal),
+      tag: (tag: string) => http.get<HashtagPageDto>(`/explore/tag/${enc(tag)}`),
     },
 
     notifications: {
