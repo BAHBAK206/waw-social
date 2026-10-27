@@ -548,6 +548,7 @@ CREATE TABLE "quiz_best" (
 	"correct" integer NOT NULL,
 	"total" integer NOT NULL,
 	"attempt_id" uuid NOT NULL,
+	"wrong_ids" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"updated_at" timestamp (3) with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "quiz_best_user_id_quiz_id_pk" PRIMARY KEY("user_id","quiz_id")
 );

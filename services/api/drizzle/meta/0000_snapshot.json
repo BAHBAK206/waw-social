@@ -1,5 +1,5 @@
 {
-  "id": "b3df6e58-adda-4843-b68b-1dd1dc32ef2f",
+  "id": "142bcf45-6846-4acb-a25e-112a498f3fb5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -5089,6 +5089,13 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "wrong_ids": {
+          "name": "wrong_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
         "updated_at": {
           "name": "updated_at",

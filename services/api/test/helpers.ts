@@ -59,7 +59,7 @@ export async function call<T = unknown>(method: string, path: string, opts: Req 
   const { app } = await setupApp();
   const headers: Record<string, string> = { ...(opts.headers ?? {}) };
   if (opts.token) headers.authorization = `Bearer ${opts.token}`;
-  let reqBody: BodyInit | undefined;
+  let reqBody: FormData | string | undefined;
   if (opts.form) reqBody = opts.form;
   else if (opts.body !== undefined) {
     headers['content-type'] = 'application/json';

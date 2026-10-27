@@ -503,6 +503,7 @@ export const quizBest = pgTable(
     correct: integer('correct').notNull(),
     total: integer('total').notNull(),
     attemptId: uuid('attempt_id').notNull(),
+    wrongIds: jsonb('wrong_ids').$type<string[]>().notNull().default([]),
     updatedAt: updatedAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.quizId] })],
