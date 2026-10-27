@@ -11,3 +11,4 @@ export * from './planner';
 export * from './limits';
 export * from './schemas/index';
 export type * from './dto';
+export * from './pronunciation';

@@ -7,15 +7,18 @@ test.describe('stories, polls and events', () => {
     await register(page, newUser('storyteller'));
     await page.goto('/feed');
     await page
-      .getByRole('button', { name: /Add story|Your story/ })
+      .getByRole('button', { name: /Share a tip|Your tip/ })
       .first()
       .click();
-    await page.getByRole('dialog').getByPlaceholder('Type something…').fill('Exam tomorrow, good luck everyone!');
-    await page.getByRole('dialog').getByRole('button', { name: 'Share story' }).click();
-    await expect(page.getByText('Story shared').first()).toBeVisible();
+    await page
+      .getByRole('dialog')
+      .getByPlaceholder(/A formula, a mnemonic/)
+      .fill('Exam tomorrow, good luck everyone!');
+    await page.getByRole('dialog').getByRole('button', { name: 'Share tip' }).click();
+    await expect(page.getByText('Tip shared').first()).toBeVisible();
     // Opening the story viewer shows the text.
     await page
-      .getByRole('button', { name: /Your story/ })
+      .getByRole('button', { name: /Your tip/ })
       .first()
       .click();
     await expect(page.getByText('Exam tomorrow, good luck everyone!').first()).toBeVisible();
@@ -55,8 +58,8 @@ test.describe('stories, polls and events', () => {
 
     const title = `Revision workshop ${uid()}`;
     await pageH.goto('/events');
-    await pageH.getByRole('button', { name: 'Create event' }).first().click();
-    await pageH.getByRole('dialog').getByLabel('Event name').or(pageH.getByRole('dialog').getByLabel('Title')).first().fill(title);
+    await pageH.getByRole('button', { name: 'Schedule a session' }).first().click();
+    await pageH.getByRole('dialog').getByLabel('Session title').fill(title);
     await pageH.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
     await expect(pageH.getByText(title).first()).toBeVisible();
     await pageH.getByText(title).first().click();
@@ -66,11 +69,11 @@ test.describe('stories, polls and events', () => {
     await pageG.goto(url);
     await expect(pageG.getByRole('heading', { name: title })).toBeVisible();
     await pageG
-      .getByRole('button', { name: /^Going/ })
+      .getByRole('button', { name: /^Attending/ })
       .first()
       .click();
     await pageH.reload();
-    await expect(pageH.getByText('2 going')).toBeVisible();
+    await expect(pageH.getByText('2 attending')).toBeVisible();
     expect(errors).toEqual([]);
     await ctxH.close();
     await ctxG.close();

@@ -12,6 +12,7 @@ import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { useSession } from '@/lib/session';
 import { confirmDialog, toastError } from '@/lib/ui';
+import { ReadAloud } from '@/components/common/ReadAloud';
 
 function Bubble({ m }: { m: AssistantMessageDto }) {
   const tr = useT();
@@ -33,6 +34,7 @@ function Bubble({ m }: { m: AssistantMessageDto }) {
             {m.content}
           </p>
         </div>
+        {!mine && <ReadAloud text={m.content} compact className="muted px-2 text-xs" />}
         {!mine && m.actions.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {m.actions.map((a) => (

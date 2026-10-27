@@ -1,6 +1,20 @@
 import { REACTIONS, REACTION_EMOJI, type PostDto, type PollDto, type Reaction } from '@qubedu/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bookmark, BookmarkCheck, Flag, Link2, MessageCircle, Pencil, Pin, Share2, ThumbsUp, Trash2 } from 'lucide-react';
+import {
+  BookOpenText,
+  Bookmark,
+  BookmarkCheck,
+  CheckCircle2,
+  CircleHelp,
+  Flag,
+  Link2,
+  MessageCircle,
+  Pencil,
+  Pin,
+  Share2,
+  ThumbsUp,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { RichText } from '@/components/common/RichText';
@@ -16,6 +30,7 @@ import { relativeFuture, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { celebrate, confirmDialog, toast, toastError } from '@/lib/ui';
 import { CommentsSection } from './Comments';
+import { ReadAloud } from '@/components/common/ReadAloud';
 
 type Patch = (fn: (p: PostDto) => PostDto) => void;
 
@@ -284,6 +299,26 @@ export function PostCard({ post, onPatch, onRemoved, detail }: { post: PostDto; 
               </>
             )}
           </div>
+          {(post.kind !== 'discussion' || post.material) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {post.kind === 'question' && (
+                <span className={cx('badge', post.solved ? 'badge-ok' : 'badge-warn')}>
+                  {post.solved ? <CheckCircle2 className="size-3" aria-hidden /> : <CircleHelp className="size-3" aria-hidden />}
+                  {tr.t('feed.kinds.question')} · {post.solved ? tr.t('feed.solved') : tr.t('feed.unanswered')}
+                </span>
+              )}
+              {post.kind === 'note' && (
+                <span className="badge badge-primary">
+                  <BookOpenText className="size-3" aria-hidden /> {tr.t('feed.kinds.note')}
+                </span>
+              )}
+              {post.material && (
+                <Link to={`/feed?subject=${post.material.id}`} className="badge hover:underline">
+                  {post.material.name}
+                </Link>
+              )}
+            </div>
+          )}
         </div>
         <Menu
           items={[
@@ -374,7 +409,7 @@ export function PostCard({ post, onPatch, onRemoved, detail }: { post: PostDto; 
           <span className="flex-1" />
           {post.commentCount > 0 && (
             <button type="button" className="hover:underline" onClick={() => setShowComments(true)}>
-              {post.commentCount} {tr.t('feed.comments')}
+              {post.kind === 'question' ? tr.t('feed.answerCount', { count: post.commentCount }) : `${post.commentCount} ${tr.t('feed.comments')}`}
             </button>
           )}
           {post.shareCount > 0 && <span>{tr.t('feed.shares', { count: post.shareCount })}</span>}
@@ -384,22 +419,25 @@ export function PostCard({ post, onPatch, onRemoved, detail }: { post: PostDto; 
       <footer className="mt-2 flex items-center gap-1 border-t border-line pt-2">
         <ReactionPicker current={post.myReaction} onPick={(r) => void react(r)} />
         <button type="button" className="btn btn-ghost btn-sm" aria-expanded={showComments} onClick={() => setShowComments((s) => !s)}>
-          <MessageCircle className="size-4" aria-hidden /> {tr.t('feed.comment')}
+          <MessageCircle className="size-4" aria-hidden /> {post.kind === 'question' ? tr.t('feed.answers') : tr.t('feed.comment')}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSharing(true)}>
           <Share2 className="size-4" aria-hidden /> {tr.t('feed.share')}
         </button>
-        <button
-          type="button"
-          className={cx('btn btn-ghost btn-sm ms-auto', post.saved && 'text-ink')}
-          aria-pressed={post.saved}
-          onClick={() => void toggleSave()}
-        >
+        <span className="flex-1" />
+        <ReadAloud text={post.text} className="!px-2" compact={false} />
+        <button type="button" className={cx('btn btn-ghost btn-sm', post.saved && 'text-ink')} aria-pressed={post.saved} onClick={() => void toggleSave()}>
           {post.saved ? <BookmarkCheck className="size-4" aria-hidden /> : <Bookmark className="size-4" aria-hidden />}
           <span className="sr-only">{post.saved ? tr.t('feed.unsave') : tr.t('feed.save')}</span>
         </button>
       </footer>
-      {showComments && <CommentsSection post={post} onCountChange={(d) => onPatch((p) => ({ ...p, commentCount: Math.max(0, p.commentCount + d) }))} />}
+      {showComments && (
+        <CommentsSection
+          post={post}
+          onCountChange={(d) => onPatch((p) => ({ ...p, commentCount: Math.max(0, p.commentCount + d) }))}
+          onAccepted={(acceptedCommentId) => onPatch((p) => ({ ...p, acceptedCommentId, solved: !!acceptedCommentId }))}
+        />
+      )}
       {sharing && <ShareDialog post={post} onClose={() => setSharing(false)} />}
     </article>
   );

@@ -163,3 +163,10 @@ export const assistantFeedbackSchema = z.object({
   rating: z.enum(['up', 'down']),
   comment: trimmed(1000).optional(),
 });
+
+export const pronunciationAttemptSchema = z.object({
+  language: z.enum(['ar', 'en', 'fr', 'es']),
+  phrase: trimmed(300, 1),
+  /** What the browser's speech recognition heard; the server re-scores it. */
+  heard: trimmed(600).default(''),
+});

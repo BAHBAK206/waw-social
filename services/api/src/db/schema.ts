@@ -303,6 +303,12 @@ export const posts = pgTable(
     shareCount: integer('share_count').notNull().default(0),
     /** Re-shared post (no FK so the share survives when the original is hard-deleted). */
     sharedPostId: uuid('shared_post_id'),
+    /** 'discussion' (default), 'question' (Q&A with a best answer) or 'note' (study notes / summaries). */
+    kind: text('kind').$type<'discussion' | 'question' | 'note'>().notNull().default('discussion'),
+    materialId: uuid('material_id').references(() => eduMaterials.id, { onDelete: 'set null' }),
+    /** Best answer chosen by the asker or a teacher (no FK: comments are soft-deleted). */
+    acceptedCommentId: uuid('accepted_comment_id'),
+    solvedAt: ts('solved_at'),
     editedAt: ts('edited_at'),
     deletedAt: ts('deleted_at'),
     createdAt: createdAt(),
@@ -312,6 +318,8 @@ export const posts = pgTable(
     index('posts_group_idx').on(t.groupId, t.createdAt),
     index('posts_author_idx').on(t.authorId, t.createdAt),
     index('posts_search_trgm').using('gin', sql`${t.searchText} gin_trgm_ops`),
+    index('posts_kind_idx').on(t.kind, t.solvedAt, t.createdAt),
+    index('posts_material_idx').on(t.materialId, t.createdAt),
   ],
 );
 
@@ -341,10 +349,26 @@ export const comments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     text: text('text').notNull(),
+    /** "Helpful" votes from other learners (answers to questions are ranked by them). */
+    votes: integer('votes').notNull().default(0),
     deletedAt: ts('deleted_at'),
     createdAt: createdAt(),
   },
   (t) => [index('comments_post_idx').on(t.postId, t.createdAt)],
+);
+
+export const commentVotes = pgTable(
+  'comment_votes',
+  {
+    commentId: uuid('comment_id')
+      .notNull()
+      .references(() => comments.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.commentId, t.userId] })],
 );
 
 export const notifications = pgTable(
@@ -1339,6 +1363,8 @@ export const videos = pgTable(
     sectionId: uuid('section_id').references(() => eduSections.id, { onDelete: 'set null' }),
     materialId: uuid('material_id').references(() => eduMaterials.id, { onDelete: 'set null' }),
     allowComments: boolean('allow_comments').notNull().default(true),
+    /** "Check your understanding" quiz shown at the end of the lesson. */
+    quizId: uuid('quiz_id').references(() => quizzes.id, { onDelete: 'set null' }),
     views: integer('views').notNull().default(0),
     likes: integer('likes').notNull().default(0),
     dislikes: integer('dislikes').notNull().default(0),
@@ -1556,4 +1582,39 @@ export const eventRsvps = pgTable(
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.eventId, t.userId] }), index('event_rsvps_user_idx').on(t.userId, t.status)],
+);
+
+/** Private, timestamped notes a learner takes while watching a lesson. */
+export const videoNotes = pgTable(
+  'video_notes',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    atSec: integer('at_sec').notNull().default(0),
+    text: text('text').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('video_notes_user_video_idx').on(t.userId, t.videoId, t.atSec)],
+);
+
+/** Pronunciation practice attempts (speech recognised in the browser, scored against the target phrase). */
+export const pronunciationAttempts = pgTable(
+  'pronunciation_attempts',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    language: text('language').notNull(),
+    phrase: text('phrase').notNull(),
+    heard: text('heard').notNull().default(''),
+    score: integer('score').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('pron_user_idx').on(t.userId, t.createdAt)],
 );

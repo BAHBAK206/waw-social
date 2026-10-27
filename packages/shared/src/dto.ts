@@ -6,7 +6,7 @@ import type { VerificationBadge } from './schemas/admin';
 import type { Attachment } from './schemas/common';
 import type { FormQuestion, FormSettings, WorkspaceKind } from './schemas/content';
 import type { QuestionType } from './schemas/learning';
-import type { Reaction } from './limits';
+import type { PostKind, Reaction } from './limits';
 import type { MasteryLevel } from './mastery';
 import type { WeeklyPlan } from './planner';
 import type { XpRewardMeta } from './xp';
@@ -95,6 +95,13 @@ export interface PostDto {
   poll: PollDto | null;
   shared: SharedPostDto | null;
   hashtags: string[];
+  kind: PostKind;
+  material: { id: string; name: string } | null;
+  /** Question posts: the chosen best answer. */
+  acceptedCommentId: string | null;
+  solved: boolean;
+  /** The asker, a teacher of the post's group or a moderator may choose the best answer. */
+  canAccept: boolean;
 }
 
 export interface PollDto {
@@ -123,6 +130,9 @@ export interface CommentDto {
   text: string;
   createdAt: number;
   canDelete: boolean;
+  /** "Helpful" votes; answers to questions are ranked by them. */
+  votes: number;
+  myVote: boolean;
 }
 
 export interface NotificationDto {
@@ -966,4 +976,18 @@ export interface EventDto {
   myStatus: 'going' | 'interested' | null;
   canEdit: boolean;
   createdAt: number;
+}
+
+export interface PronunciationResultDto {
+  score: number;
+  words: { word: string; ok: boolean }[];
+  xpEarned: number;
+}
+
+export interface PronunciationStatsDto {
+  today: { attempts: number; average: number | null; xp: number };
+  week: { attempts: number; average: number | null };
+  recent: { id: string; language: string; phrase: string; score: number; createdAt: number }[];
+  /** Words most often missed recently (to practise again). */
+  weakWords: { word: string; language: string; misses: number }[];
 }

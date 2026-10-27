@@ -11,6 +11,7 @@ import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { celebrate, toastError, useUi } from '@/lib/ui';
+import { ReadAloud } from '@/components/common/ReadAloud';
 
 type Rating = 'again' | 'unsure' | 'know' | 'easy';
 
@@ -97,6 +98,9 @@ export function FlashcardReviewer({ deck, onDone }: { deck?: string; onDone?: ()
           </div>
         </div>
       </button>
+      <div className="flex justify-center">
+        <ReadAloud text={flipped ? card.back : card.front} />
+      </div>
       {flipped ? (
         <div className="grid grid-cols-4 gap-2">
           {buttons.map((b) => (

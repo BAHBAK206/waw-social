@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LIMITS, REACTIONS } from '../limits';
+import { LIMITS, POST_KINDS, REACTIONS } from '../limits';
 import { attachmentSchema, idSchema, optionalUrl, trimmed } from './common';
 
 export const pollInputSchema = z.object({
@@ -20,15 +20,22 @@ export const createPostSchema = z
     imageUrl: optionalUrl,
     groupId: idSchema.optional().nullable(),
     poll: pollInputSchema.optional(),
-    /** Re-share an existing post (Facebook-style share with optional comment in `text`). */
+    /** Re-share an existing post (with an optional comment in `text`). */
     sharedPostId: idSchema.optional().nullable(),
+    /** Questions get a best answer; notes are study summaries; discussions are everything else. */
+    kind: z.enum(POST_KINDS).default('discussion'),
+    /** Subject (taxonomy material) the post is about. */
+    materialId: idSchema.optional().nullable(),
   })
-  .refine((v) => v.text.length > 0 || !!v.imageUrl || !!v.poll || !!v.sharedPostId, { message: 'empty_post' });
+  .refine((v) => v.text.length > 0 || !!v.imageUrl || !!v.poll || !!v.sharedPostId, { message: 'empty_post' })
+  .refine((v) => v.kind !== 'question' || v.text.length >= 8, { message: 'question_too_short', path: ['text'] });
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 
 export const updatePostSchema = z.object({ text: trimmed(LIMITS.postText, 1) });
 export const reactSchema = z.object({ reaction: z.enum(REACTIONS).nullable() });
 export const commentSchema = z.object({ text: trimmed(LIMITS.commentText, 1) });
+export const acceptAnswerSchema = z.object({ commentId: idSchema.nullable() });
+export const commentVoteSchema = z.object({ on: z.boolean() });
 
 export const startDirectSchema = z.object({ userId: idSchema });
 export const sendMessageSchema = z

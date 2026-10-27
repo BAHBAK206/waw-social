@@ -53,6 +53,7 @@ export const router = createBrowserRouter([
       { path: 'explore', ...page(() => import('@/pages/explore/ExplorePage'), { auth: true }) },
       { path: 'explore/tag/:tag', ...page(() => import('@/pages/explore/TagPage'), { auth: true }) },
       { path: 'events', ...page(() => import('@/pages/events/EventsPage'), { auth: true }) },
+      { path: 'lab', ...page(() => import('@/pages/lab/LabPage'), { auth: true }) },
       { path: 'events/:id', ...page(() => import('@/pages/events/EventPage'), { auth: true }) },
       { path: 'quiz', ...page(() => import('@/pages/quiz/QuizListPage')) },
       { path: 'quiz/new', ...page(() => import('@/pages/quiz/QuizEditorPage'), { auth: true }) },

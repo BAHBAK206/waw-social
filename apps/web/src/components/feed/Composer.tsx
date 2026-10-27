@@ -1,11 +1,14 @@
 import { LIMITS } from '@qubedu/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { BarChart3, ImagePlus, Plus, X } from 'lucide-react';
+import type { PostKind } from '@qubedu/shared';
+import { BarChart3, BookOpenText, CircleHelp, ImagePlus, MessagesSquare, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { SubjectSelect } from '@/components/common/SubjectSelect';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { UploadButton } from '@/components/ui/Upload';
 import { api, fileUrl } from '@/lib/api';
+import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { celebrate, toast, toastError } from '@/lib/ui';
@@ -25,12 +28,14 @@ function activeTag(value: string, caret: number): { start: number; query: string
   return m ? { start: caret - m[1]!.length - 1, query: m[1]! } : null;
 }
 
-export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: () => void }) {
+export function Composer({ groupId, onPosted, defaultKind = 'discussion' }: { groupId?: string; onPosted?: () => void; defaultKind?: PostKind }) {
   const tr = useT();
   const qc = useQueryClient();
   const me = useSession((s) => s.me);
   const uploadsOn = useSession((s) => s.config?.uploads.enabled ?? true);
   const [text, setText] = useState('');
+  const [kind, setKind] = useState<PostKind>(defaultKind);
+  const [materialId, setMaterialId] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [poll, setPoll] = useState<{ options: string[]; multiple: boolean; duration: (typeof DURATIONS)[number]['key'] } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -58,7 +63,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
 
   if (!me) return null;
   const validPoll = !poll || poll.options.filter((o) => o.trim()).length >= LIMITS.pollOptions.min;
-  const canPost = (text.trim() || image || poll) && validPoll && !busy;
+  const canPost = (kind === 'question' ? text.trim().length >= 8 : text.trim() || image || poll) && validPoll && !busy;
 
   const submit = async () => {
     setBusy(true);
@@ -67,6 +72,8 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
         text: text.trim(),
         imageUrl: image,
         groupId: groupId ?? null,
+        kind,
+        materialId: materialId || null,
         poll: poll
           ? {
               options: poll.options.map((o) => o.trim()).filter(Boolean),
@@ -80,6 +87,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
       setText('');
       setImage(null);
       setPoll(null);
+      setKind(defaultKind);
       void qc.invalidateQueries({ queryKey: ['feed'] });
       void qc.invalidateQueries({ queryKey: ['group'] });
       onPosted?.();
@@ -90,15 +98,37 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
     }
   };
 
+  const kinds = [
+    { key: 'discussion' as const, icon: MessagesSquare },
+    { key: 'question' as const, icon: CircleHelp },
+    { key: 'note' as const, icon: BookOpenText },
+  ];
+  const placeholder = kind === 'question' ? tr.t('feed.questionPlaceholder') : kind === 'note' ? tr.t('feed.notePlaceholder') : tr.t('feed.composer');
+
   return (
     <div className="card p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2" role="radiogroup" aria-label={tr.t('feed.post')}>
+        {kinds.map((k) => (
+          <button
+            key={k.key}
+            type="button"
+            role="radio"
+            aria-checked={kind === k.key}
+            className={cx('chip', kind === k.key && 'is-active')}
+            onClick={() => setKind(k.key)}
+          >
+            <k.icon className="size-4" aria-hidden /> {tr.t(`feed.kinds.${k.key}`)}
+          </button>
+        ))}
+        <SubjectSelect className="ms-auto" value={materialId} onChange={setMaterialId} emptyLabel={tr.t('feed.noSubject')} />
+      </div>
       <div className="flex gap-3">
         <Avatar name={me.displayName} url={me.avatarUrl} />
         <div className="relative min-w-0 flex-1">
           <textarea
             ref={area}
             className="input min-h-20 resize-none border-0 bg-transparent px-0 py-2 text-lg focus:shadow-none"
-            placeholder={tr.t('feed.composer')}
+            placeholder={placeholder}
             value={text}
             maxLength={LIMITS.postText}
             onChange={(e) => {
@@ -106,7 +136,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
               setTagCtx(activeTag(e.target.value, e.target.selectionStart));
             }}
             onKeyUp={(e) => setTagCtx(activeTag(e.currentTarget.value, e.currentTarget.selectionStart))}
-            aria-label={tr.t('feed.composer')}
+            aria-label={placeholder}
             dir="auto"
           />
           {tagSuggestions.length > 0 && tagCtx && (
@@ -216,7 +246,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
             {tr.t('feed.addPhoto')}
           </UploadButton>
         )}
-        {!poll && !image && (
+        {!poll && !image && kind === 'discussion' && (
           <Button
             variant="ghost"
             size="sm"
@@ -230,7 +260,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted?: (
           {text.length > LIMITS.postText * 0.8 ? tr.t('common.characters', { count: text.length, max: LIMITS.postText }) : ''}
         </span>
         <Button size="sm" disabled={!canPost} loading={busy} onClick={() => void submit()}>
-          {tr.t('feed.post')}
+          {kind === 'question' ? tr.t('feed.ask') : tr.t('feed.post')}
         </Button>
       </div>
     </div>

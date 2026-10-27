@@ -56,6 +56,8 @@ import type {
   PomodoroCompleteDto,
   PomodoroSessionDto,
   PostDto,
+  PronunciationResultDto,
+  PronunciationStatsDto,
   PublicConfigDto,
   PublicProfile,
   QuizAttemptDto,
@@ -187,8 +189,18 @@ export function createApi(options: ClientOptions) {
     report: (body: { targetType: string; targetId: string; reason: string; details?: string }) => http.post<{ id: string }>('/reports', body),
 
     posts: {
-      feed: (q: { scope?: 'all' | 'following' | 'mine' | 'foryou'; authorId?: string; tag?: string; cursor?: string; limit?: number } = {}) =>
-        http.get<Page<PostDto>>('/posts', q),
+      feed: (
+        q: {
+          scope?: 'all' | 'following' | 'mine' | 'foryou';
+          authorId?: string;
+          tag?: string;
+          kind?: PostDto['kind'];
+          unanswered?: boolean;
+          materialId?: string;
+          cursor?: string;
+          limit?: number;
+        } = {},
+      ) => http.get<Page<PostDto>>('/posts', q),
       get: (id: string) => http.get<PostDto>(`/posts/${id}`),
       create: (body: {
         text: string;
@@ -196,7 +208,12 @@ export function createApi(options: ClientOptions) {
         groupId?: string | null;
         poll?: { options: string[]; multiple?: boolean; durationHours?: number };
         sharedPostId?: string | null;
+        kind?: PostDto['kind'];
+        materialId?: string | null;
       }) => http.post<PostDto & { newAchievements: string[] }>('/posts', body),
+      accept: (id: string, commentId: string | null) => http.post<{ acceptedCommentId: string | null; solved: boolean }>(`/posts/${id}/accept`, { commentId }),
+      voteComment: (id: string, commentId: string, on: boolean) =>
+        http.put<{ votes: number; myVote: boolean }>(`/posts/${id}/comments/${commentId}/vote`, { on }),
       vote: (id: string, optionIds: string[]) => http.put<PostDto>(`/posts/${id}/vote`, { optionIds }),
       update: (id: string, text: string) => http.patch<PostDto>(`/posts/${id}`, { text }),
       remove: (id: string) => http.del<Ok>(`/posts/${id}`),
@@ -278,6 +295,11 @@ export function createApi(options: ClientOptions) {
       reorder: (id: string, videoIds: string[]) => http.put<Ok>(`/playlists/${id}/order`, { videoIds }),
     },
     channels: { get: (userId: string) => http.get<VideoChannelDto>(`/channels/${userId}`) },
+    practice: {
+      pronunciation: (body: { language: 'ar' | 'en' | 'fr' | 'es'; phrase: string; heard: string }) =>
+        http.post<PronunciationResultDto>('/practice/pronunciation', body),
+      pronunciationStats: () => http.get<PronunciationStatsDto>('/practice/pronunciation/stats'),
+    },
     studio: {
       overview: () => http.get<StudioOverviewDto>('/studio/overview'),
       videos: (q: { cursor?: string; limit?: number } = {}) => http.get<Page<VideoDto>>('/studio/videos', q),

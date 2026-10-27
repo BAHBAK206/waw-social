@@ -1,5 +1,6 @@
 import { FEATURES, featureMode, type FeatureCategory, type FeatureControlMap, type FeatureId } from '@qubedu/shared';
 import {
+  AudioLines,
   Bell,
   Bookmark,
   Aperture,
@@ -106,6 +107,7 @@ export const ICONS: Record<string, LucideIcon> = {
   compass: Compass,
   'calendar-days': CalendarDays,
   'chart-column': ChartColumn,
+  'audio-lines': AudioLines,
   aperture: Aperture,
   vote: Vote,
 };

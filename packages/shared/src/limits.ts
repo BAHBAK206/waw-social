@@ -50,14 +50,19 @@ export const AUDIO_MIME = ['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4',
 export const VIDEO_MIME = ['video/webm', 'video/mp4', 'video/quicktime'] as const;
 export const ALLOWED_UPLOAD_MIME: readonly string[] = [...IMAGE_MIME, ...DOCUMENT_MIME, ...AUDIO_MIME, ...VIDEO_MIME];
 
+/** Kinds of study-hall posts. */
+export const POST_KINDS = ['discussion', 'question', 'note'] as const;
+export type PostKind = (typeof POST_KINDS)[number];
+
 export const REACTIONS = ['like', 'love', 'haha', 'wow', 'sad', 'celebrate'] as const;
 export type Reaction = (typeof REACTIONS)[number];
+/** Learning-first reactions: helpful, insightful, thanks, mind-blown, confusing (asks for a clearer explanation), well done. */
 export const REACTION_EMOJI: Record<Reaction, string> = {
   like: '👍',
-  love: '❤️',
-  haha: '😂',
-  wow: '😮',
-  sad: '😢',
+  love: '💡',
+  haha: '🙏',
+  wow: '🤯',
+  sad: '🤔',
   celebrate: '🎉',
 };
-export const MESSAGE_EMOJI = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '✅'] as const;
+export const MESSAGE_EMOJI = ['👍', '💡', '🙏', '✅', '🤔', '🎉', '❤️', '😂'] as const;

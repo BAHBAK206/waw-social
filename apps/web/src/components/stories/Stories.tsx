@@ -16,7 +16,7 @@ import { useFeatureOn } from '@/lib/features';
 import { confirmDialog, toast, toastError } from '@/lib/ui';
 
 const TRAY_KEY = ['stories', 'tray'] as const;
-const EMOJIS = ['❤️', '😂', '😮', '😢', '👏', '🔥'];
+const EMOJIS = ['👍', '💡', '🙏', '🤯', '👏', '🔥'];
 const BACKGROUNDS = ['#6c5ce7', '#0984e3', '#00b894', '#e17055', '#d63031', '#2d3436', '#e84393', '#fdcb6e'];
 
 function useTray() {

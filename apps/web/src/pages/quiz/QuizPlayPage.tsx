@@ -12,6 +12,7 @@ import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { celebrate, confirmDialog, toastError } from '@/lib/ui';
 import { QuizResultView } from './QuizResultView';
+import { ReadAloud } from '@/components/common/ReadAloud';
 
 type Answer = number | number[] | string | null;
 
@@ -139,6 +140,7 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
           <h2 className="flex-1 text-xl leading-relaxed font-bold" dir="auto">
             {q.prompt}
           </h2>
+          <ReadAloud text={[q.prompt, ...q.options].join('. ')} className="shrink-0 !px-2" compact={false} />
           <button
             type="button"
             className={cx('icon-btn shrink-0', flags.has(index) && 'bg-soft text-warn')}

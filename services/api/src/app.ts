@@ -10,6 +10,7 @@ import { channelRoutes, studioRoutes } from './routes/channels';
 import { eventRoutes } from './routes/events';
 import { exploreRoutes } from './routes/explore';
 import { playlistRoutes } from './routes/playlists';
+import { practiceRoutes } from './routes/practice';
 import { storyRoutes } from './routes/stories';
 import { videoRoutes } from './routes/videos';
 import { chatRoutes } from './routes/chat';
@@ -107,6 +108,7 @@ export function createApp(deps: Deps) {
   api.route('/stories', storyRoutes);
   api.route('/events', eventRoutes);
   api.route('/explore', exploreRoutes);
+  api.route('/practice', practiceRoutes);
   api.route('/admin', adminRoutes);
   app.route('/api/v1', api);
 

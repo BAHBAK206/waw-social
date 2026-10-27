@@ -12,6 +12,7 @@ import { api } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { toast, toastError } from '@/lib/ui';
+import { ReadAloud } from '@/components/common/ReadAloud';
 
 type Mode = 'solve' | 'explain' | 'summarize' | 'quiz';
 
@@ -34,6 +35,7 @@ function Answer({ a }: { a: AiAnswerDto }) {
           {tr.t(`ai.confidence.${a.confidence}`)}
         </span>
         <span className="badge">{a.provider}</span>
+        <ReadAloud text={[a.answer, ...a.steps].join('. ')} className="ms-auto" />
       </div>
       <p className="text-lg font-bold whitespace-pre-wrap" dir="auto">
         {a.answer}
