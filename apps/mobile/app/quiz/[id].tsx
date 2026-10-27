@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { ReadAloud } from '@/components/ReadAloud';
 import { Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatClock } from '@/lib/format';
@@ -160,9 +161,12 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
         </View>
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }} keyboardShouldPersistTaps="handled">
-        <Text weight="black" size={19}>
-          {q.prompt}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+          <Text weight="black" size={19} style={{ flex: 1 }}>
+            {q.prompt}
+          </Text>
+          <ReadAloud text={[q.prompt, ...q.options].join('. ')} size={24} />
+        </View>
         {q.type === 'multi' ? (
           <Text muted size={13}>
             {tr.t('quiz.player.selectAll')}

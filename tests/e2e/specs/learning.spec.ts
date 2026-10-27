@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiRegister, dismissOnboarding, newUser, register, trackErrors, uid } from './helpers';
+import { apiRegister, login, dismissOnboarding, newUser, register, trackErrors, uid } from './helpers';
 
 test.describe('study tools', () => {
   test('workspace: write a document and a spreadsheet; both persist across reloads', async ({ page }) => {
@@ -118,8 +118,46 @@ test.describe('study tools', () => {
       .first()
       .click();
     await expect(page.getByText(/Turned in|Submitted/i).first()).toBeVisible();
+
+    // The teacher grades and returns the work; the student sees the grade and feedback.
+    const a = (await assignment.json()) as { id: string };
+    const ctxT = await browser.newContext({ locale: 'en-US' });
+    const pageT = await ctxT.newPage();
+    errors.push(...trackErrors(pageT));
+    await login(pageT, teacher);
+    await pageT.goto(`/school/assignments/${a.id}`);
+    await expect(pageT.getByText('Nucleus, membrane, mitochondria')).toBeVisible();
+    await pageT.getByRole('button', { name: 'Grade', exact: true }).click();
+    await pageT.getByLabel('Grade (/10)').fill('9');
+    await pageT.getByLabel('Feedback').fill('Great labels — add the cell wall next time.');
+    await pageT.getByRole('button', { name: 'Return', exact: true }).click();
+    await expect(pageT.getByText('9/10').first()).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByText('Great labels — add the cell wall next time.')).toBeVisible();
+    await expect(page.getByText(/^Graded|Returned$/).first()).toBeVisible();
     expect(errors).toEqual([]);
     await dismissOnboarding(page);
+    await ctxT.close();
     await ctx.close();
+  });
+
+  test('flashcards: add a card, review it and see the session summary', async ({ page }) => {
+    const errors = trackErrors(page);
+    await register(page, newUser('carder'));
+    await page.goto('/academic?tab=cards');
+    await page.getByRole('button', { name: 'Add card' }).first().click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Deck').fill('Chemistry');
+    await dialog.getByLabel('Front (question)').fill('Symbol of sodium?');
+    await dialog.getByLabel('Back (answer)').fill('Na');
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Symbol of sodium?')).toBeVisible();
+    await page.getByRole('button', { name: /Review now \(1 due\)/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Show answer', exact: true }).click();
+    await expect(page.getByRole('dialog').getByText('Na', { exact: true }).first()).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Good', exact: true }).click();
+    await expect(page.getByText('Review complete! 1 card reviewed.')).toBeVisible();
+    expect(errors).toEqual([]);
   });
 });

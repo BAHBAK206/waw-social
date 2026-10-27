@@ -1,6 +1,6 @@
 import type { PostDto } from '@qubedu/shared';
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { FlatList, View } from 'react-native';
+import { FlatList, ScrollView, View } from 'react-native';
 import { useState } from 'react';
 import { Composer } from '@/components/Composer';
 import { PostCard } from '@/components/PostCard';
@@ -9,7 +9,15 @@ import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 
-type Scope = 'foryou' | 'following' | 'all';
+type Scope = 'foryou' | 'questions' | 'notes' | 'following' | 'all';
+const SCOPES: Scope[] = ['foryou', 'questions', 'notes', 'following', 'all'];
+const SCOPE_LABEL = {
+  foryou: 'feed.scopeForYou',
+  questions: 'feed.scopeQuestions',
+  notes: 'feed.scopeNotes',
+  following: 'feed.scopeFollowing',
+  all: 'feed.scopeAll',
+} as const;
 type Data = InfiniteData<{ items: PostDto[]; nextCursor: string | null }, string | undefined>;
 
 export default function FeedScreen() {
@@ -17,10 +25,18 @@ export default function FeedScreen() {
   const t = useTheme();
   const qc = useQueryClient();
   const [scope, setScope] = useState<Scope>('foryou');
-  const key = ['feed', scope];
+  const [unanswered, setUnanswered] = useState(false);
+  const key = ['feed', scope, unanswered];
   const q = useInfiniteQuery({
     queryKey: key,
-    queryFn: ({ pageParam }) => api.posts.feed({ scope, cursor: pageParam, limit: 15 }),
+    queryFn: ({ pageParam }) =>
+      api.posts.feed({
+        scope: scope === 'questions' || scope === 'notes' ? 'all' : scope,
+        kind: scope === 'questions' ? 'question' : scope === 'notes' ? 'note' : undefined,
+        unanswered: scope === 'questions' && unanswered ? true : undefined,
+        cursor: pageParam,
+        limit: 15,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (l) => l.nextCursor ?? undefined,
   });
@@ -45,11 +61,16 @@ export default function FeedScreen() {
       ListHeaderComponent={
         <View style={{ gap: 12, marginBottom: 4 }}>
           <Composer onPosted={() => void qc.invalidateQueries({ queryKey: ['feed'] })} />
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Chip label={tr.t('feed.scopeForYou')} active={scope === 'foryou'} onPress={() => setScope('foryou')} />
-            <Chip label={tr.t('feed.scopeFollowing')} active={scope === 'following'} onPress={() => setScope('following')} />
-            <Chip label={tr.t('feed.scopeAll')} active={scope === 'all'} onPress={() => setScope('all')} />
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {SCOPES.map((s) => (
+              <Chip key={s} label={tr.t(SCOPE_LABEL[s])} active={scope === s} onPress={() => setScope(s)} />
+            ))}
+          </ScrollView>
+          {scope === 'questions' && (
+            <View style={{ flexDirection: 'row' }}>
+              <Chip label={tr.t('feed.onlyUnanswered')} active={unanswered} onPress={() => setUnanswered((u) => !u)} />
+            </View>
+          )}
         </View>
       }
       ListEmptyComponent={

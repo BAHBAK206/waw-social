@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LIMITS } from '@qubedu/shared';
+import { LIMITS, POST_KINDS, type PostKind } from '@qubedu/shared';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Avatar, Button, Card, Input } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Input } from '@/components/ui';
 import { api, uploadFile } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
@@ -16,6 +16,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted: ()
   const t = useTheme();
   const me = useSession((s) => s.me)!;
   const [text, setText] = useState('');
+  const [kind, setKind] = useState<PostKind>('discussion');
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -33,8 +34,9 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted: ()
         const up = await uploadFile({ uri: image.uri, name: image.fileName ?? 'photo.jpg', mimeType: image.mimeType ?? 'image/jpeg' }, 'post');
         imageUrl = up.url;
       }
-      await api.posts.create({ text: text.trim(), imageUrl, groupId: groupId ?? null });
+      await api.posts.create({ text: text.trim(), imageUrl, groupId: groupId ?? null, kind });
       setText('');
+      setKind('discussion');
       setImage(null);
       toast(tr.t('feed.posted'));
       onPosted();
@@ -47,13 +49,18 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted: ()
 
   return (
     <Card style={{ gap: 10 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
+        {POST_KINDS.map((k) => (
+          <Chip key={k} label={tr.t(`feed.kinds.${k}`)} active={kind === k} onPress={() => setKind(k)} />
+        ))}
+      </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Avatar name={me.displayName} url={me.avatarUrl} />
         <View style={{ flex: 1 }}>
           <Input
             value={text}
             onChangeText={setText}
-            placeholder={tr.t('feed.composer')}
+            placeholder={kind === 'question' ? tr.t('feed.questionPlaceholder') : kind === 'note' ? tr.t('feed.notePlaceholder') : tr.t('feed.composer')}
             multiline
             maxLength={LIMITS.postText}
             style={{ minHeight: 56, textAlignVertical: 'top' }}
@@ -81,7 +88,7 @@ export function Composer({ groupId, onPosted }: { groupId?: string; onPosted: ()
         >
           <Ionicons name="image-outline" size={22} color={t.primaryInk} />
         </Pressable>
-        <Button title={tr.t('feed.post')} small onPress={submit} loading={busy} disabled={!text.trim() && !image} />
+        <Button title={kind === 'question' ? tr.t('feed.ask') : tr.t('feed.post')} small onPress={submit} loading={busy} disabled={!text.trim() && !image} />
       </View>
     </Card>
   );

@@ -3,6 +3,7 @@ import { REACTION_EMOJI, type PostDto, type Reaction } from '@qubedu/shared';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
+import { ReadAloud } from '@/components/ReadAloud';
 import { Avatar, Card, Text } from '@/components/ui';
 import { api, fileUrl } from '@/lib/api';
 import { relativeTime } from '@/lib/format';
@@ -87,7 +88,32 @@ export function PostCard({
           </Pressable>
         )}
       </Pressable>
-      {post.text ? <Text size={16}>{post.text}</Text> : null}
+      {(post.kind !== 'discussion' || post.material) && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {post.kind !== 'discussion' && (
+            <Badge
+              icon={post.kind === 'question' ? 'help-circle-outline' : 'book-outline'}
+              label={tr.t(`feed.kinds.${post.kind}`)}
+              color={t.primaryInk}
+              bg={t.primarySoft}
+            />
+          )}
+          {post.kind === 'question' && (
+            <Badge
+              icon={post.solved ? 'checkmark-circle' : 'time-outline'}
+              label={post.solved ? tr.t('feed.solved') : tr.t('feed.unanswered')}
+              color={post.solved ? t.ok : t.warn}
+              bg={t.bg3}
+            />
+          )}
+          {post.material && <Badge icon="school-outline" label={post.material.name} color={t.text2} bg={t.bg3} />}
+        </View>
+      )}
+      {post.text ? (
+        <Text size={post.kind === 'question' ? 17 : 16} weight={post.kind === 'question' ? 'bold' : 'regular'}>
+          {post.text}
+        </Text>
+      ) : null}
       {post.imageUrl ? (
         <Image
           source={{ uri: fileUrl(post.imageUrl) }}
@@ -143,20 +169,32 @@ export function PostCard({
         <Pressable
           onPress={() => router.push(`/post/${post.id}`)}
           accessibilityRole="button"
-          accessibilityLabel={tr.t('feed.comments')}
+          accessibilityLabel={post.kind === 'question' ? tr.t('feed.answerCount', { count: post.commentCount }) : tr.t('feed.comments')}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
           hitSlop={8}
         >
-          <Ionicons name="chatbubble-outline" size={21} color={t.text2} />
+          <Ionicons name={post.kind === 'question' ? 'chatbox-ellipses-outline' : 'chatbubble-outline'} size={21} color={t.text2} />
           <Text muted weight="bold">
-            {post.commentCount || ''}
+            {post.kind === 'question' ? tr.t('feed.answerCount', { count: post.commentCount }) : post.commentCount || ''}
           </Text>
         </Pressable>
         <View style={{ flex: 1 }} />
+        <ReadAloud text={post.text} />
         <Pressable onPress={toggleSave} accessibilityRole="button" accessibilityLabel={post.saved ? tr.t('feed.unsave') : tr.t('feed.save')} hitSlop={8}>
           <Ionicons name={post.saved ? 'bookmark' : 'bookmark-outline'} size={22} color={post.saved ? t.primary : t.text2} />
         </Pressable>
       </View>
     </Card>
+  );
+}
+
+function Badge({ icon, label, color, bg }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; bg: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3, backgroundColor: bg }}>
+      <Ionicons name={icon} size={13} color={color} />
+      <Text size={12} weight="bold" color={color}>
+        {label}
+      </Text>
+    </View>
   );
 }
