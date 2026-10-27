@@ -14,7 +14,7 @@ test('create a group, post in it, a second member joins and chats', async ({ bro
 
   const name = `Study circle ${uid()}`;
   await pageO.goto('/groups');
-  await pageO.getByRole('button', { name: 'Create group' }).click();
+  await pageO.getByRole('button', { name: 'Create study group' }).click();
   await pageO.getByRole('dialog').getByLabel('Name').fill(name);
   await pageO.getByRole('dialog').getByRole('button', { name: 'Create', exact: true }).click();
   await expect(pageO.getByRole('heading', { level: 1, name })).toBeVisible();

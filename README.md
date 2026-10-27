@@ -1,6 +1,6 @@
 # Qubedu
 
-An educational **social learning platform**: study tools, classrooms and live classes, plus a community with video, stories, groups and chat — on the **web**, **Android** and **iOS**, in **Arabic, English, French and Spanish**.
+An **educational platform** where every feature serves learning: study tools, classrooms and live classes, video lessons, a study hall for questions and notes, study groups and a pronunciation lab — on the **web**, **Android** and **iOS**, in **Arabic, English, French and Spanish**.
 
 [العربية ↓](#قبيدو)
 
@@ -15,10 +15,12 @@ An educational **social learning platform**: study tools, classrooms and live cl
 
 ## What is inside
 
-- **Social**: feed (For-You ranking, hashtags, polls, shares), stories, groups and communities with channels, direct/group chat (typing, read receipts, replies, reactions, files, voice notes), profiles, leaderboards, saved collections.
-- **Video**: Watch (home, trending, subscriptions), Shorts, channels, playlists, watch history/later, comments, Creator Studio analytics, events with RSVP.
+- **Study hall**: discussions, **questions** with a subject, ranked answers, *helpful* votes, teacher badges and a best answer that rewards the helper with XP, plus shared **study notes**; class polls, study tips (24 h), study groups and subject communities, chat, profiles, top learners, bookmarks.
+- **Video lessons**: lessons and one-minute lessons by subject, a clickable **lesson outline** from timestamps, a **checkpoint quiz** offered when the lesson ends, **private timestamped notes**, lesson series, study-later, teaching studio analytics, workshops and revision sessions with RSVP.
+- **Pronunciation lab**: listen (normal/slow), speak, get a word-by-word score in Arabic, English, French or Spanish (re-scored on the server, XP and weak-word tracking); **read aloud** on posts, answers, quiz questions, flashcards and tutor replies (web and mobile).
 - **Learning**: quizzes/tests/exams with server-side grading and smart practice, flashcards (spaced repetition), study planner, Pomodoro, mastery tracking, AI tutor and math solver, document/sheet/slide workspace with Office export, forms builder, library.
 - **Classrooms**: courses, assignments, grades, attendance, announcements, **live classes** (WebRTC mesh, screen share, whiteboard, hand raise, moderation, recording).
+- **Languages**: 4 locales with ICU plurals (all six Arabic forms) and RTL.
 - **Design system**: 6 designs × 8 skins × light/dark (96 combinations, WCAG-AA validated), Tajawal font, RTL, text size and reduced motion.
 - **Admin**: permission-gated console — users, reports, announcements/ads, subjects, daily challenges, library approvals, assistant knowledge, feature controls, site settings, error monitor, audit log.
 
@@ -54,12 +56,12 @@ pnpm test:e2e       # Playwright against a running stack (pnpm dev)
 
 | Suite | What it covers |
 | --- | --- |
-| `services/api` (44 tests) | Auth, social, chat privacy, groups, school, live, quizzes, platform features, admin |
-| `packages/*` (40 tests) | Schemas, XP/levels, 96 theme contrasts, 4-language key parity, API client |
+| `services/api` (47 tests) | Auth, study hall Q&A, chat privacy, groups, school, live, quizzes, video lessons (linked quiz, notes), pronunciation, admin |
+| `packages/*` (51 tests) | Schemas, XP/levels, pronunciation scoring, lesson outlines, 96 theme contrasts, 4-language key parity + plurals, API client |
 | `services/realtime` | Hub, presence, authorization (`go test -race`) |
 | `services/ai` (22 tests) | Math solver, retrieval, essay grading |
 | `apps/web` (13 tests) | Formula engine, formatting, redirects |
-| `tests/e2e` (33 tests) | Auth, languages & RTL, themes, feed, polls, stories, events, groups, video upload + playback, shorts, quizzes, forms, classroom, workspace docs + spreadsheet formulas, planner, library moderation, admin console, **two-browser chat**, **WebRTC live class**, notifications, phone layout, every route |
+| `tests/e2e` (37 tests) | Auth, languages & RTL, themes, study hall Q&A + best answer, pronunciation lab, polls, study tips, workshops, groups, video lesson upload + playback, lesson outline/notes/checkpoint quiz, quiz editor, shorts, quizzes, forms, classroom with grading, flashcards, workspace docs + spreadsheet formulas, planner, library moderation, admin console, **two-browser chat**, **WebRTC live class**, notifications, phone layout, every route |
 | CI (`.github/workflows/ci.yml`) | All of the above + web/API builds + Expo bundles + Docker images |
 
 More: [Architecture](docs/ARCHITECTURE.md) · [Features](docs/FEATURES.md) · [Deployment](docs/DEPLOYMENT.md) · [Security](docs/SECURITY.md)
@@ -68,7 +70,7 @@ More: [Architecture](docs/ARCHITECTURE.md) · [Features](docs/FEATURES.md) · [D
 
 # قبيدو
 
-منصة **تعليمية اجتماعية**: أدوات مذاكرة، فصول دراسية وحصص مباشرة، ومجتمع فيه فيديو وقصص ومجموعات ومحادثات — على **الويب** و**أندرويد** و**iOS** بأربع لغات: **العربية والإنجليزية والفرنسية والإسبانية**.
+منصة **تعليمية** كل ميزة فيها تخدم التعلّم: أدوات مذاكرة، فصول دراسية وحصص مباشرة، دروس مرئية بأقسام واختبار بعد الدرس وملاحظات، ساحة نقاش للأسئلة والملخصات مع أفضل إجابة، مجموعات مذاكرة، ومعمل للنطق — على **الويب** و**أندرويد** و**iOS** بأربع لغات: **العربية والإنجليزية والفرنسية والإسبانية**.
 
 ## تشغيل سريع
 

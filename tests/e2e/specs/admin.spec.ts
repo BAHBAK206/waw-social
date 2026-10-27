@@ -39,7 +39,7 @@ test.describe('admin console', () => {
     await register(user, newUser('viewer'));
     await expect(user.getByText(title).first()).toBeVisible();
 
-    // Hide Events for everyone, then restore it.
+    // Hide Workshops (events) for everyone, then restore it.
     await page.goto('/admin?tab=features');
     await page.getByPlaceholder('Filter features…').fill('events');
     const mode = page.getByRole('combobox', { name: 'events', exact: true });
@@ -47,13 +47,13 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved').first()).toBeVisible();
     await user.reload();
-    await expect(user.getByRole('link', { name: 'Events', exact: true })).toHaveCount(0);
+    await expect(user.getByRole('link', { name: 'Workshops', exact: true })).toHaveCount(0);
 
     await mode.selectOption('enabled');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved').first()).toBeVisible();
     await user.reload();
-    await expect(user.getByRole('link', { name: 'Events', exact: true }).first()).toBeVisible();
+    await expect(user.getByRole('link', { name: 'Workshops', exact: true }).first()).toBeVisible();
     await ctx.close();
   });
 });
