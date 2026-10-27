@@ -1,0 +1,290 @@
+import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
+import { Hono } from 'hono';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import {
+  changePasswordSchema,
+  isValidTimeZone,
+  loginSchema,
+  normalizeSearch,
+  refreshSchema,
+  registerSchema,
+  requestResetSchema,
+  resetPasswordSchema,
+  verifyEmailSchema,
+  type AuthResult,
+} from '@qubedu/shared';
+import { emailTokens, sessions, users } from '../db/schema';
+import type { AppEnv, Deps } from '../lib/context';
+import { hashPassword, randomToken, sha256, signAccessToken, verifyPassword } from '../lib/crypto';
+import { AppError, badRequest, forbidden, unauthorized } from '../lib/errors';
+import { body, clientIp, param, requireUser, type Ctx } from '../lib/http';
+import { emailTemplate } from '../lib/mailer';
+import { buildMe } from '../lib/profile';
+import { getSettings } from '../lib/settings';
+import { checkRate } from '../middleware';
+
+export const REFRESH_COOKIE = 'qb_rt';
+const ROTATION_GRACE_MS = 60_000;
+let dummyHash: Promise<string> | null = null;
+const getDummyHash = () => (dummyHash ??= hashPassword(randomToken(16)));
+
+const isMobile = (c: Ctx) => c.req.header('x-client') === 'mobile';
+
+function cookieOptions(deps: Deps) {
+  return {
+    httpOnly: true,
+    secure: deps.env.APP_URL.startsWith('https://'),
+    sameSite: 'Lax' as const,
+    path: '/api/v1/auth',
+    maxAge: deps.env.REFRESH_TOKEN_TTL_DAYS * 86400,
+  };
+}
+
+async function issueSession(c: Ctx, userId: string): Promise<AuthResult> {
+  const deps = c.get('deps');
+  const raw = randomToken(32);
+  const [session] = await deps.db
+    .insert(sessions)
+    .values({
+      userId,
+      tokenHash: sha256(raw),
+      userAgent: c.req.header('user-agent')?.slice(0, 300) ?? null,
+      ip: clientIp(c, deps.env.TRUST_PROXY),
+      client: isMobile(c) ? 'mobile' : 'web',
+      expiresAt: new Date(Date.now() + deps.env.REFRESH_TOKEN_TTL_DAYS * 86400_000),
+    })
+    .returning({ id: sessions.id });
+  return finishAuth(c, userId, session!.id, raw);
+}
+
+async function finishAuth(c: Ctx, userId: string, sessionId: string, rawRefresh: string): Promise<AuthResult> {
+  const deps = c.get('deps');
+  const [u] = await deps.db
+    .select({ role: users.role, name: users.displayName, tv: users.tokenVersion })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!u) throw unauthorized();
+  const access = await signAccessToken(deps.env.JWT_SECRET, { sub: userId, sid: sessionId, role: u.role, name: u.name, tv: u.tv }, deps.env.ACCESS_TOKEN_TTL_SEC);
+  const me = await buildMe(deps, userId);
+  if (isMobile(c)) return { accessToken: access.token, accessTokenExpiresAt: access.expiresAt, refreshToken: rawRefresh, user: me };
+  setCookie(c, REFRESH_COOKIE, rawRefresh, cookieOptions(deps));
+  return { accessToken: access.token, accessTokenExpiresAt: access.expiresAt, user: me };
+}
+
+async function sendEmailToken(deps: Deps, user: { id: string; email: string; language: string }, kind: 'verify' | 'reset') {
+  const raw = randomToken(32);
+  await deps.db.insert(emailTokens).values({
+    userId: user.id,
+    kind,
+    tokenHash: sha256(raw),
+    expiresAt: new Date(Date.now() + (kind === 'verify' ? 3 * 86400_000 : 3600_000)),
+  });
+  const ar = user.language === 'ar';
+  const url = `${deps.env.APP_URL.replace(/\/$/, '')}/${kind === 'verify' ? 'verify-email' : 'reset-password'}?token=${raw}`;
+  const t =
+    kind === 'verify'
+      ? ar
+        ? emailTemplate('تأكيد بريدك الإلكتروني', 'مرحبًا بك في Qubedu! اضغط الزر لتأكيد بريدك.', 'تأكيد البريد', url, 'rtl')
+        : emailTemplate('Confirm your email', 'Welcome to Qubedu! Press the button to confirm your email.', 'Confirm email', url, 'ltr')
+      : ar
+        ? emailTemplate('إعادة تعيين كلمة المرور', 'طلبت إعادة تعيين كلمة المرور. الرابط صالح لمدة ساعة.', 'تعيين كلمة مرور جديدة', url, 'rtl')
+        : emailTemplate('Reset your password', 'You asked to reset your password. The link is valid for one hour.', 'Set a new password', url, 'ltr');
+  await deps.mailer.send({ to: user.email, subject: kind === 'verify' ? (ar ? 'تأكيد البريد — Qubedu' : 'Confirm your email — Qubedu') : ar ? 'إعادة تعيين كلمة المرور — Qubedu' : 'Reset password — Qubedu', ...t });
+  return raw;
+}
+
+async function consumeEmailToken(deps: Deps, raw: string, kind: 'verify' | 'reset') {
+  const [row] = await deps.db
+    .update(emailTokens)
+    .set({ usedAt: new Date() })
+    .where(and(eq(emailTokens.tokenHash, sha256(raw)), eq(emailTokens.kind, kind), isNull(emailTokens.usedAt), gt(emailTokens.expiresAt, new Date())))
+    .returning({ userId: emailTokens.userId });
+  if (!row) throw badRequest('invalid_or_expired_token');
+  return row.userId;
+}
+
+export const authRoutes = new Hono<AppEnv>()
+  .post('/register', async (c) => {
+    await checkRate(c, { bucket: 'register', limit: 8, windowSec: 3600 });
+    const deps = c.get('deps');
+    const input = await body(c, registerSchema);
+    const settings = await getSettings(deps.db, deps.env.AI_DAILY_QUOTA);
+    if (!settings.registrationOpen) throw forbidden('registration_closed');
+    const [existing] = await deps.db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
+    if (existing) throw new AppError(409, 'email_taken');
+    const isRoot = !!deps.env.ROOT_ADMIN_EMAIL && deps.env.ROOT_ADMIN_EMAIL.toLowerCase() === input.email;
+    const language = input.language ?? 'ar';
+    const [user] = await deps.db
+      .insert(users)
+      .values({
+        email: input.email,
+        passwordHash: await hashPassword(input.password),
+        displayName: input.displayName,
+        searchName: normalizeSearch(input.displayName),
+        accountType: input.accountType,
+        role: isRoot ? 'root' : 'user',
+        timezone: input.timezone && isValidTimeZone(input.timezone) ? input.timezone : 'UTC',
+        appearance: { language },
+      })
+      .returning({ id: users.id });
+    await sendEmailToken(deps, { id: user!.id, email: input.email, language }, 'verify');
+    return c.json(await issueSession(c, user!.id), 201);
+  })
+  .post('/login', async (c) => {
+    await checkRate(c, { bucket: 'login', limit: 20, windowSec: 900 });
+    const deps = c.get('deps');
+    const input = await body(c, loginSchema);
+    await checkRate(c, { bucket: `login:${sha256(input.email).slice(0, 16)}`, limit: 10, windowSec: 900 });
+    const [user] = await deps.db
+      .select({ id: users.id, hash: users.passwordHash, deletedAt: users.deletedAt })
+      .from(users)
+      .where(eq(users.email, input.email));
+    // Always run a hash verification to keep timing similar for unknown emails.
+    const ok = await verifyPassword(user?.hash ?? (await getDummyHash()), input.password);
+    if (!user || !user.hash || !ok || user.deletedAt) throw unauthorized('invalid_credentials');
+    return c.json(await issueSession(c, user.id));
+  })
+  .post('/refresh', async (c) => {
+    await checkRate(c, { bucket: 'refresh', limit: 60, windowSec: 300 });
+    const deps = c.get('deps');
+    let raw: string | undefined;
+    if (isMobile(c)) {
+      raw = (await body(c, refreshSchema)).refreshToken;
+    } else {
+      // Cookie-based refresh requires a custom header: cross-site forms cannot set it (CSRF guard).
+      if (c.req.header('x-requested-with') !== 'qubedu') throw forbidden('csrf');
+      raw = getCookie(c, REFRESH_COOKIE);
+    }
+    if (!raw) throw unauthorized('no_refresh_token');
+    const hashed = sha256(raw);
+    const [session] = await deps.db
+      .select()
+      .from(sessions)
+      .where(or(eq(sessions.tokenHash, hashed), eq(sessions.previousTokenHash, hashed)));
+    if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) {
+      if (!isMobile(c)) deleteCookie(c, REFRESH_COOKIE, { path: '/api/v1/auth' });
+      throw unauthorized('session_expired');
+    }
+    if (session.previousTokenHash === hashed && session.tokenHash !== hashed) {
+      const withinGrace = session.rotatedAt && Date.now() - session.rotatedAt.getTime() < ROTATION_GRACE_MS;
+      if (!withinGrace) {
+        await deps.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.id, session.id));
+        throw unauthorized('refresh_reused');
+      }
+    }
+    const next = randomToken(32);
+    await deps.db
+      .update(sessions)
+      .set({
+        previousTokenHash: session.tokenHash,
+        tokenHash: sha256(next),
+        rotatedAt: new Date(),
+        lastUsedAt: new Date(),
+        expiresAt: new Date(Date.now() + deps.env.REFRESH_TOKEN_TTL_DAYS * 86400_000),
+      })
+      .where(eq(sessions.id, session.id));
+    return c.json(await finishAuth(c, session.userId, session.id, next));
+  })
+  .post('/logout', async (c) => {
+    const deps = c.get('deps');
+    const user = c.get('user');
+    let raw: string | undefined;
+    if (isMobile(c)) raw = (await c.req.json().catch(() => ({})))?.refreshToken;
+    else raw = getCookie(c, REFRESH_COOKIE);
+    if (raw) await deps.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.tokenHash, sha256(raw)));
+    if (user) await deps.db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.id, user.sessionId));
+    deleteCookie(c, REFRESH_COOKIE, { path: '/api/v1/auth' });
+    return c.json({ ok: true });
+  })
+  .post('/logout-all', async (c) => {
+    const user = requireUser(c);
+    const { db } = c.get('deps');
+    await db.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, user.id), isNull(sessions.revokedAt)));
+    deleteCookie(c, REFRESH_COOKIE, { path: '/api/v1/auth' });
+    return c.json({ ok: true });
+  })
+  .get('/sessions', async (c) => {
+    const user = requireUser(c);
+    const { db } = c.get('deps');
+    const rows = await db
+      .select()
+      .from(sessions)
+      .where(and(eq(sessions.userId, user.id), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
+      .orderBy(desc(sessions.lastUsedAt));
+    return c.json({
+      items: rows.map((s) => ({
+        id: s.id,
+        client: s.client,
+        userAgent: s.userAgent,
+        ip: s.ip,
+        createdAt: s.createdAt.getTime(),
+        lastUsedAt: s.lastUsedAt.getTime(),
+        current: s.id === user.sessionId,
+      })),
+    });
+  })
+  .delete('/sessions/:id', async (c) => {
+    const user = requireUser(c);
+    const { db } = c.get('deps');
+    await db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.id, param(c, 'id')), eq(sessions.userId, user.id)));
+    return c.json({ ok: true });
+  })
+  .post('/verify-email', async (c) => {
+    const deps = c.get('deps');
+    const { token } = await body(c, verifyEmailSchema);
+    const userId = await consumeEmailToken(deps, token, 'verify');
+    await deps.db.update(users).set({ emailVerifiedAt: new Date() }).where(eq(users.id, userId));
+    return c.json({ ok: true });
+  })
+  .post('/resend-verification', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'resend-verify', limit: 3, windowSec: 3600, by: 'user' });
+    const deps = c.get('deps');
+    const [u] = await deps.db.select().from(users).where(eq(users.id, user.id));
+    if (!u || u.emailVerifiedAt) return c.json({ ok: true });
+    await sendEmailToken(deps, { id: u.id, email: u.email, language: String((u.appearance as { language?: string }).language ?? 'ar') }, 'verify');
+    return c.json({ ok: true });
+  })
+  .post('/request-reset', async (c) => {
+    await checkRate(c, { bucket: 'reset', limit: 5, windowSec: 3600 });
+    const deps = c.get('deps');
+    const { email } = await body(c, requestResetSchema);
+    const [u] = await deps.db.select().from(users).where(and(eq(users.email, email), isNull(users.deletedAt)));
+    if (u) await sendEmailToken(deps, { id: u.id, email: u.email, language: String((u.appearance as { language?: string }).language ?? 'ar') }, 'reset');
+    // Same response whether or not the account exists (no account enumeration).
+    return c.json({ ok: true });
+  })
+  .post('/reset-password', async (c) => {
+    await checkRate(c, { bucket: 'reset-confirm', limit: 10, windowSec: 3600 });
+    const deps = c.get('deps');
+    const { token, password } = await body(c, resetPasswordSchema);
+    const userId = await consumeEmailToken(deps, token, 'reset');
+    await deps.db.transaction(async (tx) => {
+      const [u] = await tx.select({ tv: users.tokenVersion }).from(users).where(eq(users.id, userId));
+      await tx
+        .update(users)
+        .set({ passwordHash: await hashPassword(password), tokenVersion: (u?.tv ?? 0) + 1, emailVerifiedAt: new Date() })
+        .where(eq(users.id, userId));
+      await tx.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.userId, userId));
+    });
+    return c.json({ ok: true });
+  })
+  .post('/change-password', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'change-password', limit: 10, windowSec: 3600, by: 'user' });
+    const deps = c.get('deps');
+    const input = await body(c, changePasswordSchema);
+    const [u] = await deps.db.select().from(users).where(eq(users.id, user.id));
+    if (!u?.passwordHash || !(await verifyPassword(u.passwordHash, input.currentPassword))) throw badRequest('wrong_password');
+    await deps.db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({ passwordHash: await hashPassword(input.newPassword), tokenVersion: u.tokenVersion + 1 })
+        .where(eq(users.id, user.id));
+      await tx.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, user.id)));
+    });
+    return c.json(await issueSession(c, user.id));
+  });

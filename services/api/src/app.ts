@@ -1,0 +1,72 @@
+import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
+import { cors } from 'hono/cors';
+import { LIMITS } from '@qubedu/shared';
+import type { AppEnv, Deps } from './lib/context';
+import { AppError, errorResponse } from './lib/errors';
+import { authenticate, injectDeps, maintenanceGate, securityHeaders } from './middleware';
+import { authRoutes } from './routes/auth';
+import { configRoutes } from './routes/config';
+import { fileRoutes } from './routes/files';
+import { notificationRoutes } from './routes/notifications';
+import { postRoutes } from './routes/posts';
+import { uploadRoutes } from './routes/uploads';
+import { meRoutes, reportRoutes, userRoutes } from './routes/users';
+
+export function createApp(deps: Deps) {
+  const app = new Hono<AppEnv>();
+  const origins = deps.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+
+  app.use('*', injectDeps(deps));
+  app.use('*', securityHeaders);
+  app.use(
+    '/api/*',
+    cors({
+      origin: (origin) => (!origin ? origin : origins.includes(origin) || origins.includes('*') ? origin : null),
+      credentials: true,
+      allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client'],
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      maxAge: 600,
+    }),
+  );
+  app.use('/api/*', bodyLimit({ maxSize: LIMITS.uploadBytes + 1024 * 1024, onError: (c) => c.json({ error: { code: 'payload_too_large', message: 'payload_too_large' } }, 413) }));
+  app.use('/api/*', authenticate);
+  app.use('/api/*', maintenanceGate);
+
+  app.get('/health', async (c) => {
+    let db = false;
+    try {
+      await deps.sql`select 1`;
+      db = true;
+    } catch {
+      db = false;
+    }
+    return c.json({ ok: db, db, kv: deps.kv.kind, storage: deps.storage.driver, version: '2.0.0' }, db ? 200 : 503);
+  });
+  app.route('/files', fileRoutes);
+
+  const api = new Hono<AppEnv>();
+  api.route('/', configRoutes);
+  api.route('/auth', authRoutes);
+  api.route('/me', meRoutes);
+  api.route('/users', userRoutes);
+  api.route('/reports', reportRoutes);
+  api.route('/posts', postRoutes);
+  api.route('/notifications', notificationRoutes);
+  api.route('/uploads', uploadRoutes);
+  app.route('/api/v1', api);
+
+  app.notFound((c) => c.json({ error: { code: 'not_found', message: 'not_found' } }, 404));
+  app.onError((err, c) => {
+    const handled = errorResponse(c, err);
+    if (handled) {
+      if (err instanceof AppError && err.status >= 500) deps.log.warn({ err: err.code, path: c.req.path }, 'request failed');
+      return handled;
+    }
+    deps.log.error({ err, path: c.req.path, requestId: c.get('requestId') }, 'unhandled error');
+    return c.json({ error: { code: 'internal', message: 'internal_error' } }, 500);
+  });
+  return app;
+}
+
+export type App = ReturnType<typeof createApp>;
