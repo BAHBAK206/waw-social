@@ -34,7 +34,7 @@ test('ask a question, a teacher answers, the asker marks the best answer', async
   await pageS.reload();
   const card = pageS.locator('article', { hasText: question }).first();
   await card
-    .getByRole('button', { name: /1 answers|Answers/ })
+    .getByRole('button', { name: /1 answers?|Answers/ })
     .first()
     .click();
   await card.getByRole('button', { name: 'Mark as best answer' }).click();

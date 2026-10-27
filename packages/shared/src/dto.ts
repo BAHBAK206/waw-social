@@ -852,6 +852,15 @@ export interface VideoDto {
   subscribed: boolean;
   subscribers: number;
   canEdit: boolean;
+  /** Quiz linked to the lesson ("check your understanding"). */
+  quiz: { id: string; title: string; questionCount: number } | null;
+}
+
+export interface VideoNoteDto {
+  id: string;
+  atSec: number;
+  text: string;
+  createdAt: number;
 }
 
 export interface VideoCommentDto {

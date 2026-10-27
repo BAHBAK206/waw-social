@@ -27,6 +27,7 @@ import type {
   VideoChannelDto,
   VideoCommentDto,
   VideoDto,
+  VideoNoteDto,
   WatchHistoryItem,
   ConversationDto,
   CourseAnalyticsDto,
@@ -233,6 +234,7 @@ export function createApi(options: ClientOptions) {
           q?: string;
           tag?: string;
           sectionId?: string;
+          materialId?: string;
           ownerId?: string;
           cursor?: string;
           limit?: number;
@@ -250,6 +252,7 @@ export function createApi(options: ClientOptions) {
         tags?: string[];
         sectionId?: string | null;
         materialId?: string | null;
+        quizId?: string | null;
         allowComments?: boolean;
       }) => http.post<VideoDto>('/videos', body),
       update: (
@@ -262,9 +265,13 @@ export function createApi(options: ClientOptions) {
           tags: string[];
           sectionId: string | null;
           materialId: string | null;
+          quizId: string | null;
           allowComments: boolean;
         }>,
       ) => http.patch<VideoDto>(`/videos/${id}`, body),
+      notes: (id: string) => http.get<{ items: VideoNoteDto[] }>(`/videos/${id}/notes`),
+      addNote: (id: string, atSec: number, text: string) => http.post<VideoNoteDto>(`/videos/${id}/notes`, { atSec, text }),
+      deleteNote: (id: string, noteId: string) => http.del<Ok>(`/videos/${id}/notes/${noteId}`),
       remove: (id: string) => http.del<Ok>(`/videos/${id}`),
       view: (id: string) => http.post<{ counted: boolean; views: number }>(`/videos/${id}/view`),
       progress: (id: string, progressSec: number, completed = false) => http.put<Ok>(`/videos/${id}/progress`, { progressSec, completed }),

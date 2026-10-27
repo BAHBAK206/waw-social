@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS, FEATURE_IDS, ADMIN_PERMISSIONS, DESIGNS, SKINS } from '@qubedu/shared';
-import { INFO_CONTENT, LOCALES, LOCALE_LIST, detectLocale, dirFor, keyPaths } from '../src';
+import { INFO_CONTENT, LOCALES, LOCALE_LIST, detectLocale, dirFor, keyPaths, messageVariables } from '../src';
 
 describe('translations', () => {
   const base = keyPaths(LOCALES.en).sort();
@@ -9,9 +9,8 @@ describe('translations', () => {
       expect(keyPaths(LOCALES[l]).sort()).toEqual(base);
     });
     it(`${l} interpolation placeholders match English`, () => {
-      const placeholders = (s: string) => (s.match(/{{\s*\w+\s*}}/g) ?? []).sort();
       const walk = (a: unknown, b: unknown, path: string) => {
-        if (typeof a === 'string' && typeof b === 'string') expect(placeholders(b), path).toEqual(placeholders(a));
+        if (typeof a === 'string' && typeof b === 'string') expect(messageVariables(b), path).toEqual(messageVariables(a));
         else if (a && typeof a === 'object') for (const k of Object.keys(a)) walk((a as never)[k], (b as never)[k], `${path}.${k}`);
       };
       walk(LOCALES.en, LOCALES[l], l);

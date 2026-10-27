@@ -117,3 +117,80 @@ test('shorts: a vertical clip is published and plays in the swipe feed', async (
   expect(errors).toEqual([]);
   await ctx.close();
 });
+
+test('a teacher builds a quiz, links it to a lesson with chapters; a student uses notes and the checkpoint', async ({ browser }) => {
+  const teacher = newUser('lessonteacher');
+  const student = newUser('lessonstudent');
+  const ctxT = await browser.newContext({ locale: 'en-US' });
+  const ctxS = await browser.newContext({ locale: 'en-US' });
+  const pageT = await ctxT.newPage();
+  const pageS = await ctxS.newPage();
+  const errors = [...trackErrors(pageT), ...trackErrors(pageS)];
+  await register(pageT, teacher, 'teacher');
+  await register(pageS, student);
+
+  // Quiz editor: one multiple-choice question.
+  const quizTitle = `Checkpoint ${uid()}`;
+  await pageT.goto('/quiz/new');
+  await pageT.getByLabel('Quiz title').fill(quizTitle);
+  await pageT.getByLabel('Question text').fill('Half of one plus half of one equals?');
+  const options = pageT.getByLabel(/^Option \d+$/);
+  const n = await options.count();
+  for (let i = 0; i < n; i++) await options.nth(i).fill(['1', '2', '1/4', '0'][i] ?? `x${i}`);
+  await pageT.getByRole('button', { name: 'Save quiz' }).first().click();
+  await expect(pageT).toHaveURL(/\/quiz\?mine=1/);
+  await expect(pageT.getByText(quizTitle).first()).toBeVisible();
+
+  // Publish a lesson with an outline in the description and the quiz as its checkpoint.
+  const title = `Adding fractions ${uid()}`;
+  await pageT.goto('/studio');
+  await pageT.getByRole('button', { name: 'Publish a lesson' }).first().click();
+  await chooseFile(pageT, makeClip(6, '320x240'));
+  const dialog = pageT.getByRole('dialog');
+  await dialog.getByLabel('Title').fill(title);
+  await dialog.getByLabel('Description').fill('0:00 What is a fraction\n0:03 Worked example');
+  await dialog.getByLabel('Checkpoint quiz').selectOption({ label: quizTitle });
+  await dialog.getByRole('button', { name: 'Publish lesson' }).click();
+  await expect(pageT).toHaveURL(/\/watch\//, { timeout: 30_000 });
+  const watchUrl = pageT.url();
+
+  // The student sees the outline, jumps to a part, pins a note and is offered the quiz at the end.
+  await pageS.goto(watchUrl);
+  await expect(pageS.getByRole('heading', { name: title })).toBeVisible();
+  const outline = pageS.getByRole('region', { name: 'Lesson outline' });
+  await expect(outline.getByRole('button')).toHaveCount(2);
+  const video = pageS.locator('video').first();
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 20_000 }).toBeGreaterThan(0);
+  await video.evaluate((v: HTMLVideoElement) => {
+    v.muted = true;
+  });
+  await outline.getByRole('button', { name: /Worked example/ }).click();
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThanOrEqual(3);
+  await video.evaluate((v: HTMLVideoElement) => v.pause());
+  await expect(outline.getByRole('button', { name: /Worked example/ })).toHaveAttribute('aria-current', 'true');
+
+  const notes = pageS.getByRole('region', { name: 'My lesson notes' });
+  await notes.getByPlaceholder(/Write a note/).fill('Common denominator first!');
+  await notes.getByRole('button', { name: /^Save at 00:0[3-5]$/ }).click();
+  await expect(notes.getByText('Common denominator first!')).toBeVisible();
+  await expect(notes.getByRole('button', { name: /^Jump to 00:0[3-5]$/ })).toBeVisible();
+
+  await video.evaluate((v: HTMLVideoElement) => {
+    v.currentTime = Math.max(0, v.duration - 0.4);
+    void v.play();
+  });
+  const checkpoint = pageS.getByRole('region', { name: 'Check your understanding' });
+  await expect(checkpoint.getByText('Lesson finished — test what you learned')).toBeVisible({ timeout: 15_000 });
+  await expect(checkpoint.getByText(quizTitle)).toBeVisible();
+  await expect(pageS).toHaveURL(watchUrl);
+  await checkpoint.getByRole('button', { name: 'Take the quiz' }).click();
+  await expect(pageS).toHaveURL(/\/quiz\/attempt\//);
+  await expect(pageS.getByText('Half of one plus half of one equals?')).toBeVisible();
+
+  // Notes are private to the student.
+  await pageT.reload();
+  await expect(pageT.getByRole('region', { name: 'My lesson notes' }).getByText('Common denominator first!')).toHaveCount(0);
+  expect(errors).toEqual([]);
+  await ctxT.close();
+  await ctxS.close();
+});

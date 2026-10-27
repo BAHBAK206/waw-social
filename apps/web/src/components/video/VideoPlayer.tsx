@@ -20,13 +20,17 @@ interface Props {
   muted?: boolean;
   onMutedChange?: (muted: boolean) => void;
   active?: boolean;
+  /** Receives the underlying <video> element so the page can seek (chapters, notes). */
+  playerRef?: { current: HTMLVideoElement | null };
+  /** Whole-second playback position, reported when it changes. */
+  onTime?: (sec: number) => void;
 }
 
 /**
  * Video element with: resume prompt, keyboard shortcuts (space/k, j/l ±10s, ←/→ ±5s, f, m, </> speed),
  * a counted view after a few seconds of real playback, and periodic progress sync for watch history.
  */
-export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, muted, onMutedChange, active = true }: Props) {
+export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, muted, onMutedChange, active = true, playerRef, onTime }: Props) {
   const tr = useT();
   const authed = useSession((s) => s.status === 'authed');
   const ref = useRef<HTMLVideoElement>(null);
@@ -37,6 +41,7 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
   const counted = useRef(false);
   const playedSec = useRef(0);
   const lastSync = useRef(0);
+  const lastWhole = useRef(-1);
 
   useEffect(() => {
     counted.current = false;
@@ -148,7 +153,10 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
       aria-label={video.title}
     >
       <video
-        ref={ref}
+        ref={(el) => {
+          ref.current = el;
+          if (playerRef) playerRef.current = el;
+        }}
         key={video.id}
         src={fileUrl(video.videoUrl)}
         poster={fileUrl(video.thumbnailUrl)}
@@ -165,6 +173,13 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
         onPlay={() => setResumeAt(0)}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;
+          if (onTime) {
+            const whole = Math.floor(el.currentTime);
+            if (whole !== lastWhole.current) {
+              lastWhole.current = whole;
+              onTime(whole);
+            }
+          }
           if (!el.paused) playedSec.current = Math.max(playedSec.current, el.currentTime);
           // A view counts after 5 s of actual playback (or half of a very short clip).
           if (!counted.current && playedSec.current >= Math.min(5, video.durationSec / 2)) {

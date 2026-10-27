@@ -48,3 +48,27 @@ export function extractHashtags(text: string): string[] {
   }
   return [...out];
 }
+
+export interface VideoChapter {
+  /** Seconds from the start. */
+  at: number;
+  title: string;
+}
+
+/**
+ * Lesson chapters from a description, YouTube-style: lines that start with a timestamp
+ * ("0:00 Introduction", "12:05 - Worked example", "1:02:30 Summary"). Needs at least two, the first at 0:00.
+ */
+export function parseChapters(description: string, durationSec = Infinity): VideoChapter[] {
+  const out: VideoChapter[] = [];
+  for (const line of description.split(/\r?\n/)) {
+    const m = /^\s*(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s*[-–—:|)]?\s*(.+?)\s*$/.exec(line);
+    if (!m) continue;
+    const at = Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+    if (Number(m[3]) > 59 || at > durationSec) continue;
+    out.push({ at, title: m[4]!.slice(0, 120) });
+  }
+  out.sort((a, b) => a.at - b.at);
+  const unique = out.filter((c, i) => i === 0 || c.at > out[i - 1]!.at);
+  return unique.length >= 2 && unique[0]!.at === 0 ? unique : [];
+}

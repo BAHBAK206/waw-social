@@ -12,6 +12,7 @@ import { api, uploadWithProgress } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
+import { LinkedQuizSelect } from '@/components/video/LinkedQuizSelect';
 import { qk } from '@/lib/query';
 import { toast, toastError } from '@/lib/ui';
 
@@ -49,6 +50,7 @@ export function UploadDialog({ onClose }: Props) {
     visibility: 'public' as 'public' | 'unlisted' | 'private',
     sectionId: '',
     materialId: '',
+    quizId: '',
     allowComments: true,
   });
   const [phase, setPhase] = useState<'idle' | 'uploading' | 'saving'>('idle');
@@ -125,6 +127,7 @@ export function UploadDialog({ onClose }: Props) {
           .slice(0, 15),
         sectionId: form.sectionId || null,
         materialId: form.materialId || null,
+        quizId: form.quizId || null,
         allowComments: form.allowComments,
       });
       toast(tr.t('studio.published'));
@@ -240,6 +243,7 @@ export function UploadDialog({ onClose }: Props) {
                 options={taxMaterials.map((m) => ({ value: m.id, label: m.name }))}
               />
             </div>
+            <LinkedQuizSelect value={form.quizId} onChange={(quizId) => setForm({ ...form, quizId })} />
             <Switch checked={form.allowComments} onChange={(v) => setForm({ ...form, allowComments: v })} label={tr.t('studio.allowComments')} />
           </div>
           <div className="space-y-3">

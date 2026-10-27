@@ -1,10 +1,11 @@
-import type { VideoDto } from '@qubedu/shared';
+import { parseChapters, type VideoDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Flag, ListPlus, Pencil, Share2, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { RichText } from '@/components/common/RichText';
 import { reportContent } from '@/components/common/ReportDialog';
+import { LessonChapters, LessonNotes, QuizCheckpoint } from '@/components/video/LessonTools';
 import { SaveToPlaylist } from '@/components/video/SaveToPlaylist';
 import { SubscribeButton } from '@/components/video/SubscribeButton';
 import { VideoComments } from '@/components/video/VideoComments';
@@ -35,6 +36,14 @@ export default function VideoPage() {
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [autoplay, setAutoplay] = useState(() => localStorage.getItem('qubedu:autoplay') !== 'off');
+  const player = useRef<HTMLVideoElement | null>(null);
+  const [time, setTime] = useState(0);
+  const [ended, setEnded] = useState(false);
+  const chapters = useMemo(() => (q.data ? parseChapters(q.data.description, q.data.durationSec) : []), [q.data]);
+  useEffect(() => {
+    setEnded(false);
+    setTime(0);
+  }, [id]);
 
   const patch = (fn: (v: VideoDto) => VideoDto) => qc.setQueryData<VideoDto>(['video', id], (v) => (v ? fn(v) : v));
   useEffect(() => {
@@ -92,6 +101,15 @@ export default function VideoPage() {
     }
   });
 
+  const seek = (sec: number) => {
+    const el = player.current;
+    if (!el) return;
+    el.currentTime = sec;
+    setTime(sec);
+    void el.play().catch(() => undefined);
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
   const pill = 'btn btn-sm btn-ghost !rounded-none';
   return (
     <div className="mx-auto grid w-full max-w-[1500px] gap-6 px-0 py-0 md:px-6 md:py-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -100,7 +118,15 @@ export default function VideoPage() {
           video={video}
           autoPlay
           className="md:rounded-[var(--radius-card)] rounded-none"
+          playerRef={player}
+          onTime={setTime}
           onEnded={() => {
+            // A lesson with a checkpoint quiz stops here so the learner can test what they just watched.
+            if (video.quiz) {
+              setEnded(true);
+              document.getElementById('lesson-checkpoint')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              return;
+            }
             if (autoplay && upNext) navigate(`/watch/${upNext.id}${listId ? `?list=${listId}` : ''}`);
           }}
         />
@@ -221,6 +247,10 @@ export default function VideoPage() {
             )}
             <span className="link mt-1 inline-block">{expanded ? tr.t('common.showLess') : tr.t('common.showMore')}</span>
           </div>
+
+          <LessonChapters chapters={chapters} time={time} onSeek={seek} />
+          {video.quiz && <QuizCheckpoint quiz={video.quiz} highlight={ended} />}
+          <LessonNotes videoId={video.id} time={time} onSeek={seek} />
 
           <VideoComments video={video} onCount={(d) => patch((v) => ({ ...v, commentCount: v.commentCount + d }))} />
         </div>

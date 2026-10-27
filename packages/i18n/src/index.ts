@@ -39,4 +39,4 @@ export function keyPaths(obj: unknown, prefix = ''): string[] {
   return [prefix];
 }
 
-export { createTranslator, interpolate, type TKey, type TVars, type Translator } from './translate';
+export { createTranslator, interpolate, messageVariables, type TKey, type TVars, type Translator } from './translate';

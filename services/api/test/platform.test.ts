@@ -482,3 +482,46 @@ describe('events', () => {
     expect((await call('POST', '/events', { token: outsider.token, body: { title: 'Sneak', startsAt: start, groupId: g.body.id } })).status).toBe(403);
   });
 });
+
+describe('video lessons: linked quiz, subject filter and private notes', () => {
+  it('links a published quiz, filters by subject and keeps notes private', async () => {
+    const teacher = await newUser({ name: 'Lesson teacher', accountType: 'teacher' });
+    const student = await newUser({ name: 'Note taker' });
+    const other = await newUser({ name: 'Snoop' });
+    const quiz = await call<{ id: string }>('POST', '/quizzes', {
+      token: teacher.token,
+      body: {
+        title: 'Check: linear equations',
+        difficulty: 'easy',
+        durationSec: 120,
+        questions: [{ type: 'mc', prompt: '2x = 4, x = ?', options: ['1', '2'], answer: 1 }],
+      },
+    });
+    expect(quiz.status).toBe(201);
+    const bad = await publish(teacher.token, { quizId: '00000000-0000-4000-8000-000000000000' });
+    expect(bad.status).toBe(400);
+    const created = await publish(teacher.token, { quizId: quiz.body.id });
+    expect(created.status).toBe(201);
+    expect(created.body.quiz?.id).toBe(quiz.body.id);
+    expect(created.body.quiz?.questionCount).toBe(1);
+    const unlinked = await call<VideoDto>('PATCH', `/videos/${created.body.id}`, { token: teacher.token, body: { quizId: null } });
+    expect(unlinked.body.quiz).toBeNull();
+
+    const id = created.body.id;
+    expect((await call('GET', `/videos/${id}/notes`)).status).toBe(401);
+    const n1 = await call<{ id: string; atSec: number }>('POST', `/videos/${id}/notes`, {
+      token: student.token,
+      body: { atSec: 95.7, text: 'Move x terms left' },
+    });
+    expect(n1.status).toBe(201);
+    expect(n1.body.atSec).toBe(95);
+    await call('POST', `/videos/${id}/notes`, { token: student.token, body: { atSec: 9999, text: 'Clamped to the end' } });
+    await call('POST', `/videos/${id}/notes`, { token: student.token, body: { atSec: 10, text: 'Definition' } });
+    const mine = await call<{ items: { atSec: number; text: string }[] }>('GET', `/videos/${id}/notes`, { token: student.token });
+    expect(mine.body.items.map((n) => n.atSec)).toEqual([10, 95, 120]);
+    expect((await call<{ items: unknown[] }>('GET', `/videos/${id}/notes`, { token: other.token })).body.items).toHaveLength(0);
+    expect((await call('DELETE', `/videos/${id}/notes/${n1.body.id}`, { token: other.token })).status).toBe(404);
+    expect((await call('DELETE', `/videos/${id}/notes/${n1.body.id}`, { token: student.token })).status).toBe(200);
+    expect((await call('POST', `/videos/${id}/notes`, { token: student.token, body: { atSec: 1, text: '' } })).status).toBe(400);
+  });
+});

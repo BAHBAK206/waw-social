@@ -32,3 +32,22 @@ describe('pronunciation scoring', () => {
     for (const l of LAB_LANGUAGES) for (const s of LAB_SET_IDS) expect(PRONUNCIATION_SETS[l][s].length).toBeGreaterThanOrEqual(4);
   });
 });
+
+import { parseChapters } from '../src/text';
+describe('lesson chapters', () => {
+  it('reads timestamped lines from a description', () => {
+    const d = 'In this lesson:\n0:00 Introduction\n2:15 - Worked example\n1:02:03 Summary\nnot a chapter';
+    expect(parseChapters(d)).toEqual([
+      { at: 0, title: 'Introduction' },
+      { at: 135, title: 'Worked example' },
+      { at: 3723, title: 'Summary' },
+    ]);
+  });
+  it('needs at least two chapters starting at 0:00 and within the duration', () => {
+    expect(parseChapters('1:00 Start\n2:00 Next')).toEqual([]);
+    expect(parseChapters('0:00 Only one')).toEqual([]);
+    expect(parseChapters('0:00 A\n9:00 B', 300)).toEqual([]);
+    expect(parseChapters('٠:٠٠ مقدمة')).toEqual([]);
+    expect(parseChapters('0:00 مقدمة\n1:30 المثال الأول')).toHaveLength(2);
+  });
+});

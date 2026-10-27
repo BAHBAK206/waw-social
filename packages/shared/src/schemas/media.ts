@@ -27,6 +27,8 @@ export const videoInputSchema = z.object({
   sectionId: idSchema.optional().nullable(),
   materialId: idSchema.optional().nullable(),
   allowComments: z.boolean().default(true),
+  /** "Check your understanding" quiz offered when the lesson ends. */
+  quizId: idSchema.optional().nullable(),
 });
 export type VideoInput = z.infer<typeof videoInputSchema>;
 
@@ -38,6 +40,7 @@ export const videoListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   tag: z.string().trim().max(40).optional(),
   sectionId: idSchema.optional(),
+  materialId: idSchema.optional(),
   ownerId: idSchema.optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
@@ -96,4 +99,13 @@ export const eventListQuerySchema = z.object({
   groupId: idSchema.optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const videoNoteSchema = z.object({
+  atSec: z
+    .number()
+    .min(0)
+    .max(60 * 60 * 6)
+    .transform((v) => Math.floor(v)),
+  text: trimmed(1000, 1),
 });

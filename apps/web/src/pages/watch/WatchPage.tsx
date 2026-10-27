@@ -33,6 +33,7 @@ export default function WatchPage() {
   const [params, setParams] = useSearchParams();
   const feed = (FEEDS as readonly string[]).includes(params.get('feed') ?? '') ? (params.get('feed') as Feed) : 'home';
   const sectionId = params.get('section') ?? undefined;
+  const materialId = params.get('subject') ?? undefined;
   const [search, setSearch] = useState(params.get('q') ?? '');
   const q = useDebounced(search.trim());
   const taxonomy = useQuery({ queryKey: qk.taxonomy, queryFn: () => api.taxonomy(), staleTime: 10 * 60_000 });
@@ -48,10 +49,11 @@ export default function WatchPage() {
       { replace: true },
     );
 
-  const filters = { feed, sectionId, q };
+  const filters = { feed, sectionId, materialId, q };
   const videos = usePaged<VideoDto>(['videos', 'list', 'video', filters], (cursor) =>
-    api.videos.list({ feed, kind: 'video', sectionId, q: q || undefined, cursor, limit: 24 }),
+    api.videos.list({ feed, kind: 'video', sectionId, materialId, q: q || undefined, cursor, limit: 24 }),
   );
+  const sectionMaterials = taxonomy.data?.sections.find((s) => s.id === sectionId)?.materials ?? [];
   const shorts = useQuery({
     queryKey: ['videos', 'shorts-strip', feed === 'home' && !q && !sectionId],
     queryFn: () => api.videos.list({ feed: 'home', kind: 'short', limit: 8 }),
@@ -111,12 +113,41 @@ export default function WatchPage() {
             type="button"
             className={cx('chip', sectionId === s.id && 'is-active')}
             aria-pressed={sectionId === s.id}
-            onClick={() => set('section', sectionId === s.id ? undefined : s.id)}
+            onClick={() =>
+              setParams(
+                (p) => {
+                  const n = new URLSearchParams(p);
+                  n.delete('subject');
+                  if (sectionId === s.id) n.delete('section');
+                  else n.set('section', s.id);
+                  return n;
+                },
+                { replace: true },
+              )
+            }
           >
             {s.name}
           </button>
         ))}
       </div>
+      {sectionMaterials.length > 0 && (
+        <div className="scroll-thin -mt-3 mb-5 flex gap-2 overflow-x-auto pb-1" role="toolbar" aria-label={tr.t('feed.subject')}>
+          <button type="button" className={cx('chip', !materialId && 'is-active')} aria-pressed={!materialId} onClick={() => set('subject', undefined)}>
+            {tr.t('feed.anySubject')}
+          </button>
+          {sectionMaterials.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className={cx('chip', materialId === m.id && 'is-active')}
+              aria-pressed={materialId === m.id}
+              onClick={() => set('subject', materialId === m.id ? undefined : m.id)}
+            >
+              {m.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {shorts.data && shorts.data.items.length > 0 && (
         <section className="mb-8" aria-label={tr.t('nav.shorts')}>

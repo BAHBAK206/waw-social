@@ -11,6 +11,7 @@ import {
   videoListQuerySchema,
   videoProgressSchema,
   videoReactSchema,
+  videoNoteSchema,
   videoUpdateSchema,
   type Page,
   type VideoCommentDto,
@@ -21,10 +22,12 @@ import {
   eduMaterials,
   eduSections,
   follows,
+  quizzes,
   uploads,
   users,
   videoCommentLikes,
   videoComments,
+  videoNotes,
   videoReactions,
   videoViews,
   videos,
@@ -110,6 +113,14 @@ export async function hydrateVideos(deps: Deps, viewer: AuthUser | null, rows: V
           .where(and(eq(follows.followerId, viewer.id), inArray(follows.followeeId, owners))),
       ])
     : [[], [], [], []];
+  const quizIds = [...new Set(rows.map((r) => r.quizId as string | null).filter((x): x is string => !!x))];
+  const quizRows = quizIds.length
+    ? await deps.db
+        .select({ id: quizzes.id, title: quizzes.title, questionCount: quizzes.questionCount })
+        .from(quizzes)
+        .where(and(inArray(quizzes.id, quizIds), isNull(quizzes.deletedAt), eq(quizzes.published, true)))
+    : [];
+  const quizById = new Map(quizRows.map((q) => [q.id, q]));
   const myReaction = new Map(reactions.map((r) => [r.videoId, r.value]));
   const laterSet = new Set(later.map((l) => l.videoId));
   const progressMap = new Map(progress.map((p) => [p.videoId, p.completed ? 0 : p.progressSec]));
@@ -140,7 +151,18 @@ export async function hydrateVideos(deps: Deps, viewer: AuthUser | null, rows: V
     subscribed: subSet.has(r.ownerId as string),
     subscribers: r.subscribers,
     canEdit: !!viewer && (viewer.id === r.ownerId || staff),
+    quiz: r.quizId ? (quizById.get(r.quizId as string) ?? null) : null,
   }));
+}
+
+/** A lesson may link any published quiz (its own author's or a public one). */
+async function assertLinkableQuiz(deps: Deps, quizId: string | null | undefined) {
+  if (!quizId) return;
+  const [q] = await deps.db
+    .select({ id: quizzes.id })
+    .from(quizzes)
+    .where(and(eq(quizzes.id, quizId), isNull(quizzes.deletedAt), eq(quizzes.published, true)));
+  if (!q) throw badRequest('quiz_not_found');
 }
 
 export async function loadVideo(deps: Deps, viewer: AuthUser | null, id: string): Promise<VideoRow> {
@@ -193,6 +215,7 @@ export const videoRoutes = new Hono<AppEnv>()
       listVisibility(viewer),
       q.kind ? eq(videos.kind, q.kind) : undefined,
       q.sectionId ? eq(videos.sectionId, q.sectionId) : undefined,
+      q.materialId ? eq(videos.materialId, q.materialId) : undefined,
       q.ownerId ? eq(videos.ownerId, q.ownerId) : undefined,
       q.tag
         ? sql`${videos.id} in (select subject_id from hashtag_uses where subject_type = 'video' and tag = ${q.tag.replace(/^#/, '').toLowerCase()})`
@@ -336,6 +359,7 @@ export const videoRoutes = new Hono<AppEnv>()
     await assertOwnUpload(deps, viewer, input.videoUrl, 'video/');
     if (input.thumbnailUrl) await assertOwnUpload(deps, viewer, input.thumbnailUrl, 'image/');
     if (input.kind === 'short' && input.durationSec > 90) throw badRequest('short_too_long');
+    await assertLinkableQuiz(deps, input.quizId);
     const [row] = await deps.db
       .insert(videos)
       .values({
@@ -352,6 +376,7 @@ export const videoRoutes = new Hono<AppEnv>()
         sectionId: input.sectionId ?? null,
         materialId: input.materialId ?? null,
         allowComments: input.allowComments,
+        quizId: input.quizId ?? null,
       })
       .returning({ id: videos.id });
     await syncHashtags(deps.db, 'video', row!.id, viewer.id, `${input.title} ${input.description}`, input.tags);
@@ -387,6 +412,7 @@ export const videoRoutes = new Hono<AppEnv>()
     if (video.ownerId !== viewer.id && !isStaff(viewer)) throw forbidden();
     const input = await body(c, videoUpdateSchema);
     if (input.thumbnailUrl) await assertOwnUpload(deps, viewer, input.thumbnailUrl, 'image/');
+    await assertLinkableQuiz(deps, input.quizId);
     const title = input.title ?? video.title;
     const description = input.description ?? video.description;
     const tags = input.tags ?? video.tags;
@@ -401,6 +427,7 @@ export const videoRoutes = new Hono<AppEnv>()
         ...(input.sectionId !== undefined ? { sectionId: input.sectionId } : {}),
         ...(input.materialId !== undefined ? { materialId: input.materialId } : {}),
         ...(input.allowComments !== undefined ? { allowComments: input.allowComments } : {}),
+        ...(input.quizId !== undefined ? { quizId: input.quizId } : {}),
         searchText: normalizeSearch(`${title} ${tags.join(' ')} ${description.slice(0, 500)}`),
         updatedAt: new Date(),
       })
@@ -416,6 +443,41 @@ export const videoRoutes = new Hono<AppEnv>()
     if (video.ownerId !== viewer.id && !isStaff(viewer)) throw forbidden();
     await deps.db.update(videos).set({ deletedAt: new Date() }).where(eq(videos.id, video.id));
     await removeHashtags(deps.db, 'video', video.id);
+    return c.json({ ok: true });
+  })
+  /** The learner's private, timestamped notes for this lesson. */
+  .get('/:id/notes', async (c) => {
+    const viewer = requireUser(c);
+    const deps = c.get('deps');
+    const video = await loadVideo(deps, viewer, param(c, 'id'));
+    const rows = await deps.db
+      .select()
+      .from(videoNotes)
+      .where(and(eq(videoNotes.userId, viewer.id), eq(videoNotes.videoId, video.id)))
+      .orderBy(videoNotes.atSec, videoNotes.createdAt)
+      .limit(500);
+    return c.json({ items: rows.map((n) => ({ id: n.id, atSec: n.atSec, text: n.text, createdAt: n.createdAt.getTime() })) });
+  })
+  .post('/:id/notes', async (c) => {
+    const viewer = requireUser(c);
+    await checkRate(c, { bucket: 'video-note', limit: 120, windowSec: 600, by: 'user' });
+    const deps = c.get('deps');
+    const video = await loadVideo(deps, viewer, param(c, 'id'));
+    const input = await body(c, videoNoteSchema);
+    const [n] = await deps.db
+      .insert(videoNotes)
+      .values({ userId: viewer.id, videoId: video.id, atSec: Math.min(input.atSec, video.durationSec), text: input.text })
+      .returning();
+    return c.json({ id: n!.id, atSec: n!.atSec, text: n!.text, createdAt: n!.createdAt.getTime() }, 201);
+  })
+  .delete('/:id/notes/:noteId', async (c) => {
+    const viewer = requireUser(c);
+    const deps = c.get('deps');
+    const gone = await deps.db
+      .delete(videoNotes)
+      .where(and(eq(videoNotes.id, param(c, 'noteId')), eq(videoNotes.userId, viewer.id), eq(videoNotes.videoId, param(c, 'id'))))
+      .returning({ id: videoNotes.id });
+    if (!gone.length) throw notFound();
     return c.json({ ok: true });
   })
 

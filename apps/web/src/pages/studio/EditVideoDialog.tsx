@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { pickFile } from '@/components/ui/Upload';
 import { api, fileUrl } from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { LinkedQuizSelect } from '@/components/video/LinkedQuizSelect';
 import { qk } from '@/lib/query';
 import { toast, toastError } from '@/lib/ui';
 
@@ -23,6 +24,7 @@ export function EditVideoDialog({ video, onClose }: { video: VideoDto; onClose: 
     visibility: video.visibility,
     sectionId: video.section?.id ?? '',
     materialId: video.material?.id ?? '',
+    quizId: video.quiz?.id ?? '',
     allowComments: video.allowComments,
   });
   const [thumb, setThumb] = useState<string | null>(video.thumbnailUrl);
@@ -57,6 +59,7 @@ export function EditVideoDialog({ video, onClose }: { video: VideoDto; onClose: 
                   visibility: form.visibility,
                   sectionId: form.sectionId || null,
                   materialId: form.materialId || null,
+                  quizId: form.quizId || null,
                   allowComments: form.allowComments,
                   thumbnailUrl: thumb,
                 });
@@ -116,6 +119,7 @@ export function EditVideoDialog({ video, onClose }: { video: VideoDto; onClose: 
               options={materials.map((m) => ({ value: m.id, label: m.name }))}
             />
           </div>
+          <LinkedQuizSelect value={form.quizId} onChange={(quizId) => setForm({ ...form, quizId })} />
           <Switch checked={form.allowComments} onChange={(v) => setForm({ ...form, allowComments: v })} label={tr.t('studio.allowComments')} />
         </div>
         <div>
