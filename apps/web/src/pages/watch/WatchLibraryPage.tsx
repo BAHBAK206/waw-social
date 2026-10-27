@@ -1,7 +1,6 @@
 import type { VideoDto, WatchHistoryItem } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, History, ListVideo, Plus, ThumbsUp, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { Thumb, VideoCard, VideoRow } from '@/components/video/VideoCard';
 import { Button, IconButton } from '@/components/ui/Button';

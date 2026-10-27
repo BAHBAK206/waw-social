@@ -48,7 +48,7 @@ export function ReportHost() {
               setBusy(true);
               try {
                 await api.report({ ...target, reason, details: details.trim() || undefined });
-                toast(tr.t('notifications.types.report_resolved'));
+                toast(tr.t('report.sent'));
                 close();
               } catch (e) {
                 toastError(e);

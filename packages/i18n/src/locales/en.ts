@@ -1468,6 +1468,17 @@ export const en = {
     remove: 'Remove poll',
     needTwo: 'Add at least two options.',
   },
+  report: {
+    sent: 'Report sent. Thank you.',
+    reasons: {
+      spam: 'Spam',
+      abuse: 'Harassment or abuse',
+      inappropriate: 'Inappropriate content',
+      impersonation: 'Impersonation',
+      copyright: 'Copyright',
+      other: 'Other',
+    },
+  },
   gate: {
     lockedTitle: 'Locked',
     lockedDefault: 'This feature is temporarily unavailable.',

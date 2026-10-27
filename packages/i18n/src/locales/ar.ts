@@ -1461,6 +1461,17 @@ export const ar: Dictionary = {
     remove: 'إزالة الاستطلاع',
     needTwo: 'أضف خيارين على الأقل.',
   },
+  report: {
+    sent: 'تم إرسال البلاغ. شكرًا لك.',
+    reasons: {
+      spam: 'محتوى مزعج',
+      abuse: 'إساءة أو مضايقة',
+      inappropriate: 'محتوى غير لائق',
+      impersonation: 'انتحال شخصية',
+      copyright: 'حقوق النشر',
+      other: 'أخرى',
+    },
+  },
   gate: {
     lockedTitle: 'مقفل',
     lockedDefault: 'هذه الميزة غير متاحة مؤقتًا.',

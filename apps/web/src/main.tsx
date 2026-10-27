@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router';
 import { boot } from './app/boot';
 import { registerServiceWorker } from './app/pwa';
 import { router } from './app/router';
+import { ReportHost } from './components/common/ReportDialog';
 import { ConfirmHost, RewardHost, Toaster } from './components/overlays/Hosts';
 import { api } from './lib/api';
 import { applyAppearance, useAppearance } from './lib/appearance';
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
       <Toaster />
       <RewardHost />
       <ConfirmHost />
+      <ReportHost />
     </QueryClientProvider>
   </StrictMode>,
 );

@@ -46,10 +46,17 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // Heavy office-format exporters load on demand; they are cached at runtime instead of precached.
+        globIgnores: ['**/exceljs*.js', '**/pptxgen*.js', '**/*.map'],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/files\//, /^\/ws/],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/(exceljs|pptxgen).*\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'qubedu-exporters', expiration: { maxEntries: 4, maxAgeSeconds: 30 * 24 * 3600 } },
+          },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/files/public/'),
             handler: 'CacheFirst',

@@ -4,7 +4,7 @@ import { buildThemeCss, resolveTheme, TEXT_SCALE } from '@qubedu/tokens';
 import { create } from 'zustand';
 
 const STORAGE_KEY = 'qubedu:appearance';
-const darkQuery = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+const darkQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
 function sanitize(raw: unknown): Partial<Appearance> {
   if (!raw || typeof raw !== 'object') return {};

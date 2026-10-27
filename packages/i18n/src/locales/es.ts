@@ -1502,6 +1502,17 @@ export const es: Dictionary = {
     remove: 'Quitar encuesta',
     needTwo: 'Añade al menos dos opciones.',
   },
+  report: {
+    sent: 'Denuncia enviada. Gracias.',
+    reasons: {
+      spam: 'Spam',
+      abuse: 'Acoso o abuso',
+      inappropriate: 'Contenido inapropiado',
+      impersonation: 'Suplantación',
+      copyright: 'Derechos de autor',
+      other: 'Otro',
+    },
+  },
   gate: {
     lockedTitle: 'Bloqueado',
     lockedDefault: 'Esta función no está disponible temporalmente.',

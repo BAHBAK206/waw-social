@@ -250,6 +250,9 @@ export interface QuizAttemptDto {
 
 export interface QuestionReview {
   questionId: string;
+  type: QuestionType;
+  prompt: string;
+  options: string[];
   correct: boolean;
   given: number | number[] | string | null;
   answer: number | number[] | string[];

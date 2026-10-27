@@ -10,6 +10,9 @@ export interface GradableQuestion {
   points: number;
   topic: string | null;
   explanation: string | null;
+  /** Shown in the result review so past attempts stay readable even if the quiz is edited later. */
+  prompt?: string;
+  options?: string[];
 }
 
 export function isCorrect(q: GradableQuestion, given: GivenAnswer): boolean {
@@ -40,7 +43,16 @@ export interface GradeResult {
   pct: number;
   perfect: boolean;
   wrongIds: string[];
-  breakdown: { questionId: string; correct: boolean; given: GivenAnswer; answer: StoredAnswer; explanation: string | null }[];
+  breakdown: {
+    questionId: string;
+    type: GradableQuestion['type'];
+    prompt: string;
+    options: string[];
+    correct: boolean;
+    given: GivenAnswer;
+    answer: StoredAnswer;
+    explanation: string | null;
+  }[];
   topicStats: { topic: string; correct: number; total: number; pct: number }[];
 }
 
@@ -64,7 +76,7 @@ export function grade(questions: GradableQuestion[], answers: GivenAnswer[]): Gr
       if (ok) t.correct += 1;
       topics.set(q.topic, t);
     }
-    return { questionId: q.id, correct: ok, given, answer: q.answer, explanation: q.explanation };
+    return { questionId: q.id, type: q.type, prompt: q.prompt ?? '', options: q.options ?? [], correct: ok, given, answer: q.answer, explanation: q.explanation };
   });
   const pct = possible ? Math.round((earned / possible) * 100) : 0;
   return {

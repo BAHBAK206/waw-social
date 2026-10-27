@@ -406,6 +406,8 @@ export const quizRoutes = new Hono<AppEnv>()
         points: q.points,
         topic: q.topic,
         explanation: q.explanation,
+        prompt: q.prompt,
+        options: q.options,
       }));
       const g = grade(gradable, answers as GivenAnswer[]);
       const now = Date.now();

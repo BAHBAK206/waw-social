@@ -1496,6 +1496,17 @@ export const fr: Dictionary = {
     remove: 'Supprimer le sondage',
     needTwo: 'Ajoutez au moins deux options.',
   },
+  report: {
+    sent: 'Signalement envoyé. Merci.',
+    reasons: {
+      spam: 'Spam',
+      abuse: 'Harcèlement ou abus',
+      inappropriate: 'Contenu inapproprié',
+      impersonation: 'Usurpation d’identité',
+      copyright: 'Droits d’auteur',
+      other: 'Autre',
+    },
+  },
   gate: {
     lockedTitle: 'Verrouillé',
     lockedDefault: 'Cette fonctionnalité est temporairement indisponible.',
