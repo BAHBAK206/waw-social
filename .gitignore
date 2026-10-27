@@ -28,3 +28,5 @@ apps/mobile/web-build/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
 *.egg-info/
+.expo/
+expo-env.d.ts

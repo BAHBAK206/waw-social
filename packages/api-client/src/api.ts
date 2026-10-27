@@ -84,6 +84,11 @@ import { HttpClient, type ClientOptions } from './http';
 type Q = Record<string, string | number | boolean | null | undefined>;
 type Ok = { ok: true };
 
+/** `FormData.append(name, blob, filename)` — typed loosely because React Native's FormData typings omit the filename overload. */
+function appendFile(form: FormData, field: string, file: Blob, filename: string) {
+  (form as unknown as { append: (n: string, v: Blob, f?: string) => void }).append(field, file, filename);
+}
+
 export interface SessionInfo {
   id: string;
   client: string;
@@ -334,8 +339,8 @@ export function createApi(options: ClientOptions) {
 
     upload: (file: Blob, name: string, purpose: string) => {
       const form = new FormData();
-      form.set('file', file, name);
-      form.set('purpose', purpose);
+      appendFile(form, 'file', file, name);
+      form.append('purpose', purpose);
       return http.request<UploadResultDto>('POST', '/uploads', { form });
     },
 
@@ -627,7 +632,7 @@ export function createApi(options: ClientOptions) {
       deleteFile: (id: string) => http.del<Ok>(`/workspace/files/${id}`),
       import: (file: Blob, name: string) => {
         const form = new FormData();
-        form.set('file', file, name);
+        appendFile(form, 'file', file, name);
         return http.request<{ title: string; text: string; chunks: { heading: string | null; page: number | null; text: string }[] }>(
           'POST',
           '/workspace/import',
