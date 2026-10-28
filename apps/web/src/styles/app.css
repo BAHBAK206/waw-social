@@ -318,6 +318,10 @@
     background: color-mix(in srgb, var(--err) 14%, transparent);
     color: var(--err);
   }
+  .badge-info {
+    background: color-mix(in srgb, var(--info) 14%, transparent);
+    color: var(--info);
+  }
   .count-dot {
     @apply inline-flex items-center justify-center text-[11px] font-bold leading-none;
     min-width: 18px;

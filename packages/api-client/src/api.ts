@@ -90,6 +90,11 @@ import type {
   TaxonomyDto,
   UploadResultDto,
   UserSummary,
+  CourseGradingDto,
+  GradeComponentDto,
+  ComponentSource,
+  CourseGradebookDto,
+  ReportCardDto,
   WeeklyPlanDto,
   WorkspaceFileDto,
   WorkspaceFolderDto,
@@ -593,6 +598,13 @@ export function createApi(options: ClientOptions) {
       makeVouchers: (courseId: string, count: number) => http.post<{ codes: string[] }>(`/school/courses/${courseId}/vouchers`, { count }),
       insights: (courseId: string) => http.get<CourseInsightsDto>(`/school/courses/${courseId}/insights`),
       atRisk: () => http.get<{ items: (StudentInsightDto & { courses: string[] })[] }>('/school/at-risk'),
+      components: (courseId: string) => http.get<{ grading: CourseGradingDto; items: GradeComponentDto[] }>(`/school/courses/${courseId}/components`),
+      saveComponents: (courseId: string, components: { id?: string; name: string; maxMarks: number; source: ComponentSource }[]) =>
+        http.put<{ grading: CourseGradingDto; items: GradeComponentDto[] }>(`/school/courses/${courseId}/components`, { components }),
+      saveMarks: (courseId: string, marks: { componentId: string; studentId: string; marks: number | null }[]) =>
+        http.put<{ ok: true; saved: number }>(`/school/courses/${courseId}/marks`, { marks }),
+      gradebook: (courseId: string) => http.get<CourseGradebookDto>(`/school/courses/${courseId}/gradebook`),
+      reportCard: (q: { studentId?: string; term?: string } = {}) => http.get<ReportCardDto>('/school/report-card', q),
       roster: (courseId: string, emails: string[]) =>
         http.post<{ added: number; already: number; invited: number }>(`/school/courses/${courseId}/roster`, { emails }),
       nudge: (courseId: string, studentId: string, message: string) => http.post<Ok>(`/school/courses/${courseId}/nudge`, { studentId, message }),
@@ -614,6 +626,11 @@ export function createApi(options: ClientOptions) {
           priceCents: number;
           currency: string;
           regenerateCode: boolean;
+          subjectCode: string | null;
+          maxMarks: number;
+          passMarks: number;
+          countsInTotal: boolean;
+          term: string | null;
         }>,
       ) => http.patch<CourseDto>(`/school/courses/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/school/courses/${id}`),

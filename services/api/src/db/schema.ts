@@ -14,6 +14,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 
 /** Millisecond precision keeps (created_at, id) cursors exact with JS Date values. */
@@ -925,6 +926,12 @@ export const courses = pgTable(
     /** 0 = free. Paid courses are joined by card payment (Stripe) or a single-use voucher. */
     priceCents: integer('price_cents').notNull().default(0),
     currency: text('currency').notNull().default('USD'),
+    /** Subject grading: code (e.g. MATH-3), total marks ("out of 60"), pass mark, whether it counts in the overall total. */
+    subjectCode: text('subject_code'),
+    maxMarks: real('max_marks').notNull().default(100),
+    passMarks: real('pass_marks').notNull().default(50),
+    countsInTotal: boolean('counts_in_total').notNull().default(true),
+    term: text('term'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -990,6 +997,8 @@ export const assignments = pgTable(
     state: text('state').$type<'draft' | 'published' | 'closed'>().notNull().default('published'),
     attachments: jsonb('attachments').$type<Record<string, unknown>[]>().notNull().default([]),
     topic: text('topic'),
+    /** The grade component this work counts toward (e.g. "Homework"). */
+    componentId: uuid('component_id').references((): AnyPgColumn => gradeComponents.id, { onDelete: 'set null' }),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -1020,6 +1029,40 @@ export const submissions = pgTable(
     submittedAt: ts('submitted_at').notNull().defaultNow(),
   },
   (t) => [uniqueIndex('submissions_uq').on(t.assignmentId, t.studentId)],
+);
+
+/** Parts of a subject's total, e.g. Homework 10 + Monthly tests 20 + Final exam 30 = 60. */
+export const gradeComponents = pgTable(
+  'grade_components',
+  {
+    id: id(),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    maxMarks: real('max_marks').notNull(),
+    source: text('source').$type<'assignments' | 'manual' | 'attendance'>().notNull().default('manual'),
+    position: integer('position').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index('grade_components_course_idx').on(t.courseId, t.position)],
+);
+
+/** Marks entered by the teacher for a manual component (a paper exam, oral test…). */
+export const componentMarks = pgTable(
+  'component_marks',
+  {
+    componentId: uuid('component_id')
+      .notNull()
+      .references(() => gradeComponents.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    marks: real('marks').notNull(),
+    updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.componentId, t.studentId] }), index('component_marks_student_idx').on(t.studentId)],
 );
 
 export const attendanceSessions = pgTable(

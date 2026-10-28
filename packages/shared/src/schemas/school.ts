@@ -18,6 +18,12 @@ export const courseInputSchema = z.object({
     .string()
     .regex(/^[A-Z]{3}$/)
     .optional(),
+  /** Subject grading. */
+  subjectCode: trimmed(32).optional().nullable(),
+  maxMarks: z.number().min(1).max(1000).optional(),
+  passMarks: z.number().min(0).max(1000).optional(),
+  countsInTotal: z.boolean().optional(),
+  term: trimmed(80).optional().nullable(),
 });
 export const joinCourseSchema = z.object({ code: z.string().trim().min(4).max(16) });
 export const courseAnnouncementSchema = z
@@ -36,6 +42,8 @@ export const assignmentInputSchema = z.object({
   state: z.enum(['draft', 'published', 'closed']).default('published'),
   attachments: z.array(attachmentSchema).max(10).default([]),
   topic: trimmed(120).optional().nullable(),
+  /** Grade component this work counts toward. */
+  componentId: idSchema.optional().nullable(),
 });
 export type AssignmentInput = z.infer<typeof assignmentInputSchema>;
 
@@ -128,3 +136,23 @@ export const issueCertificatesSchema = z
     title: trimmed(200).optional(),
   })
   .refine((v) => !!v.studentIds?.length || v.minGrade !== undefined, { message: 'students_required' });
+
+export const gradeComponentsSchema = z.object({
+  components: z
+    .array(
+      z.object({
+        id: idSchema.optional(),
+        name: trimmed(80, 1),
+        maxMarks: z.number().min(0.5).max(1000),
+        source: z.enum(['assignments', 'manual', 'attendance']),
+      }),
+    )
+    .max(20),
+});
+
+export const componentMarksSchema = z.object({
+  marks: z
+    .array(z.object({ componentId: idSchema, studentId: idSchema, marks: z.number().min(0).max(1000).nullable() }))
+    .min(1)
+    .max(3000),
+});

@@ -27,6 +27,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
     items: [
       { id: 'academic', icon: 'school-outline', href: '/study' },
       { id: 'school', icon: 'easel-outline', href: '/school' },
+      { id: 'grades', icon: 'ribbon-outline', href: '/grades' },
       { id: 'catalog', icon: 'storefront-outline', href: '/courses' },
       { id: 'lab', icon: 'mic-outline', href: '/lab' },
       { id: 'ai', icon: 'sparkles-outline', href: '/tutor' },

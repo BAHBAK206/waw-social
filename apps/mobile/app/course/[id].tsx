@@ -9,6 +9,7 @@ import { VoiceAttach } from '@/components/Voice';
 import { Screen } from '@/components/Screen';
 import { CourseInsightsTab } from '@/components/Family';
 import { RosterImport } from '@/components/Roster';
+import { ClassGradebook, MyCourseResult } from '@/components/Gradebook';
 import { Badge, DateField, FeatureGate, Row, Segmented, Sheet, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -364,7 +365,15 @@ export default function CourseScreen() {
         {tab === 'stream' && <Stream courseId={c.id} staff={staff} />}
         {tab === 'assignments' && <Classwork courseId={c.id} staff={staff} />}
         {tab === 'people' && <People courseId={c.id} staff={staff} />}
-        {tab === 'grades' && <Grades courseId={c.id} staff={staff} />}
+        {tab === 'grades' &&
+          (staff ? (
+            <ClassGradebook course={c} />
+          ) : (
+            <View style={{ gap: 12 }}>
+              <MyCourseResult courseId={c.id} />
+              <Grades courseId={c.id} staff={false} />
+            </View>
+          ))}
         {tab === 'materials' && <Materials courseId={c.id} />}
         {tab === 'insights' && staff && <CourseInsightsTab courseId={c.id} />}
       </Screen>

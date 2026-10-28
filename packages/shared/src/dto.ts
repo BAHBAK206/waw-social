@@ -1,3 +1,4 @@
+import type { CourseGradingDto, GradeComponentDto, GradeRating, SubjectResult } from './gradebook';
 import type { RiskLevel, RiskReason, StudentSignals } from './insights';
 import type { LeagueTier } from './leagues';
 import type { AccountType, AdminPermission, Role } from './roles';
@@ -448,6 +449,7 @@ export interface CourseDto {
   listed: boolean;
   priceCents: number;
   currency: string;
+  grading: CourseGradingDto;
   createdAt: number;
 }
 
@@ -521,6 +523,7 @@ export interface AssignmentDto {
   state: 'draft' | 'published' | 'closed';
   attachments: Attachment[];
   topic: string | null;
+  componentId: string | null;
   createdAt: number;
   mySubmission: SubmissionDto | null;
   stats: { submitted: number; graded: number; total: number } | null;
@@ -1149,4 +1152,36 @@ export interface LeagueDto {
   promote: number;
   demote: number;
   lastResult: 'up' | 'down' | 'stay' | null;
+}
+
+export interface GradebookRowDto {
+  student: UserSummary;
+  /** Marks per component id (null = nothing graded yet). */
+  marks: Record<string, number | null>;
+  result: SubjectResult;
+}
+
+export interface CourseGradebookDto {
+  grading: CourseGradingDto;
+  components: GradeComponentDto[];
+  /** Sum of component marks; should equal the subject total. */
+  componentsTotal: number;
+  rows: GradebookRowDto[];
+}
+
+export interface ReportSubjectDto {
+  courseId: string;
+  title: string;
+  teacher: string;
+  grading: CourseGradingDto;
+  components: { id: string; name: string; maxMarks: number; earned: number | null }[];
+  result: SubjectResult;
+}
+
+export interface ReportCardDto {
+  student: UserSummary;
+  term: string | null;
+  terms: string[];
+  subjects: ReportSubjectDto[];
+  overall: { score: number; max: number; fullMax: number; percent: number | null; rating: GradeRating | null; failed: number };
 }

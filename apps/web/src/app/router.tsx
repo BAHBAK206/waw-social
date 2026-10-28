@@ -93,6 +93,7 @@ export const router = createBrowserRouter([
       { path: 'league', ...page(() => import('@/pages/league/LeaguePage'), { auth: true }) },
       { path: 'courses', ...page(() => import('@/pages/catalog/CatalogPage')) },
       { path: 'courses/:id', ...page(() => import('@/pages/catalog/CatalogCoursePage')) },
+      { path: 'grades', ...page(() => import('@/pages/school/GradesPage'), { auth: true }) },
       { path: 'certificates', ...page(() => import('@/pages/certificates/CertificatesPage'), { auth: true }) },
       { path: 'certificate/:code', ...page(() => import('@/pages/certificates/CertificatePage')) },
       { path: 'admin', ...page(() => import('@/pages/admin/AdminPage'), { auth: true }) },

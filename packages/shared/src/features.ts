@@ -35,6 +35,7 @@ export const FEATURES = [
   { id: 'workspace', kind: 'page', category: 'learning', route: '/workspace', icon: 'file-text', auth: true },
   { id: 'academic', kind: 'page', category: 'learning', route: '/academic', icon: 'graduation-cap', auth: true },
   { id: 'school', kind: 'page', category: 'learning', route: '/school', icon: 'school', auth: true },
+  { id: 'grades', kind: 'page', category: 'learning', route: '/grades', icon: 'clipboard-check', auth: true },
   { id: 'catalog', kind: 'page', category: 'learning', route: '/courses', icon: 'store' },
   { id: 'classes', kind: 'page', category: 'learning', route: '/classes', icon: 'video', auth: true },
   { id: 'exams', kind: 'page', category: 'learning', route: '/academic?tab=exams', icon: 'calendar-clock', auth: true },

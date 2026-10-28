@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChartColumn,
   Clapperboard,
+  ClipboardCheck,
   Compass,
   Film,
   Vote,
@@ -118,6 +119,7 @@ export const ICONS: Record<string, LucideIcon> = {
   award: Award,
   medal: Medal,
   store: Store,
+  'clipboard-check': ClipboardCheck,
 };
 
 export interface NavItem {

@@ -19,3 +19,4 @@ export * from './captions';
 export * from './insights';
 export * from './leagues';
 export * from './calendar';
+export * from './gradebook';

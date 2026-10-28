@@ -39,6 +39,7 @@ import {
   courseSynonyms,
   courses,
   essayKeys,
+  gradeComponents,
   knowledgeChunks,
   rubrics,
   submissions,
@@ -54,6 +55,7 @@ import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
 import { claimAttachments, ownAttachment, readableAttachment, type StoredAttachment } from '../lib/attachments';
 import { studentRisk } from '../lib/insights';
+import { gradingOf } from '../lib/gradebook';
 import { checkRate } from '../middleware';
 
 const ownerCols = {
@@ -117,9 +119,16 @@ export async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Pro
         listed: r.c.listed,
         priceCents: r.c.priceCents,
         currency: r.c.currency,
+        grading: gradingOf(r.c),
         createdAt: r.c.createdAt.getTime(),
       };
     });
+}
+
+/** A grade component must belong to the same class. */
+async function assertComponent(deps: Deps, courseId: string, componentId: string) {
+  const [comp] = await deps.db.select({ c: gradeComponents.courseId }).from(gradeComponents).where(eq(gradeComponents.id, componentId));
+  if (comp?.c !== courseId) throw badRequest('invalid_component');
 }
 
 async function submissionDtos(deps: Deps, rows: (typeof submissions.$inferSelect)[]): Promise<SubmissionDto[]> {
@@ -191,6 +200,7 @@ async function assignmentDto(deps: Deps, user: AuthUser, role: CourseRole, a: ty
     state: a.state,
     attachments: a.attachments as AssignmentDto['attachments'],
     topic: a.topic,
+    componentId: a.componentId,
     createdAt: a.createdAt.getTime(),
     mySubmission,
     stats,
@@ -458,6 +468,10 @@ export const schoolRoutes = new Hono<AppEnv>()
     await requireRole(deps, id, user, ['teacher']);
     const input = await body(c, courseInputSchema.partial().extend({ archived: z.boolean().optional(), regenerateCode: z.boolean().optional() }));
     const { regenerateCode, ...rest } = input;
+    if (rest.maxMarks !== undefined || rest.passMarks !== undefined) {
+      const [cur] = await deps.db.select({ max: courses.maxMarks, pass: courses.passMarks }).from(courses).where(eq(courses.id, id));
+      if ((rest.passMarks ?? cur!.pass) > (rest.maxMarks ?? cur!.max)) throw badRequest('pass_above_total');
+    }
     await deps.db
       .update(courses)
       .set({
@@ -609,6 +623,7 @@ export const schoolRoutes = new Hono<AppEnv>()
     const id = param(c, 'id');
     await requireRole(deps, id, user, STAFF);
     const input = await body(c, assignmentInputSchema);
+    if (input.componentId) await assertComponent(deps, id, input.componentId);
     if (input.rubricId) {
       const [r] = await deps.db.select({ c: rubrics.courseId }).from(rubrics).where(eq(rubrics.id, input.rubricId));
       if (r?.c !== id) throw badRequest('invalid_rubric');
@@ -658,6 +673,7 @@ export const schoolRoutes = new Hono<AppEnv>()
     const a = await loadAssignment(deps, param(c, 'id'));
     await requireRole(deps, a.courseId, user, STAFF);
     const input = await body(c, assignmentInputSchema.partial());
+    if (input.componentId) await assertComponent(deps, a.courseId, input.componentId);
     const [row] = await deps.db
       .update(assignments)
       .set({

@@ -9,6 +9,7 @@ import { formatDay, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { ReportCard } from './Gradebook';
 import { Badge, Sheet } from './kit';
 import { Avatar, Button, Card, Empty, Input, Loading, Text } from './ui';
 
@@ -149,6 +150,8 @@ export function ChildReport({ report }: { report: ChildReportDto }) {
           </View>
         ))}
       </Card>
+      <Text weight="black">{tr.t('gradebook.reportCard')}</Text>
+      <ReportCard studentId={report.child.id} />
       <Text weight="black">{tr.t('family.courses')}</Text>
       {report.courses.map((c) => (
         <Card key={c.id} style={{ gap: 6 }}>

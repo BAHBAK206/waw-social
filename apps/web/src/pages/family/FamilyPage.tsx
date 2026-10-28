@@ -1,4 +1,5 @@
 import type { ChildReportDto } from '@qubedu/shared';
+import { ReportCard } from '@/components/school/Gradebook';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Flame, Link2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -54,6 +55,10 @@ function ChildReport({ report }: { report: ChildReportDto }) {
             </li>
           ))}
         </ul>
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-black">{tr.t('gradebook.reportCard')}</h2>
+        <ReportCard studentId={report.child.id} compact />
       </section>
       <section className="space-y-3">
         <h2 className="font-black">{tr.t('family.courses')}</h2>

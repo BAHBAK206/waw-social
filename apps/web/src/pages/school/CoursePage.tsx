@@ -12,6 +12,7 @@ import { EmptyState, QueryState } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { CourseInsights } from '@/components/family/Insights';
 import { RosterImport } from '@/components/school/RosterImport';
+import { ClassGradebook, GradingSettings, MyCourseResult } from '@/components/school/Gradebook';
 import { CatalogSettings, CourseCertificates, Vouchers } from '@/components/school/CourseCommerce';
 import { UploadButton } from '@/components/ui/Upload';
 import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
@@ -164,7 +165,10 @@ function AssignmentForm({ course, onClose }: { course: CourseDto; onClose: () =>
   const tr = useT();
   const qc = useQueryClient();
   const rubrics = useQuery({ queryKey: ['course', course.id, 'rubrics'], queryFn: () => api.school.rubrics(course.id) });
+  const comps = useQuery({ queryKey: ['course', course.id, 'components'], queryFn: () => api.school.components(course.id) });
+  const workParts = (comps.data?.items ?? []).filter((c) => c.source === 'assignments' && c.id !== 'coursework');
   const [f, setF] = useState({
+    componentId: '',
     title: '',
     description: '',
     dueAt: '',
@@ -198,6 +202,7 @@ function AssignmentForm({ course, onClose }: { course: CourseDto; onClose: () =>
                 allowLate: f.allowLate,
                 state: f.state,
                 topic: f.topic.trim() || null,
+                componentId: f.componentId || null,
                 attachments: voice ? [voice] : [],
               });
               void qc.invalidateQueries({ queryKey: ['course', course.id, 'assignments'] });
@@ -248,6 +253,15 @@ function AssignmentForm({ course, onClose }: { course: CourseDto; onClose: () =>
           />
           <Input label={tr.t('quiz.editor.topic')} value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} />
         </div>
+        {workParts.length > 0 && (
+          <Select
+            label={tr.t('gradebook.countsToward')}
+            value={f.componentId}
+            placeholder={workParts[0]!.name}
+            onChange={(e) => setF({ ...f, componentId: e.target.value })}
+            options={workParts.map((c) => ({ value: c.id, label: `${c.name} (${c.maxMarks})` }))}
+          />
+        )}
         <Switch checked={f.allowLate} onChange={(v) => setF({ ...f, allowLate: v })} label={tr.t('school.assignment.allowLate')} />
       </div>
     </Modal>
@@ -858,6 +872,7 @@ function Settings({ course }: { course: CourseDto }) {
           {tr.t('common.save')}
         </Button>
       </section>
+      <GradingSettings course={course} />
       <CatalogSettings course={course} />
       <Vouchers course={course} />
       <CourseCertificates course={course} />
@@ -939,9 +954,7 @@ export default function CoursePage() {
           const staff = course.myRole === 'teacher' || course.myRole === 'assistant';
           const teacher = course.myRole === 'teacher';
           const color = course.color ?? '#6c5ce7';
-          const visible: Tab[] = TABS.filter((t) =>
-            t === 'grades' || t === 'attendance' || t === 'analytics' || t === 'insights' ? staff : t === 'settings' ? teacher : true,
-          );
+          const visible: Tab[] = TABS.filter((t) => (t === 'attendance' || t === 'analytics' || t === 'insights' ? staff : t === 'settings' ? teacher : true));
           return (
             <>
               <Link to="/school" className="link mb-3 inline-flex items-center gap-1">
@@ -957,7 +970,7 @@ export default function CoursePage() {
                     <h1 className="text-3xl font-black" dir="auto">
                       {course.title}
                     </h1>
-                    <p className="opacity-90">{[course.subject, course.owner.displayName].filter(Boolean).join(' · ')}</p>
+                    <p className="opacity-90">{[course.grading.subjectCode, course.subject, course.owner.displayName].filter(Boolean).join(' · ')}</p>
                   </div>
                   {staff && (
                     <Button
@@ -975,7 +988,20 @@ export default function CoursePage() {
               {tab === 'stream' && <Stream course={course} staff={staff} />}
               {tab === 'assignments' && <Assignments course={course} staff={staff} />}
               {tab === 'people' && <People course={course} staff={staff} />}
-              {tab === 'grades' && staff && <Grades course={course} />}
+              {tab === 'grades' &&
+                (staff ? (
+                  <div className="space-y-4">
+                    <ClassGradebook course={course} />
+                    <details className="card p-3">
+                      <summary className="cursor-pointer font-bold">{tr.t('gradebook.assignmentsDetail')}</summary>
+                      <div className="mt-3">
+                        <Grades course={course} />
+                      </div>
+                    </details>
+                  </div>
+                ) : (
+                  <MyCourseResult course={course} />
+                ))}
               {tab === 'attendance' && staff && <Attendance course={course} />}
               {tab === 'materials' && (staff ? <Materials course={course} /> : <MaterialsReadOnly course={course} />)}
               {tab === 'analytics' && staff && <Analytics course={course} />}
