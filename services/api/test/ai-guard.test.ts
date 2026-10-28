@@ -53,14 +53,15 @@ describe('AI guard rails', () => {
     await call('POST', '/assistant/messages', { token: student.token, body: { text: 'help me with fractions', hints: true } });
     expect(lastAssistantInput?.socratic).toBe(true);
 
-    // Under 13: hints by default; a parent can change it.
-    const kid = await reg({ gradeLevel: 'p4' });
-    await call('POST', '/ai/solve', { token: kid.token, body: { question: 'What is a noun?' } });
-    expect(lastSolveInput?.mode).toBe('socratic');
-    expect((await call<{ hintsOnly: boolean }>('GET', '/ai/quota', { token: kid.token })).body.hintsOnly).toBe(true);
+    // Under 13: no AI until a parent approves (linking counts); then hints by default, which the parent can change.
+    const kid = await reg({ gradeLevel: 'p4', parentEmail: `mum${Date.now()}@family.test` });
+    expect((await call('POST', '/ai/solve', { token: kid.token, body: { question: 'What is a noun?' } })).status).toBe(403);
     const parent = await newUser({ accountType: 'parent' });
     const code = await call<{ code: string }>('POST', '/family/code', { token: kid.token });
     await call('POST', '/family/link', { token: parent.token, body: { code: code.body.code } });
+    await call('POST', '/ai/solve', { token: kid.token, body: { question: 'What is a noun?' } });
+    expect(lastSolveInput?.mode).toBe('socratic');
+    expect((await call<{ hintsOnly: boolean }>('GET', '/ai/quota', { token: kid.token })).body.hintsOnly).toBe(true);
     await call('PUT', `/family/children/${kid.user.id}/controls`, { token: parent.token, body: { aiHints: false } });
     await call('POST', '/ai/solve', { token: kid.token, body: { question: 'What is a noun?' } });
     expect(lastSolveInput?.mode).toBe('solve');

@@ -14,7 +14,7 @@ import { conversationMembers, conversations, follows, guardianLinks, messages, n
 import type { Deps } from './context';
 import { notFound } from './errors';
 import { ms, onlineKey, toSummary } from './mappers';
-import { controlsOf, isMinor, isParentOfStudentTaughtBy, knowsMinor, minorColumns, minorContactAllowed, tierOf, type MinorRow } from './minors';
+import { controlsOf, isMinor, isParentOfStudentTaughtBy, knowsMinor, minorColumns, minorContactAllowed, tierOf, type MinorRow, consentPending } from './minors';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -146,6 +146,8 @@ export async function buildMe(deps: Deps, userId: string): Promise<Me> {
     ageTier: tierOf(row),
     parentalControls: controlsOf(row),
     guardianCount: guardians?.n ?? 0,
+    twoFactor: !!row.totpEnabledAt,
+    consentPending: consentPending(row),
     notificationPrefs: notificationPrefsSchema.parse(row.notificationPrefs ?? {}),
     timezone: row.timezone,
     dailyGoalMinutes: row.dailyGoalMinutes,

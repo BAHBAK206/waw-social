@@ -18,10 +18,13 @@ test('an under-13 student signs up, is kept to classes, and a parent links and o
   await page.getByLabel('Password', { exact: true }).fill(kid.password);
   await page.getByLabel('School year').selectOption('p3');
   await expect(page.getByText(/Under 13: you can use classes/)).toBeVisible();
-  await expect(page.getByLabel('Parent’s email (optional)')).toBeVisible();
+  // Under 13 a parent's email is required: the parent approves the account.
+  await expect(page.getByRole('button', { name: 'Create account' })).toBeDisabled();
+  await page.getByLabel('Parent’s email (needed under 13)').fill(parent.email);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/$/);
   await dismissOnboarding(page);
+  await expect(page.getByRole('region', { name: 'Ask a parent to approve your account' })).toBeVisible();
 
   // Posting publicly is off until a parent allows it.
   await page.goto('/feed');

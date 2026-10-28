@@ -31,6 +31,7 @@
     "pdfjs-dist": "6.4.299",
     "perfect-freehand": "1.2.3",
     "pptxgenjs": "4.0.1",
+    "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router": "7.18.4",
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/react": "16.3.3",
+    "@types/qrcode": "1.5.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.2.0",

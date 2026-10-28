@@ -134,6 +134,14 @@ import { HttpClient, type ClientOptions } from './http';
 type Q = Record<string, string | number | boolean | null | undefined>;
 type Ok = { ok: true };
 
+/** The password was right; the account also needs a code from an authenticator app (see auth.loginTwoFactor). */
+export class TwoFactorRequiredError extends Error {
+  constructor(public readonly ticket: string) {
+    super('two_factor_required');
+    this.name = 'TwoFactorRequiredError';
+  }
+}
+
 /** `FormData.append(name, blob, filename)` — typed loosely because React Native's FormData typings omit the filename overload. */
 function appendFile(form: FormData, field: string, file: Blob, filename: string) {
   (form as unknown as { append: (n: string, v: Blob, f?: string) => void }).append(field, file, filename);
@@ -173,8 +181,19 @@ export function createApi(options: ClientOptions) {
         language?: string;
         timezone?: string;
       }) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/register', { body, anonymous: true })),
-      login: async (body: { email: string; password: string }) =>
-        http.acceptAuth(await http.request<AuthResult>('POST', '/auth/login', { body, anonymous: true })),
+      /** Throws TwoFactorRequiredError (with a ticket) when the account also needs an authenticator code. */
+      login: async (body: { email: string; password: string }) => {
+        const res = await http.request<AuthResult | { twoFactorRequired: true; ticket: string }>('POST', '/auth/login', { body, anonymous: true });
+        if ('twoFactorRequired' in res) throw new TwoFactorRequiredError(res.ticket);
+        return http.acceptAuth(res);
+      },
+      loginTwoFactor: async (ticket: string, code: string) =>
+        http.acceptAuth(await http.request<AuthResult>('POST', '/auth/login/2fa', { body: { ticket, code }, anonymous: true })),
+      consentInfo: (token: string) =>
+        http.request<{ childName: string; gradeLevel: string | null; approved: boolean }>('GET', `/auth/consent?token=${encodeURIComponent(token)}`, {
+          anonymous: true,
+        }),
+      consent: (token: string, approve: boolean) => http.post<Ok>('/auth/consent', { token, approve }),
       /** Restores a session on app start (cookie on web, secure storage on mobile). */
       restore: async () => ((await http.refresh()) ? http.get<Me>('/me') : null),
       /** Mobile → in-app browser: a 60-second, single-use code that signs the web app in as this user. */
@@ -202,6 +221,17 @@ export function createApi(options: ClientOptions) {
       resetPassword: (token: string, password: string) => http.request<Ok>('POST', '/auth/reset-password', { body: { token, password }, anonymous: true }),
       changePassword: async (currentPassword: string, newPassword: string) =>
         http.acceptAuth(await http.post<AuthResult>('/auth/change-password', { currentPassword, newPassword })),
+    },
+
+    twoFactor: {
+      get: () => http.get<{ enabled: boolean; recoveryLeft: number }>('/me/2fa'),
+      setup: () => http.post<{ secret: string; uri: string }>('/me/2fa/setup'),
+      enable: (code: string) => http.post<{ recoveryCodes: string[] }>('/me/2fa/enable', { code }),
+      disable: (password: string, code: string) => http.post<Ok>('/me/2fa/disable', { password, code }),
+      newRecoveryCodes: (code: string) => http.post<{ recoveryCodes: string[] }>('/me/2fa/recovery', { code }),
+    },
+    consent: {
+      resend: (parentEmail?: string) => http.post<Ok>('/me/consent/resend', parentEmail ? { parentEmail } : {}),
     },
 
     phone: {

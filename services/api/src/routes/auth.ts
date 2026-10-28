@@ -1,10 +1,10 @@
-import { inviteGuardian } from './family';
-import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import {
   changePasswordSchema,
+  consentDecisionSchema,
   isValidTimeZone,
   loginSchema,
   normalizeSearch,
@@ -12,11 +12,14 @@ import {
   registerSchema,
   requestResetSchema,
   resetPasswordSchema,
+  twoFactorLoginSchema,
   verifyEmailSchema,
   type AuthResult,
   ageTier,
 } from '@qubedu/shared';
 import { emailTokens, sessions, users } from '../db/schema';
+import { openSecret, recoveryHash, verifyTotp } from '../lib/totp';
+import { createLink, inviteGuardian } from './family';
 import type { AppEnv, Deps } from '../lib/context';
 import { hashPassword, randomToken, sha256, signAccessToken, verifyPassword } from '../lib/crypto';
 import { AppError, badRequest, forbidden, unauthorized } from '../lib/errors';
@@ -104,7 +107,7 @@ export async function sendEmailToken(deps: Deps, user: { id: string; email: stri
   return raw;
 }
 
-async function consumeEmailToken(deps: Deps, raw: string, kind: 'verify' | 'reset') {
+async function consumeEmailToken(deps: Deps, raw: string, kind: 'verify' | 'reset' | 'consent') {
   const [row] = await deps.db
     .update(emailTokens)
     .set({ usedAt: new Date() })
@@ -112,6 +115,30 @@ async function consumeEmailToken(deps: Deps, raw: string, kind: 'verify' | 'rese
     .returning({ userId: emailTokens.userId });
   if (!row) throw badRequest('invalid_or_expired_token');
   return row.userId;
+}
+
+/** Asks a parent to approve an under-13 account (link valid 14 days). */
+export async function sendConsentEmail(deps: Deps, child: { id: string; displayName: string }, parentEmail: string, language: string) {
+  const raw = randomToken(32);
+  await deps.db.insert(emailTokens).values({ userId: child.id, kind: 'consent', tokenHash: sha256(raw), expiresAt: new Date(Date.now() + 14 * 86400_000) });
+  const url = `${deps.env.APP_URL.replace(/\/$/, '')}/consent?token=${raw}`;
+  const ar = language === 'ar';
+  const t = ar
+    ? emailTemplate(
+        `موافقة على حساب ${child.displayName}`,
+        `أنشأ ${child.displayName} حسابًا على Qubedu، منصة تعليمية للمدارس. لأن عمره أقل من 13 سنة، نحتاج موافقتك قبل تفعيل الرسائل والذكاء الاصطناعي. يمكنك أيضًا الرفض لحذف الحساب.`,
+        'مراجعة الطلب',
+        url,
+        'rtl',
+      )
+    : emailTemplate(
+        `Approve ${child.displayName}'s account`,
+        `${child.displayName} created an account on Qubedu, a learning platform for schools. Because they are under 13, we need your approval before messages and the AI are turned on. You can also decline to delete the account.`,
+        'Review the request',
+        url,
+        'ltr',
+      );
+  await deps.mailer.send({ to: parentEmail, subject: ar ? `موافقة ولي الأمر — Qubedu` : `Parent approval — Qubedu`, ...t });
 }
 
 export const authRoutes = new Hono<AppEnv>()
@@ -126,6 +153,9 @@ export const authRoutes = new Hono<AppEnv>()
     const isRoot = !!deps.env.ROOT_ADMIN_EMAIL && deps.env.ROOT_ADMIN_EMAIL.toLowerCase() === input.email;
     // Teacher and parent accounts are for adults.
     if (input.accountType !== 'student' && ageTier({ birthYear: input.birthYear }) !== 'adult') throw badRequest('adult_account_required');
+    // Under 13: a parent must approve the account.
+    const child = input.accountType === 'student' && ageTier({ birthYear: input.birthYear, gradeLevel: input.gradeLevel, accountType: 'student' }) === 'child';
+    if (child && (!input.parentEmail || input.parentEmail === input.email)) throw badRequest('parent_email_required');
     const language = input.language ?? 'ar';
     const [user] = await deps.db
       .insert(users)
@@ -140,9 +170,12 @@ export const authRoutes = new Hono<AppEnv>()
         role: isRoot ? 'root' : 'user',
         timezone: input.timezone && isValidTimeZone(input.timezone) ? input.timezone : 'UTC',
         appearance: { language },
+        consentAt: child ? null : new Date(),
+        consentEmail: child ? input.parentEmail : null,
       })
       .returning({ id: users.id });
     await sendEmailToken(deps, { id: user!.id, email: input.email, language }, 'verify');
+    if (child) await sendConsentEmail(deps, { id: user!.id, displayName: input.displayName }, input.parentEmail!, language);
     if (input.parentEmail && input.accountType === 'student' && input.parentEmail !== input.email)
       await inviteGuardian(deps, { id: user!.id, displayName: input.displayName }, input.parentEmail).catch((err) =>
         deps.log.warn({ err }, 'guardian invite failed'),
@@ -154,11 +187,82 @@ export const authRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const input = await body(c, loginSchema);
     await checkRate(c, { bucket: `login:${sha256(input.email).slice(0, 16)}`, limit: 10, windowSec: 900 });
-    const [user] = await deps.db.select({ id: users.id, hash: users.passwordHash, deletedAt: users.deletedAt }).from(users).where(eq(users.email, input.email));
+    const [user] = await deps.db
+      .select({ id: users.id, hash: users.passwordHash, deletedAt: users.deletedAt, totp: users.totpEnabledAt })
+      .from(users)
+      .where(eq(users.email, input.email));
     // Always run a hash verification to keep timing similar for unknown emails.
     const ok = await verifyPassword(user?.hash ?? (await getDummyHash()), input.password);
     if (!user || !user.hash || !ok || user.deletedAt) throw unauthorized('invalid_credentials');
+    if (user.totp) {
+      // Second step: a short-lived ticket that only an authenticator code (or a recovery code) can turn into a session.
+      const ticket = randomToken(24);
+      await deps.kv.set(`2fa:${sha256(ticket)}`, user.id, 300);
+      return c.json({ twoFactorRequired: true, ticket });
+    }
     return c.json(await issueSession(c, user.id));
+  })
+  .post('/login/2fa', async (c) => {
+    await checkRate(c, { bucket: 'login-2fa', limit: 20, windowSec: 900 });
+    const deps = c.get('deps');
+    const input = await body(c, twoFactorLoginSchema);
+    const key = `2fa:${sha256(input.ticket)}`;
+    const userId = await deps.kv.get(key);
+    if (!userId) throw unauthorized('two_factor_expired');
+    const { count: tries } = await deps.kv.incr(`${key}:tries`, 300);
+    if (tries > 5) {
+      await deps.kv.del(key);
+      throw unauthorized('two_factor_expired');
+    }
+    const [u] = await deps.db.select({ secret: users.totpSecret, recovery: users.totpRecovery }).from(users).where(eq(users.id, userId));
+    if (!u?.secret) throw unauthorized('two_factor_expired');
+    let ok = verifyTotp(openSecret(u.secret, deps.env.JWT_SECRET), input.code);
+    if (!ok) {
+      // A recovery code works once.
+      const h = recoveryHash(input.code);
+      if (u.recovery.includes(h)) {
+        await deps.db
+          .update(users)
+          .set({ totpRecovery: u.recovery.filter((x) => x !== h) })
+          .where(eq(users.id, userId));
+        ok = true;
+      }
+    }
+    if (!ok) throw unauthorized('invalid_code');
+    await deps.kv.del(key);
+    return c.json(await issueSession(c, userId));
+  })
+  /** The parent's view of a child's account request (no sign-in needed: the emailed link is the key). */
+  .get('/consent', async (c) => {
+    const deps = c.get('deps');
+    const raw = c.req.query('token') ?? '';
+    const [row] = await deps.db
+      .select({ name: users.displayName, grade: users.gradeLevel, consentAt: users.consentAt })
+      .from(emailTokens)
+      .innerJoin(users, eq(users.id, emailTokens.userId))
+      .where(and(eq(emailTokens.tokenHash, sha256(raw)), eq(emailTokens.kind, 'consent'), isNull(emailTokens.usedAt), gt(emailTokens.expiresAt, new Date())));
+    if (!row) throw badRequest('invalid_or_expired_token');
+    return c.json({ childName: row.name, gradeLevel: row.grade, approved: !!row.consentAt });
+  })
+  .post('/consent', async (c) => {
+    await checkRate(c, { bucket: 'consent', limit: 20, windowSec: 3600 });
+    const deps = c.get('deps');
+    const { token, approve } = await body(c, consentDecisionSchema);
+    const childId = await consumeEmailToken(deps, token, 'consent');
+    if (approve) {
+      await deps.db.update(users).set({ consentAt: new Date(), updatedAt: new Date() }).where(eq(users.id, childId));
+      // A signed-in parent account approving also becomes the child's parent on Qubedu.
+      const viewer = c.get('user');
+      if (viewer?.accountType === 'parent') await createLink(deps, { id: viewer.id, displayName: viewer.displayName }, childId).catch(() => undefined);
+    } else {
+      // Declined: the account is closed and signed out everywhere.
+      await deps.db
+        .update(users)
+        .set({ deletedAt: new Date(), tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: new Date() })
+        .where(eq(users.id, childId));
+      await deps.db.delete(sessions).where(eq(sessions.userId, childId));
+    }
+    return c.json({ ok: true });
   })
   /**
    * One-time sign-in handoff: the mobile app opens a web-only tool (workspace editors, live room, admin) in an

@@ -13,6 +13,7 @@ import {
 } from '@qubedu/shared';
 import { GradeLevelSelect } from '@/components/common/GradeLevelSelect';
 import { TeacherVerification } from '@/components/settings/TeacherVerification';
+import { TwoFactorSection } from '@/components/settings/TwoFactor';
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -343,6 +344,7 @@ function AccountTab({ me }: { me: Me }) {
   return (
     <div className="space-y-5">
       <TeacherVerification me={me} />
+      <TwoFactorSection />
       <Section title={tr.t('settings.account.email')}>
         <p className="flex flex-wrap items-center gap-2">
           <span dir="ltr" className="font-bold">

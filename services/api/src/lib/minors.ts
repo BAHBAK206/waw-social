@@ -13,6 +13,8 @@ export type MinorRow = {
   gradeLevel?: string | null;
   accountType?: string | null;
   parentalControls?: Record<string, unknown> | null;
+  /** null = an under-13 account still waiting for a parent's approval. */
+  consentAt?: Date | null;
 };
 
 export const minorColumns = {
@@ -21,12 +23,18 @@ export const minorColumns = {
   gradeLevel: users.gradeLevel,
   accountType: users.accountType,
   parentalControls: users.parentalControls,
+  consentAt: users.consentAt,
 };
 
 export const tierOf = (r: MinorRow): AgeTier => ageTier(r);
 /** Under 18 (by birth year or school year, whichever is younger). */
 export const isMinor = (r: MinorRow) => tierOf(r) !== 'adult';
-export const controlsOf = (r: MinorRow): ParentalControls => effectiveControls(tierOf(r), r.parentalControls as Partial<ParentalControls> | null);
+/** Under 13 without a parent's approval yet: classes and homework work, everything social and the AI stay off. */
+export const consentPending = (r: MinorRow) => r.consentAt === null && tierOf(r) === 'child';
+export const controlsOf = (r: MinorRow): ParentalControls =>
+  consentPending(r)
+    ? { messages: 'classes', publicPosts: false, joinGroups: false, ai: false, aiHints: true }
+    : effectiveControls(tierOf(r), r.parentalControls as Partial<ParentalControls> | null);
 
 export async function isGuardian(db: Db, guardianId: string, studentId: string): Promise<boolean> {
   const [l] = await db

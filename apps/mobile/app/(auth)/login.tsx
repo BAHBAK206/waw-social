@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { AuthShell } from '@/components/AuthShell';
 import { Button, Input, Text } from '@/components/ui';
+import { TwoFactorRequiredError } from '@qubedu/api-client';
 import { api } from '@/lib/api';
 import { useAppearance } from '@/lib/appearance';
 import { errorMessage, useT } from '@/lib/i18n';
@@ -15,18 +16,46 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ticket, setTicket] = useState<string | null>(null);
+  const [code, setCode] = useState('');
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      const me = await api.auth.login({ email: email.trim(), password });
+      const me = ticket ? await api.auth.loginTwoFactor(ticket, code.trim()) : await api.auth.login({ email: email.trim(), password });
       useAppearance.getState().replace(me.appearance);
     } catch (e) {
-      setError(errorMessage(e, tr));
+      if (e instanceof TwoFactorRequiredError) setTicket(e.ticket);
+      else {
+        setError(errorMessage(e, tr));
+        if (ticket && (e as { code?: string }).code === 'two_factor_expired') setTicket(null);
+      }
     } finally {
       setBusy(false);
     }
   };
+  if (ticket)
+    return (
+      <AuthShell title={tr.t('twoFactor.loginTitle')} subtitle={tr.t('twoFactor.loginHint')}>
+        <Input
+          label={tr.t('twoFactor.code')}
+          value={code}
+          onChangeText={setCode}
+          autoCapitalize="none"
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={12}
+          autoFocus
+          onSubmitEditing={submit}
+        />
+        {error ? (
+          <Text color={t.err} weight="bold" accessibilityRole="alert">
+            {error}
+          </Text>
+        ) : null}
+        <Button title={tr.t('twoFactor.verify')} onPress={submit} loading={busy} disabled={code.trim().length < 6} />
+      </AuthShell>
+    );
   return (
     <AuthShell title={tr.t('auth.loginTitle')} subtitle={tr.t('auth.loginSubtitle')}>
       <Input

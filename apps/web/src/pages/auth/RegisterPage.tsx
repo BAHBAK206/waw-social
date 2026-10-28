@@ -24,7 +24,8 @@ export default function RegisterPage() {
     displayName: '',
     email: '',
     password: '',
-    accountType: 'student' as 'student' | 'teacher' | 'parent',
+    // ?type=parent from a parent's approval email, ?type=teacher from teacher links.
+    accountType: (['student', 'teacher', 'parent'].includes(params.get('type') ?? '') ? params.get('type') : 'student') as 'student' | 'teacher' | 'parent',
     birthYear: '',
     gradeLevel: '' as GradeLevel | '',
     parentEmail: '',
@@ -35,7 +36,12 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const valid = form.displayName.trim().length >= LIMITS.displayName.min && /.+@.+\..+/.test(form.email) && form.password.length >= LIMITS.password.min;
+  const needsParent = student && tier === 'child';
+  const valid =
+    form.displayName.trim().length >= LIMITS.displayName.min &&
+    /.+@.+\..+/.test(form.email) &&
+    form.password.length >= LIMITS.password.min &&
+    (!needsParent || /.+@.+\..+/.test(form.parentEmail));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,8 +141,9 @@ export default function RegisterPage() {
           {student && tier !== 'adult' && (
             <Input
               type="email"
-              label={tr.t('auth.parentEmail')}
-              hint={tr.t('auth.parentEmailHint')}
+              label={needsParent ? tr.t('auth.parentEmailChild') : tr.t('auth.parentEmail')}
+              hint={needsParent ? tr.t('auth.parentEmailChildHint') : tr.t('auth.parentEmailHint')}
+              required={needsParent}
               value={form.parentEmail}
               autoComplete="off"
               dir="ltr"

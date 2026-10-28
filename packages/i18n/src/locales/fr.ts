@@ -1,6 +1,44 @@
 import type { Dictionary } from './en';
 
 export const fr: Dictionary = {
+  consent: {
+    bannerTitle: 'Demandez à un parent d’approuver votre compte',
+    bannerHint: 'En attendant, messages, groupes et IA restent désactivés. Vos cours et devoirs fonctionnent.',
+    parentEmail: 'E-mail du parent',
+    resend: 'Renvoyer',
+    sent: 'Envoyé ! Demandez à votre parent de vérifier ses e-mails.',
+    pageTitle: 'Approuver le compte de {{name}}',
+    pageHint:
+      'Qubedu est une plateforme d’apprentissage pour les écoles. {{name}} a moins de 13 ans : votre accord est nécessaire. Ensuite, {{name}} pourra écrire à ses camarades et enseignants, rejoindre des groupes et utiliser l’IA (en mode indices). Vous pouvez tout modifier depuis un compte parent.',
+    approve: 'Approuver',
+    decline: 'Refuser et supprimer le compte',
+    confirmDecline: 'Supprimer le compte de {{name}} ?',
+    approved: 'Merci. Le compte de {{name}} est approuvé.',
+    declined: 'Le compte a été fermé.',
+    parentAccount: 'Créer un compte parent pour suivre votre enfant',
+  },
+  twoFactor: {
+    title: 'Validation en deux étapes',
+    hint: 'En plus du mot de passe, la connexion demande un code d’une application d’authentification. Recommandé pour les enseignants et administrateurs.',
+    start: 'Activer',
+    scan: 'Scannez ce code avec une application d’authentification (Google Authenticator, Microsoft Authenticator…) ou saisissez la clé.',
+    openApp: 'Ouvrir dans l’application',
+    key: 'Clé',
+    code: 'Code de l’application',
+    confirm: 'Confirmer',
+    on: 'Activée',
+    off: 'Désactivée',
+    recovery: 'Codes de secours',
+    recoveryHint: 'Chaque code sert une fois si vous perdez votre téléphone. Gardez-les en lieu sûr : ils ne s’affichent qu’une fois.',
+    download: 'Télécharger',
+    newCodes: 'Nouveaux codes de secours',
+    recoveryLeft: '{count, plural, one {# code de secours restant} other {# codes de secours restants}}',
+    disable: 'Désactiver',
+    password: 'Mot de passe',
+    loginTitle: 'Saisissez votre code',
+    loginHint: 'Ouvrez votre application d’authentification et saisissez le code à 6 chiffres (ou un code de secours).',
+    verify: 'Vérifier',
+  },
   liveTools: {
     polls: 'Questions et sondages',
     breakouts: 'Travail en groupes',
@@ -1133,6 +1171,8 @@ export const fr: Dictionary = {
     'workspace-export': 'Exporter des fichiers',
   },
   auth: {
+    parentEmailChildHint: 'Nous demandons à votre parent d’approuver votre compte.',
+    parentEmailChild: 'E-mail d’un parent (obligatoire avant 13 ans)',
     childNotice:
       'Moins de 13 ans : classes, leçons, quiz et outils d’étude marchent tout de suite. Publier en public et écrire à des personnes hors de tes classes restent désactivés jusqu’à ce qu’un parent se connecte et les autorise.',
     parentEmailHint: 'Nous lui enverrons un lien pour suivre vos progrès.',
@@ -1181,6 +1221,12 @@ export const fr: Dictionary = {
     bannedHelp: "Si vous pensez qu'il s'agit d'une erreur, contactez les administrateurs.",
   },
   errors: {
+    consent_not_needed: 'Ce compte n’a pas besoin de l’accord d’un parent.',
+    two_factor_off: 'La validation en deux étapes est désactivée.',
+    two_factor_on: 'La validation en deux étapes est déjà activée.',
+    two_factor_setup_expired: 'La configuration a expiré. Recommencez.',
+    two_factor_expired: 'Délai dépassé. Reconnectez-vous.',
+    parent_email_required: 'Avant 13 ans, l’e-mail d’un parent est nécessaire pour qu’il approuve le compte.',
     not_a_main_room: 'Les groupes se créent depuis la classe principale en direct.',
     already_voted: 'Vous avez déjà répondu.',
     poll_closed: 'Cette question est close.',

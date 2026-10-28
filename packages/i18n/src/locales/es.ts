@@ -1,6 +1,44 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  consent: {
+    bannerTitle: 'Pide a tu padre o madre que apruebe tu cuenta',
+    bannerHint: 'Hasta entonces, los mensajes, grupos y la IA siguen desactivados. Tus clases y tareas funcionan.',
+    parentEmail: 'Correo del padre o madre',
+    resend: 'Enviar de nuevo',
+    sent: '¡Enviado! Pide que revisen su correo.',
+    pageTitle: 'Aprobar la cuenta de {{name}}',
+    pageHint:
+      'Qubedu es una plataforma de aprendizaje para colegios. {{name}} tiene menos de 13 años, así que necesitamos tu aprobación. Después podrá escribir a compañeros y docentes, unirse a grupos de estudio y usar la IA (en modo pistas). Puedes cambiarlo todo desde una cuenta de padres.',
+    approve: 'Aprobar',
+    decline: 'Rechazar y borrar la cuenta',
+    confirmDecline: '¿Borrar la cuenta de {{name}}?',
+    approved: 'Gracias. La cuenta de {{name}} está aprobada.',
+    declined: 'La cuenta se cerró.',
+    parentAccount: 'Crear una cuenta de padres para seguir a tu hijo',
+  },
+  twoFactor: {
+    title: 'Verificación en dos pasos',
+    hint: 'Además de la contraseña, al entrar se pide un código de una app de autenticación. Recomendado para docentes y administradores.',
+    start: 'Activar',
+    scan: 'Escanea este código con una app de autenticación (Google Authenticator, Microsoft Authenticator…) o escribe la clave.',
+    openApp: 'Abrir en la app de autenticación',
+    key: 'Clave',
+    code: 'Código de la app',
+    confirm: 'Confirmar',
+    on: 'Activada',
+    off: 'Desactivada',
+    recovery: 'Códigos de recuperación',
+    recoveryHint: 'Cada código sirve una vez si pierdes el teléfono. Guárdalos en un lugar seguro: solo se muestran ahora.',
+    download: 'Descargar',
+    newCodes: 'Nuevos códigos de recuperación',
+    recoveryLeft: '{count, plural, one {Queda # código} other {Quedan # códigos}}',
+    disable: 'Desactivar',
+    password: 'Contraseña',
+    loginTitle: 'Escribe tu código',
+    loginHint: 'Abre tu app de autenticación y escribe el código de 6 dígitos (o un código de recuperación).',
+    verify: 'Verificar',
+  },
   liveTools: {
     polls: 'Preguntas y encuestas',
     breakouts: 'Trabajo en grupos',
@@ -1142,6 +1180,8 @@ export const es: Dictionary = {
     'workspace-export': 'Exportar archivos',
   },
   auth: {
+    parentEmailChildHint: 'Pediremos a tu padre o madre que apruebe tu cuenta.',
+    parentEmailChild: 'Correo de un padre o madre (obligatorio con menos de 13)',
     childNotice:
       'Menos de 13: puedes usar clases, lecciones, cuestionarios y herramientas de estudio enseguida. Publicar en público y escribir a personas fuera de tus clases siguen desactivados hasta que un padre o madre se conecte y lo permita.',
     parentEmailHint: 'Le enviaremos un enlace para seguir tu progreso.',
@@ -1190,6 +1230,12 @@ export const es: Dictionary = {
     bannedHelp: 'Si crees que es un error, contacta con los administradores.',
   },
   errors: {
+    consent_not_needed: 'Esta cuenta no necesita aprobación.',
+    two_factor_off: 'La verificación en dos pasos está desactivada.',
+    two_factor_on: 'La verificación en dos pasos ya está activada.',
+    two_factor_setup_expired: 'La configuración caducó. Empieza de nuevo.',
+    two_factor_expired: 'Tardaste demasiado. Vuelve a iniciar sesión.',
+    parent_email_required: 'Con menos de 13 años se necesita el correo de un padre o madre para aprobar la cuenta.',
     not_a_main_room: 'Los grupos se crean desde la clase principal en directo.',
     already_voted: 'Ya respondiste.',
     poll_closed: 'Esta pregunta está cerrada.',

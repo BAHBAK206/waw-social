@@ -22,23 +22,7 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <title>Qubedu — تعلّم · أنشئ · تواصل</title>
-    <script>
-      // Apply the saved appearance before first paint to avoid a flash of the wrong theme.
-      (function () {
-        try {
-          var a = JSON.parse(localStorage.getItem('qubedu:appearance') || '{}');
-          var d = document.documentElement;
-          var dark = a.theme === 'dark' || (a.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-          d.dataset.theme = dark ? 'dark' : 'light';
-          if (a.design) d.dataset.design = a.design;
-          if (a.skin) d.dataset.skin = a.skin;
-          if (a.language) {
-            d.lang = a.language;
-            d.dir = a.language === 'ar' ? 'rtl' : 'ltr';
-          }
-        } catch (e) {}
-      })();
-    </script>
+    <script src="/boot.js"></script>
   </head>
   <body>
     <div id="root"></div>

@@ -4,7 +4,7 @@ import { Spinner } from '@/components/ui/States';
 import { startTokenKeepAlive } from '@/lib/auth';
 import { useSession } from '@/lib/session';
 import { useUi } from '@/lib/ui';
-import { AnnouncementsBar, OfflineBanner, VerifyEmailBar } from './Banners';
+import { AnnouncementsBar, ConsentBar, OfflineBanner, VerifyEmailBar } from './Banners';
 import { BottomNav } from './BottomNav';
 import { BannedScreen, FeatureGate, MaintenanceScreen } from './Gates';
 import { Sidebar } from './Sidebar';
@@ -86,6 +86,7 @@ export function AppShell() {
         <OfflineBanner />
         <AnnouncementsBar />
         <VerifyEmailBar />
+        <ConsentBar />
         <main id="main" className={embedded ? 'flex-1 pb-8' : 'flex-1 pb-24 lg:pb-8'}>
           <FeatureGate>
             <Suspense fallback={<Spinner />}>

@@ -34,9 +34,8 @@ test('a teacher publishes a quiz and a student takes it and sees graded results'
   await expect(page).toHaveURL(/\/$/);
   await dismissOnboarding(page);
 
-  await page.goto('/quiz');
-  await page.getByPlaceholder(/Search quizzes/i).fill(title);
-  await page.getByText(title).first().click();
+  await page.goto(`/quiz?q=${encodeURIComponent(title)}`);
+  await expect(page.getByText(title).first()).toBeVisible();
   await page
     .getByRole('button', { name: /^Start/ })
     .first()

@@ -29,7 +29,12 @@ export default function RegisterScreen() {
   const tier = ageTier({ birthYear: f.birthYear ? Number(f.birthYear) : null, gradeLevel: f.gradeLevel || null, accountType: f.accountType });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const valid = f.displayName.trim().length >= LIMITS.displayName.min && /.+@.+\..+/.test(f.email) && f.password.length >= LIMITS.password.min;
+  const needsParent = f.accountType === 'student' && tier === 'child';
+  const valid =
+    f.displayName.trim().length >= LIMITS.displayName.min &&
+    /.+@.+\..+/.test(f.email) &&
+    f.password.length >= LIMITS.password.min &&
+    (!needsParent || /.+@.+\..+/.test(f.parentEmail));
   const submit = async () => {
     setBusy(true);
     setError(null);
@@ -105,7 +110,7 @@ export default function RegisterScreen() {
           {student ? <GradeLevelField value={f.gradeLevel} onChange={(v) => setF({ ...f, gradeLevel: v })} /> : null}
           {student && tier !== 'adult' ? (
             <Input
-              label={tr.t('auth.parentEmail')}
+              label={needsParent ? tr.t('auth.parentEmailChild') : tr.t('auth.parentEmail')}
               value={f.parentEmail}
               onChangeText={(v) => setF({ ...f, parentEmail: v })}
               keyboardType="email-address"

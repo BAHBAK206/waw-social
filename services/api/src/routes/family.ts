@@ -134,6 +134,12 @@ export async function createLink(deps: Deps, guardian: { id: string; displayName
     .onConflictDoNothing()
     .returning({ s: guardianLinks.studentId });
   await deps.db.delete(guardianRequests).where(and(eq(guardianRequests.studentId, studentId), eq(guardianRequests.guardianId, guardian.id)));
+  // A parent linking their child also approves an under-13 account.
+  if (inserted.length)
+    await deps.db
+      .update(users)
+      .set({ consentAt: sql`coalesce(${users.consentAt}, now())` })
+      .where(eq(users.id, studentId));
   if (inserted.length)
     await notify(deps, {
       userId: studentId,

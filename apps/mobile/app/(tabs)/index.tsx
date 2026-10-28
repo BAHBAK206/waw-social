@@ -16,6 +16,7 @@ import { useT } from '@/lib/i18n';
 import { greetingKey } from '@/lib/greeting';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
+import { ConsentCard } from '@/components/AccountSecurity';
 
 export default function HomeScreen() {
   const tr = useT();
@@ -66,6 +67,11 @@ export default function HomeScreen() {
           </View>
         </View>
       </GradientHeader>
+      {me.consentPending ? (
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          <ConsentCard />
+        </View>
+      ) : null}
       <View style={{ padding: 16, gap: 12 }}>
         <TodayClassesCard />
         <Card>

@@ -62,3 +62,16 @@ export function passwordStrength(pw: string): number {
   if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
   return Math.min(4, score);
 }
+
+/** Two-step sign-in with an authenticator app (6-digit code) or a recovery code. */
+export const twoFactorLoginSchema = z.object({ ticket: z.string().min(20).max(100), code: z.string().trim().min(6).max(12) });
+export const twoFactorCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
+});
+export const twoFactorDisableSchema = z.object({ password: z.string().min(1).max(128), code: z.string().trim().min(6).max(12) });
+/** A parent's answer to a child's account (under 13). */
+export const consentDecisionSchema = z.object({ token: z.string().min(20).max(256), approve: z.boolean() });
+export const consentResendSchema = z.object({ parentEmail: z.string().trim().toLowerCase().email().max(254).optional() });

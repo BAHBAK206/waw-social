@@ -9,6 +9,24 @@
  */
 const SERVER_PATHS = /^\/(api|files|ws|webhooks)(\/|$)/;
 
+/** Security headers for the app's pages (in advanced mode the worker sets them itself; keep in sync with _headers). */
+const PAGE_HEADERS = {
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; worker-src 'self' blob:; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests",
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Permissions-Policy': 'camera=(self), microphone=(self), display-capture=(self), geolocation=()',
+};
+
+function withPageHeaders(res) {
+  if (!(res.headers.get('content-type') || '').includes('text/html')) return res;
+  const out = new Response(res.body, res);
+  for (const [k, v] of Object.entries(PAGE_HEADERS)) out.headers.set(k, v);
+  return out;
+}
+
 function json(status, body) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 }
@@ -39,8 +57,8 @@ export default {
     const res = await env.ASSETS.fetch(request);
     // Single-page app: unknown paths without a file extension get index.html (the app's router shows the page or "not found").
     if (res.status === 404 && (request.method === 'GET' || request.method === 'HEAD') && !/\.[a-z0-9]+$/i.test(url.pathname)) {
-      return env.ASSETS.fetch(new Request(new URL('/index.html', url), request));
+      return withPageHeaders(await env.ASSETS.fetch(new Request(new URL('/index.html', url), request)));
     }
-    return res;
+    return withPageHeaders(res);
   },
 };

@@ -3,13 +3,29 @@ import { describe, expect, it } from 'vitest';
 import { call, newUser, setupApp } from './helpers';
 
 let n = 0;
-async function reg(body: Record<string, unknown>) {
+const CHILD_GRADES = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'm1'];
+/** Registers; under-13s give a parent's email and (unless `pending`) the parent approves right away. */
+async function reg(body: Record<string, unknown>, opts: { pending?: boolean } = {}) {
   n += 1;
   const email = (body.email as string | undefined) ?? `kid${Date.now()}${n}@qubedu.test`;
+  const child = CHILD_GRADES.includes(String(body.gradeLevel)) && (!body.accountType || body.accountType === 'student');
   const r = await call<AuthResult>('POST', '/auth/register', {
-    body: { email, password: 'Password#123', displayName: `Person ${n}`, accountType: 'student', ...body },
+    body: {
+      email,
+      password: 'Password#123',
+      displayName: `Person ${n}`,
+      accountType: 'student',
+      ...(child ? { parentEmail: `parent${Date.now()}${n}@family.test` } : {}),
+      ...body,
+    },
     headers: { 'x-client': 'mobile' },
   });
+  if (child && r.status === 201 && !opts.pending) {
+    const { deps } = await setupApp();
+    const { users } = await import('../src/db/schema');
+    const { eq } = await import('drizzle-orm');
+    await deps.db.update(users).set({ consentAt: new Date() }).where(eq(users.id, r.body.user.id));
+  }
   return { status: r.status, token: r.body.accessToken, user: r.body.user, email };
 }
 
@@ -109,7 +125,7 @@ describe('parent account', () => {
     const parentEmail = `mum${Date.now()}@family.test`;
     const before = deps.mailer.outbox.length;
     const kid = await reg({ gradeLevel: 'm1', parentEmail });
-    const mail = deps.mailer.outbox.slice(before).find((m) => m.to === parentEmail)!;
+    const mail = deps.mailer.outbox.slice(before).find((m) => m.to === parentEmail && m.text.includes('invite='))!;
     const token = /invite=([\w-]+)/.exec(mail.text)![1]!;
     const parent = await newUser({ accountType: 'parent', email: parentEmail });
     // A student account can't use it; the parent can, once.

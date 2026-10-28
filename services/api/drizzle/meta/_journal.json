@@ -176,6 +176,13 @@
       "when": 1793225421832,
       "tag": "0024_live_classroom",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793226026965,
+      "tag": "0025_two_factor_consent",
+      "breakpoints": true
     }
   ]
 }

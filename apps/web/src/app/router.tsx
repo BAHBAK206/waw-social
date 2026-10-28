@@ -35,6 +35,7 @@ export const router = createBrowserRouter([
   { path: '/forgot', ...page(() => import('@/pages/auth/ForgotPage')), errorElement: <RouteError /> },
   { path: '/reset', ...page(() => import('@/pages/auth/ResetPage')), errorElement: <RouteError /> },
   { path: '/verify', ...page(() => import('@/pages/auth/VerifyPage')), errorElement: <RouteError /> },
+  { path: '/consent', ...page(() => import('@/pages/auth/ConsentPage')), errorElement: <RouteError /> },
   {
     element: <AppShell />,
     errorElement: <RouteError />,

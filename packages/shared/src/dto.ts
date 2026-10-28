@@ -76,6 +76,10 @@ export interface Me extends PublicProfile {
   /** What applies to this student now (set by a linked parent, or the defaults for their age). */
   parentalControls: ParentalControls;
   guardianCount: number;
+  /** Signing in needs a code from an authenticator app too. */
+  twoFactor: boolean;
+  /** Under 13 and waiting for a parent to approve the account (most features stay off until then). */
+  consentPending: boolean;
   notificationPrefs: NotificationPrefs;
   timezone: string;
   dailyGoalMinutes: number;

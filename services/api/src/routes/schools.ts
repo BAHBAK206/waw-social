@@ -259,6 +259,8 @@ export const schoolsRoutes = new Hono<AppEnv>()
           accountType,
           gradeLevel: accountType === 'student' ? gradeLevel : null,
           appearance: { language },
+          // The school stands in for the parents' approval of accounts it creates.
+          consentAt: new Date(),
         })
         .returning({ id: users.id });
       if (email) await sendEmailToken(deps, { id: u!.id, email, language }, 'verify').catch((err) => deps.log.warn({ err }, 'school welcome email failed'));

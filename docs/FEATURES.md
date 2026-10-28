@@ -43,3 +43,12 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Calendar feed (Google / Apple / Outlook), class roster import from CSV (e.g. Google Classroom) | ✅ | ✅ |
 | Offline: downloaded lessons with captions, offline flashcards, sync queue | — | ✅ |
 | Backups, error alerts, health and last-backup status in the admin overview | ✅ | — |
+| Curriculum map (subject → unit → lesson → objective), mastery per objective, placement test and personal plan | ✅ | ✅ |
+| Question banks, per-student exams from blueprints, shuffled choices, exam mode, item analysis | ✅ | ✅ (blueprints edited on the web) |
+| Local payments: Paymob cards and wallets (EGP), InstaPay / wallet / bank transfer with receipt approval | ✅ | ✅ (Android) |
+| Math formulas ($…$) in quizzes, posts, comments and answers, with symbol buttons | ✅ (KaTeX) | ✅ (readable math) |
+| WhatsApp / SMS for parents: confirmed number, weekly report, absence and low-grade alerts | ✅ | ✅ |
+| Schools: administrators, bulk import from CSV, class sections, official report cards (print / PDF) | ✅ | ✅ (report cards open in the browser) |
+| AI guard rails: hints-only mode, paused during exams, rubric feedback, copying check | ✅ | ✅ |
+| Live classes: breakout groups, quick questions and polls, automatic attendance | ✅ | ✅ (same live room) |
+| Two-step sign-in (authenticator app), parental consent under 13, Content-Security-Policy | ✅ | ✅ |

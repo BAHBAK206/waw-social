@@ -64,6 +64,13 @@ export const users = pgTable(
     leagueTier: integer('league_tier').notNull().default(0),
     /** Secret for the private calendar feed (subscribe in Google / Apple Calendar). */
     calendarToken: text('calendar_token'),
+    /** Two-step sign-in: the authenticator secret (encrypted) and single-use recovery code hashes. */
+    totpSecret: text('totp_secret'),
+    totpEnabledAt: ts('totp_enabled_at'),
+    totpRecovery: jsonb('totp_recovery').$type<string[]>().notNull().default([]),
+    /** Under 13: a parent agreed to the account (or the school created it). Null while waiting. */
+    consentAt: ts('consent_at'),
+    consentEmail: text('consent_email'),
     /** Parents: verified phone for WhatsApp / SMS reports and alerts. */
     phone: text('phone'),
     phoneVerifiedAt: ts('phone_verified_at'),
@@ -160,7 +167,7 @@ export const emailTokens = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    kind: text('kind').$type<'verify' | 'reset'>().notNull(),
+    kind: text('kind').$type<'verify' | 'reset' | 'consent'>().notNull(),
     tokenHash: text('token_hash').notNull(),
     expiresAt: ts('expires_at').notNull(),
     usedAt: ts('used_at'),

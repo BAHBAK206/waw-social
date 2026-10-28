@@ -75,7 +75,7 @@ export function VerifyEmailBar() {
   const me = useSession((s) => s.me);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  if (!me || me.emailVerified) return null;
+  if (!me || me.emailVerified || me.email.endsWith('.school.invalid')) return null;
   return (
     <div className="app-chrome border-b border-line bg-card-2">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-2 text-sm">
@@ -149,6 +149,51 @@ export function NoticeCard({ tone = 'info', title, children }: { tone?: 'info' |
         {title && <p className="font-bold">{title}</p>}
         <div className="text-fg-2">{children}</div>
       </div>
+    </div>
+  );
+}
+
+/** Under 13 and waiting for a parent: what's off, and a way to send the request again (or to another address). */
+export function ConsentBar() {
+  const tr = useT();
+  const me = useSession((s) => s.me);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!me?.consentPending) return null;
+  return (
+    <div className="app-chrome border-b border-line bg-card-2" role="region" aria-label={tr.t('consent.bannerTitle')}>
+      <form
+        className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-2 text-sm"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          try {
+            await api.consent.resend(email.trim() || undefined);
+            toast(tr.t('consent.sent'));
+          } catch (er) {
+            toastError(er);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <Info className="size-4 text-info" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <b>{tr.t('consent.bannerTitle')}</b> <span className="muted">{tr.t('consent.bannerHint')}</span>
+        </span>
+        <input
+          className="input h-9 min-h-0 w-56"
+          type="email"
+          dir="ltr"
+          placeholder={tr.t('consent.parentEmail')}
+          aria-label={tr.t('consent.parentEmail')}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Button type="submit" size="sm" variant="soft" loading={busy}>
+          {tr.t('consent.resend')}
+        </Button>
+      </form>
     </div>
   );
 }
