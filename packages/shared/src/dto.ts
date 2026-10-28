@@ -1406,3 +1406,59 @@ export interface PhoneSettingsDto {
   /** Which channels this site can send on. */
   available: { whatsapp: boolean; sms: boolean };
 }
+
+export interface SchoolDto {
+  id: string;
+  name: string;
+  system: string;
+  address: string | null;
+  phone: string | null;
+  logoUrl: string | null;
+  principal: string | null;
+  myRole: 'admin' | 'teacher' | 'student' | 'parent' | null;
+  /** invited: added by the school, waiting for this person to accept. */
+  myStatus: 'active' | 'invited' | null;
+  counts: { admins: number; teachers: number; students: number; parents: number; classes: number; invited: number };
+  sections: string[];
+  createdAt: number;
+}
+
+export interface SchoolMemberDto {
+  user: UserSummary & { email?: string };
+  role: 'admin' | 'teacher' | 'student' | 'parent';
+  status: 'active' | 'invited';
+  section: string | null;
+  studentNumber: string | null;
+  gradeLevel: GradeLevel | null;
+  /** The account was created by this school (its admin can reset the password). */
+  managed: boolean;
+  joinedAt: number;
+}
+
+export interface SchoolImportResultDto {
+  /** New accounts with their first password, to print and hand out. */
+  created: { name: string; login: string; password: string; role: string; section: string | null; studentNumber: string | null }[];
+  /** Existing accounts asked to join (they accept in the app). */
+  invited: number;
+  /** Parents linked to their child (new parent accounts), or asked to confirm (existing ones). */
+  parents: number;
+  skipped: { row: number; name: string; reason: string }[];
+}
+
+export interface SchoolClassDto {
+  id: string;
+  title: string;
+  section: string | null;
+  subjectCode: string | null;
+  term: string | null;
+  teacher: UserSummary;
+  memberCount: number;
+}
+
+/** Official report cards for printing (one student, or a whole class section). */
+export interface SchoolReportCardsDto {
+  school: SchoolDto;
+  term: string | null;
+  terms: string[];
+  cards: (ReportCardDto & { section: string | null; studentNumber: string | null; gradeLevel: GradeLevel | null })[];
+}

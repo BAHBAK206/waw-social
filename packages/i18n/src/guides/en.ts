@@ -200,6 +200,28 @@ export const en: GuideBook = {
       parent: 'You see your child’s quiz results on the Family page.',
     },
   },
+  schools: {
+    title: 'Schools: people, classes and report cards',
+    summary:
+      'A school administrator adds the whole school at once from a spreadsheet, creates each class’s subjects with their teachers, and prints official report cards. Teachers, students and parents use Qubedu as usual inside their school.',
+    steps: [
+      'A verified teacher (or the site’s staff) opens Schools → New school and fills in the name, curriculum and the principal’s name.',
+      'People → Add people from a spreadsheet: save your list as CSV with the columns name, role, grade, class, number, email, parent email (Arabic column names work too), choose the file and check the preview.',
+      'New accounts get a first password, shown once: download or print the list and hand it out. Students without an email get a sign-in name.',
+      'People who already have an account are invited and join only when they accept, so a school can never take over someone’s account or children.',
+      'Classes → New class subject: choose the class (for example 5A), the subject, its code, the teacher and the total marks. Every student of that class is added, now and later.',
+      'Teachers set the grading parts and enter marks as usual; Report cards → choose a class → Print / Save as PDF gives one official page per student.',
+    ],
+    tips: [
+      'An administrator can give a student a new password if the account was made by the school.',
+      'Parents created with their child are linked automatically; a parent who already had an account confirms the link first.',
+    ],
+    roles: {
+      student: 'Open Schools to join your school and see your official report card.',
+      teacher: 'Your school’s classes appear in Classroom; enter marks there and they show on the report cards.',
+      parent: 'Open Schools to see your child’s official report card.',
+    },
+  },
   curriculum: {
     title: 'Curriculum and your plan',
     summary:

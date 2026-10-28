@@ -16,6 +16,7 @@ import {
   Bookmark,
   Aperture,
   Bot,
+  Building2,
   CalendarDays,
   ChartColumn,
   Clapperboard,
@@ -137,6 +138,7 @@ export const ICONS: Record<string, LucideIcon> = {
   'calendar-range': CalendarRange,
   calculator: Calculator,
   map: MapIcon,
+  building: Building2,
 };
 
 export interface NavItem {

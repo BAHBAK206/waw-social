@@ -26,6 +26,8 @@ export function createMailer(env: Env, log: { info: (o: object, m?: string) => v
   return {
     outbox,
     async send(mail) {
+      // Sign-in names the school made for students without an email can't receive mail.
+      if (/\.invalid$/i.test(mail.to)) return;
       if (env.NODE_ENV === 'test') {
         outbox.push(mail);
         if (outbox.length > 100) outbox.shift();

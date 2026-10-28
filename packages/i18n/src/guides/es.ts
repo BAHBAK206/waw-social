@@ -200,6 +200,28 @@ export const es: GuideBook = {
       parent: 'Ves los resultados de tu hijo en la página Familia.',
     },
   },
+  schools: {
+    title: 'Colegios: personas, grupos y boletines',
+    summary:
+      'Un administrador da de alta todo el colegio de una vez desde una hoja de cálculo, crea las asignaturas de cada grupo con sus docentes e imprime los boletines oficiales.',
+    steps: [
+      'Un docente verificado abre Colegios → Nuevo colegio y escribe el nombre, el plan de estudios y la dirección.',
+      'Personas → Añadir desde una hoja de cálculo: guarda la lista como CSV (name, role, grade, class, number, email, parent email), elige el archivo y revisa la vista previa.',
+      'Las cuentas nuevas reciben una primera contraseña que se muestra una sola vez: descárgala o imprímela.',
+      'Quien ya tiene cuenta recibe una invitación y solo se une si la acepta.',
+      'Grupos → Nueva asignatura de grupo: grupo, asignatura, código, docente y nota máxima. Todos los estudiantes del grupo se añaden.',
+      'Boletines → elige un grupo → Imprimir / PDF: una página oficial por estudiante.',
+    ],
+    tips: [
+      'Un administrador puede dar una contraseña nueva a un estudiante cuya cuenta creó el colegio.',
+      'Las familias creadas junto con su hijo quedan vinculadas; una familia que ya tenía cuenta confirma primero.',
+    ],
+    roles: {
+      student: 'Abre Colegios para unirte y ver tu boletín oficial.',
+      teacher: 'Los grupos del colegio aparecen en Clase; tus notas van a los boletines.',
+      parent: 'Abre Colegios para ver el boletín oficial de tu hijo.',
+    },
+  },
   curriculum: {
     title: 'Temario y tu plan',
     summary:

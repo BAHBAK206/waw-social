@@ -203,6 +203,28 @@ export const fr: GuideBook = {
       parent: 'Vous voyez les résultats de votre enfant sur la page Famille.',
     },
   },
+  schools: {
+    title: 'Écoles : personnes, classes et bulletins',
+    summary:
+      'Un administrateur ajoute toute l’école d’un coup depuis un tableur, crée les matières de chaque classe avec leurs enseignants et imprime les bulletins officiels.',
+    steps: [
+      'Un enseignant vérifié ouvre Écoles → Nouvelle école et saisit le nom, le programme et le directeur.',
+      'Personnes → Ajouter depuis un tableur : enregistrez la liste en CSV (name, role, grade, class, number, email, parent email), choisissez le fichier et vérifiez l’aperçu.',
+      'Les nouveaux comptes reçoivent un premier mot de passe affiché une seule fois : téléchargez ou imprimez la liste.',
+      'Les personnes qui ont déjà un compte sont invitées et ne rejoignent qu’en acceptant.',
+      'Classes → Nouvelle matière de classe : classe, matière, code, enseignant et barème. Tous les élèves de la classe y sont ajoutés.',
+      'Bulletins → choisissez une classe → Imprimer / PDF : une page officielle par élève.',
+    ],
+    tips: [
+      'Un administrateur peut donner un nouveau mot de passe à un élève dont le compte a été créé par l’école.',
+      'Les parents créés avec leur enfant sont liés automatiquement ; un parent déjà inscrit confirme d’abord.',
+    ],
+    roles: {
+      student: 'Ouvrez Écoles pour rejoindre votre école et voir votre bulletin.',
+      teacher: 'Les classes de l’école apparaissent dans Classe ; vos notes vont sur les bulletins.',
+      parent: 'Ouvrez Écoles pour voir le bulletin de votre enfant.',
+    },
+  },
   curriculum: {
     title: 'Programme et plan personnel',
     summary:

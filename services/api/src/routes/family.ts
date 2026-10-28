@@ -126,7 +126,7 @@ async function linkCount(deps: Deps, guardianId: string) {
 }
 
 /** Creates the link (both sides were checked by the caller) and tells both people. */
-async function createLink(deps: Deps, guardian: { id: string; displayName: string }, studentId: string) {
+export async function createLink(deps: Deps, guardian: { id: string; displayName: string }, studentId: string) {
   if ((await linkCount(deps, guardian.id)) >= MAX_CHILDREN) throw conflict('too_many_children');
   const inserted = await deps.db
     .insert(guardianLinks)

@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { CURRICULUM_SYSTEMS } from '../curriculum';
+import { SCHOOL_ROLES } from '../schoolImport';
+import { GRADE_LEVELS } from '../stages';
 import { attachmentSchema, daySchema, idSchema, optionalUrl, trimmed, urlSchema } from './common';
 
 /** How students pay a teacher directly (Egypt: InstaPay, mobile wallets, bank transfer). Shown on paid courses. */
@@ -214,3 +217,49 @@ export const timetableEntrySchema = z
   })
   .refine((v) => v.end > v.start, { message: 'end_before_start', path: ['end'] });
 export type TimetableEntryInput = z.infer<typeof timetableEntrySchema>;
+
+/* Schools: a school admin manages people, class sections and official report cards. */
+export const schoolInputSchema = z.object({
+  name: trimmed(160, 2),
+  system: z.enum(CURRICULUM_SYSTEMS).default('general'),
+  address: trimmed(300).optional().nullable(),
+  phone: trimmed(40).optional().nullable(),
+  logoUrl: optionalUrl,
+  /** Shown on report cards: principal's name and the stamp line. */
+  principal: trimmed(120).optional().nullable(),
+});
+const importEmail = z.string().trim().toLowerCase().email().max(254).nullable().optional();
+export const schoolImportSchema = z.object({
+  rows: z
+    .array(
+      z.object({
+        name: trimmed(80, 2),
+        email: importEmail,
+        role: z.enum(SCHOOL_ROLES),
+        gradeLevel: z
+          .enum(GRADE_LEVELS as unknown as [string, ...string[]])
+          .nullable()
+          .optional(),
+        section: trimmed(20).nullable().optional(),
+        studentNumber: trimmed(40).nullable().optional(),
+        parentEmail: importEmail,
+        parentName: trimmed(80).nullable().optional(),
+      }),
+    )
+    .min(1)
+    .max(300),
+});
+export const schoolMemberUpdateSchema = z.object({
+  role: z.enum(SCHOOL_ROLES).optional(),
+  section: trimmed(20).nullable().optional(),
+  studentNumber: trimmed(40).nullable().optional(),
+});
+export const schoolClassSchema = z.object({
+  section: trimmed(20, 1),
+  title: trimmed(160, 2),
+  subjectCode: trimmed(32).optional().nullable(),
+  teacherId: idSchema,
+  maxMarks: z.number().min(1).max(1000).optional(),
+  passMarks: z.number().min(0).max(1000).optional(),
+  term: trimmed(80).optional().nullable(),
+});

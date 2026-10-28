@@ -44,6 +44,7 @@ import { postRoutes } from './routes/posts';
 import { uploadRoutes } from './routes/uploads';
 import { meRoutes, reportRoutes, userRoutes } from './routes/users';
 import { phoneRoutes } from './routes/phone';
+import { schoolsRoutes } from './routes/schools';
 
 export function createApp(deps: Deps) {
   const app = new Hono<AppEnv>();
@@ -129,6 +130,7 @@ export function createApp(deps: Deps) {
   api.route('/school', gradebookRoutes);
   api.route('/school', courseKnowledgeRoutes);
   api.route('/certificates', certificateRoutes);
+  api.route('/schools', schoolsRoutes);
   api.route('/leagues', leagueRoutes);
   api.route('/calendar', calendarRoutes);
   api.route('/me/calendar', myCalendarRoutes);

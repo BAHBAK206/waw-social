@@ -38,6 +38,7 @@ export const FEATURES = [
   { id: 'curriculum', kind: 'page', category: 'study', route: '/curriculum', icon: 'map', auth: true },
   { id: 'academic', kind: 'page', category: 'study', route: '/academic', icon: 'graduation-cap', auth: true },
   { id: 'school', kind: 'page', category: 'classroom', route: '/school', icon: 'school', auth: true },
+  { id: 'schools', kind: 'page', category: 'classroom', route: '/schools', icon: 'building', auth: true },
   { id: 'grades', kind: 'page', category: 'classroom', route: '/grades', icon: 'clipboard-check', auth: true },
   { id: 'catalog', kind: 'page', category: 'classroom', route: '/courses', icon: 'store' },
   { id: 'classes', kind: 'page', category: 'classroom', route: '/classes', icon: 'video', auth: true },

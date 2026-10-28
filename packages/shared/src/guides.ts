@@ -23,6 +23,7 @@ export const GUIDE_LIST = [
   { id: 'assistant', feature: 'assistant', detailed: true },
   { id: 'quiz', feature: 'quiz', detailed: true },
   { id: 'curriculum', feature: 'curriculum', detailed: true },
+  { id: 'schools', feature: 'schools', detailed: true },
   { id: 'banks', feature: 'quiz', detailed: true },
   { id: 'catalog', feature: 'catalog', detailed: true },
   { id: 'tools', feature: 'services', detailed: true },

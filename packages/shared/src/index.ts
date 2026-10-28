@@ -10,6 +10,7 @@ export * from './guides';
 export * from './studyTools';
 export * from './curriculum';
 export * from './math';
+export * from './schoolImport';
 export * from './roles';
 export * from './appearance';
 export * from './planner';

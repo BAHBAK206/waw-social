@@ -25,7 +25,7 @@ async function canSeeReport(deps: Deps, viewerId: string, studentId: string) {
   return !!link;
 }
 
-export async function reportCard(deps: Deps, studentId: string, term?: string | null): Promise<ReportCardDto> {
+export async function reportCard(deps: Deps, studentId: string, term?: string | null, schoolId?: string): Promise<ReportCardDto> {
   const [student] = await deps.db.select(summaryColumns).from(users).where(eq(users.id, studentId));
   if (!student) throw notFound('user_not_found');
   const mine = await deps.db
@@ -33,7 +33,14 @@ export async function reportCard(deps: Deps, studentId: string, term?: string | 
     .from(courseMembers)
     .innerJoin(courses, eq(courses.id, courseMembers.courseId))
     .innerJoin(users, eq(users.id, courses.ownerId))
-    .where(and(eq(courseMembers.userId, studentId), eq(courseMembers.role, 'student'), eq(courses.archived, false)))
+    .where(
+      and(
+        eq(courseMembers.userId, studentId),
+        eq(courseMembers.role, 'student'),
+        eq(courses.archived, false),
+        schoolId ? eq(courses.schoolId, schoolId) : undefined,
+      ),
+    )
     .orderBy(asc(courses.subjectCode), asc(courses.title));
   const terms = [...new Set(mine.map((m) => m.c.term).filter((t): t is string => !!t))];
   const picked = term ? mine.filter((m) => m.c.term === term) : mine;

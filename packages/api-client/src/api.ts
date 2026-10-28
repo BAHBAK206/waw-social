@@ -1,4 +1,10 @@
 import type {
+  SchoolClassDto,
+  SchoolDto,
+  SchoolImportResultDto,
+  SchoolImportRow,
+  SchoolMemberDto,
+  SchoolReportCardsDto,
   PhoneSettingsDto,
   TransferDto,
   TransferInfoDto,
@@ -619,6 +625,31 @@ export function createApi(options: ClientOptions) {
       /** Paid by InstaPay, wallet or bank transfer: the teacher reviews the receipt. */
       transfer: (id: string, body: { method: 'instapay' | 'wallet' | 'bank'; reference: string; receipt: Attachment; note?: string }) =>
         http.post<Ok>(`/catalog/${id}/transfer`, body),
+    },
+
+    schools: {
+      list: () => http.get<{ items: SchoolDto[]; canCreate: boolean }>('/schools'),
+      create: (body: { name: string; system?: string; address?: string | null; phone?: string | null; principal?: string | null; logoUrl?: string | null }) =>
+        http.post<SchoolDto>('/schools', body),
+      get: (id: string) => http.get<SchoolDto>(`/schools/${id}`),
+      update: (
+        id: string,
+        body: Partial<{ name: string; system: string; address: string | null; phone: string | null; principal: string | null; logoUrl: string | null }>,
+      ) => http.patch<SchoolDto>(`/schools/${id}`, body),
+      accept: (id: string) => http.post<SchoolDto>(`/schools/${id}/accept`),
+      leave: (id: string) => http.del<Ok>(`/schools/${id}/membership`),
+      members: (id: string, q: { role?: string; section?: string; q?: string } = {}) => http.get<{ items: SchoolMemberDto[] }>(`/schools/${id}/members`, q),
+      importRows: (id: string, rows: SchoolImportRow[]) => http.post<SchoolImportResultDto>(`/schools/${id}/import`, { rows }),
+      updateMember: (id: string, userId: string, body: { role?: string; section?: string | null; studentNumber?: string | null }) =>
+        http.patch<Ok>(`/schools/${id}/members/${userId}`, body),
+      removeMember: (id: string, userId: string) => http.del<Ok>(`/schools/${id}/members/${userId}`),
+      resetPassword: (id: string, userId: string) => http.post<{ login: string; password: string }>(`/schools/${id}/members/${userId}/password`),
+      classes: (id: string) => http.get<{ items: SchoolClassDto[] }>(`/schools/${id}/classes`),
+      createClass: (
+        id: string,
+        body: { section: string; title: string; subjectCode?: string | null; teacherId: string; maxMarks?: number; passMarks?: number; term?: string | null },
+      ) => http.post<{ id: string }>(`/schools/${id}/classes`, body),
+      reportCards: (id: string, q: { section?: string; studentId?: string; term?: string }) => http.get<SchoolReportCardsDto>(`/schools/${id}/report-cards`, q),
     },
 
     certificates: {

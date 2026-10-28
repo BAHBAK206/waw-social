@@ -77,7 +77,7 @@ async function finishAuth(c: Ctx, userId: string, sessionId: string, rawRefresh:
   return { accessToken: access.token, accessTokenExpiresAt: access.expiresAt, user: me };
 }
 
-async function sendEmailToken(deps: Deps, user: { id: string; email: string; language: string }, kind: 'verify' | 'reset') {
+export async function sendEmailToken(deps: Deps, user: { id: string; email: string; language: string }, kind: 'verify' | 'reset') {
   const raw = randomToken(32);
   await deps.db.insert(emailTokens).values({
     userId: user.id,

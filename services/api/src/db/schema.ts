@@ -1050,6 +1050,9 @@ export const courses = pgTable(
     /** 0 = free. Paid courses are joined by card payment (Stripe) or a single-use voucher. */
     priceCents: integer('price_cents').notNull().default(0),
     currency: text('currency').notNull().default('USD'),
+    /** A class section of a school (e.g. 5A), created by the school admin. */
+    schoolId: uuid('school_id').references((): AnyPgColumn => schools.id, { onDelete: 'set null' }),
+    schoolSection: text('school_section'),
     transferInfo: jsonb('transfer_info').$type<{ instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null } | null>(),
     /** Subject grading: code (e.g. MATH-3), total marks ("out of 60"), pass mark, whether it counts in the overall total. */
     subjectCode: text('subject_code'),
@@ -2034,4 +2037,46 @@ export const objectiveSamples = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('objective_samples_user_idx').on(t.userId, t.objectiveId, t.createdAt)],
+);
+
+/** A school (or centre): its admins add people in bulk, create class sections and print official report cards. */
+export const schools = pgTable('schools', {
+  id: id(),
+  name: text('name').notNull(),
+  /** Short code used in the sign-in names of students created without an email. */
+  code: text('code').notNull().unique(),
+  system: text('system').notNull().default('general'),
+  address: text('address'),
+  phone: text('phone'),
+  logoUrl: text('logo_url'),
+  principal: text('principal'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const schoolMembers = pgTable(
+  'school_members',
+  {
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role').$type<'admin' | 'teacher' | 'student' | 'parent'>().notNull(),
+    /** Existing accounts are invited and join only when they accept. */
+    status: text('status').$type<'active' | 'invited'>().notNull().default('active'),
+    section: text('section'),
+    studentNumber: text('student_number'),
+    /** The school created this account (its admin may reset the password). */
+    managed: boolean('managed').notNull().default(false),
+    invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.schoolId, t.userId] }),
+    index('school_members_user_idx').on(t.userId),
+    index('school_members_section_idx').on(t.schoolId, t.role, t.section),
+  ],
 );

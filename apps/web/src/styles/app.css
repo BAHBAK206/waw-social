@@ -524,6 +524,15 @@
     background: #fff;
     color: #000;
   }
+  /* Official report cards: one student per page. */
+  .report-card {
+    break-after: page;
+    color: #000;
+    background: #fff;
+  }
+  .report-card:last-child {
+    break-after: auto;
+  }
 }
 
 /* Single-series chart marks: primary in light mode, the lighter accent in dark (≥4.6:1 on every card surface). */
