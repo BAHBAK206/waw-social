@@ -522,6 +522,8 @@ export const guardianRequests = pgTable(
     guardianId: uuid('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
     email: text('email'),
     tokenHash: text('token_hash'),
+    /** The student already said yes; a parent who is already linked must approve (students under 18 who have a parent). */
+    awaitingGuardian: boolean('awaiting_guardian').notNull().default(false),
     expiresAt: ts('expires_at').notNull(),
     createdAt: createdAt(),
   },

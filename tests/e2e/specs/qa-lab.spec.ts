@@ -39,7 +39,7 @@ test('ask a question, a teacher answers, the asker marks the best answer', async
     .first()
     .click();
   await card.getByRole('button', { name: 'Mark as best answer' }).click();
-  await expect(card.getByText('Best answer')).toBeVisible();
+  await expect(card.getByText('Best answer', { exact: true })).toBeVisible();
   await expect(card.getByText(/Question · Solved/)).toBeVisible();
 
   // Solved questions leave the "Needs an answer" list.

@@ -119,12 +119,15 @@ export function FamilyRequestsCard() {
       <Text weight="black">{tr.t('family.requests')}</Text>
       {items.map((r) => {
         const name = r.person?.displayName ?? r.email ?? '';
-        const text =
-          r.direction === 'outgoing'
-            ? tr.t('family.outgoing', { name })
-            : me.accountType === 'parent'
-              ? tr.t('family.incomingChild', { name })
-              : tr.t('family.incoming', { name });
+        const text = r.child
+          ? tr.t('family.approveParent', { name, child: r.child.displayName })
+          : r.awaitingGuardian
+            ? tr.t('family.waitingParent', { name })
+            : r.direction === 'outgoing'
+              ? tr.t('family.outgoing', { name })
+              : me.accountType === 'parent'
+                ? tr.t('family.incomingChild', { name })
+                : tr.t('family.incoming', { name });
         return (
           <View key={r.id} style={{ gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -141,8 +144,8 @@ export function FamilyRequestsCard() {
                   title={tr.t('family.accept')}
                   onPress={() =>
                     void act(async () => {
-                      await api.family.acceptRequest(r.id);
-                      toast(tr.t('family.linked', { name }));
+                      const res = await api.family.acceptRequest(r.id);
+                      toast(res.held ? tr.t('family.heldForParent', { name }) : tr.t('family.linked', { name }));
                     })
                   }
                 />

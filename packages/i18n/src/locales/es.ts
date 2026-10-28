@@ -384,6 +384,9 @@ export const es: Dictionary = {
     dashboard: '{count, plural, one {# estudiante necesita tu atención} other {# estudiantes necesitan tu atención}}',
   },
   family: {
+    heldForParent: 'Casi listo: un padre o madre ya vinculado a {{name}} debe aprobarlo.',
+    waitingParent: 'Esperando a que el padre o la madre actual de {{name}} apruebe el vínculo.',
+    approveParent: '{{name}} pide vincularse como padre o madre de {{child}}. Aprueba solo si lo conoces.',
     limits:
       'Como padre o madre puedes seguir el progreso, ajustar controles y contactar a los docentes. No puedes leer sus mensajes privados, publicar en su nombre ni unirte a sus clases.',
     off: 'Desactivado',
@@ -1642,6 +1645,8 @@ export const es: Dictionary = {
     empty: 'No tienes notificaciones.',
     clear: 'Borrar todo',
     types: {
+      guardian_removed: '{{name}} eliminó el vínculo familiar.',
+      guardian_approval: '{{name}} pide vincularse como padre o madre de {{child}}. Abre Familia para aprobar o rechazar.',
       teacher_rejected: 'Tu solicitud de verificación no fue aprobada: {{reason}}',
       teacher_verified: 'Tu cuenta de docente está verificada. 🎓',
       controls_changed: '{{name}} cambió lo que tu cuenta puede hacer. Mira Ajustes → Familia.',

@@ -28,8 +28,9 @@ export const emptySlides = (): SlideContent => ({ slides: [{ title: '', body: ''
 export const emptyBoard = (): BoardContent => ({ strokes: [] });
 
 export function htmlToText(html: string): string {
-  const el = document.createElement('div');
-  el.innerHTML = html;
+  // DOMParser builds an inert document: no scripts run and no images load (assigning innerHTML on a live element would
+  // fire <img onerror> handlers from a shared document).
+  const el = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html').body.firstElementChild as HTMLElement;
   el.querySelectorAll('br').forEach((b) => b.replaceWith('\n'));
   el.querySelectorAll('p,h1,h2,h3,li,blockquote').forEach((n) => n.append('\n'));
   return (el.textContent ?? '').replace(/\n{3,}/g, '\n\n').trim();

@@ -59,10 +59,17 @@ export function isStaffUser(user: AuthUser | null, perm: AdminPermission): boole
   return !!user && hasPermission(user.role, user.permissions, perm);
 }
 
-export function clientIp(c: Ctx, trustProxy: boolean): string {
+/**
+ * The caller's address. Behind trusted proxies, X-Forwarded-For is read from the right: each proxy appends the address it
+ * saw, so the leftmost entries are whatever the client sent and must never be trusted (they would let anyone dodge rate limits).
+ */
+export function clientIp(c: Ctx, trustProxy: boolean, hops = 1): string {
   if (trustProxy) {
-    const fwd = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
-    if (fwd) return fwd;
+    const chain = (c.req.header('x-forwarded-for') ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (chain.length) return chain[Math.max(0, chain.length - hops)]!;
     const real = c.req.header('x-real-ip');
     if (real) return real;
   }

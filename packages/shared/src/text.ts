@@ -72,3 +72,18 @@ export function parseChapters(description: string, durationSec = Infinity): Vide
   const unique = out.filter((c, i) => i === 0 || c.at > out[i - 1]!.at);
   return unique.length >= 2 && unique[0]!.at === 0 ? unique : [];
 }
+
+/**
+ * One CSV cell, safe to open in Excel/Sheets: cells starting with = + - @ (or a tab/CR) get a leading apostrophe so they
+ * are shown as text instead of being run as formulas (a student named "=HYPERLINK(...)" must not run in the teacher's sheet).
+ */
+export function csvCell(v: unknown): string {
+  const s = Array.isArray(v) ? v.join('; ') : v === null || v === undefined ? '' : String(v);
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return /[",\n\r;]/.test(safe) || safe !== safe.trim() ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+/** Rows → CSV text (CRLF line ends). */
+export function toCsv(rows: readonly (readonly unknown[])[]): string {
+  return rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
+}

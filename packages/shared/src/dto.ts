@@ -1187,7 +1187,16 @@ export interface FamilyDto {
   children: (UserSummary & { risk: RiskLevel; minutesThisWeek: number })[];
   guardians: UserSummary[];
   /** Pending links: invitations by email, a parent's request to a student, waiting for the other side. */
-  requests: { id: string; direction: 'incoming' | 'outgoing'; person: UserSummary | null; email: string | null; createdAt: number }[];
+  requests: {
+    id: string;
+    direction: 'incoming' | 'outgoing';
+    person: UserSummary | null;
+    email: string | null;
+    createdAt: number;
+    /** Set when a linked parent must approve another parent for this child. */
+    child?: UserSummary | null;
+    awaitingGuardian?: boolean;
+  }[];
 }
 
 export interface LeagueDto {

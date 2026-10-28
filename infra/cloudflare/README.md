@@ -42,3 +42,4 @@ works for the files; set `BACKEND_ORIGIN` in the project settings.
 In the server's `.env` set `APP_URL` and `CORS_ORIGINS` to the Pages address (for example
 `https://qubedu.pages.dev` or your own domain), so emails link to the right site.
 Leave `REALTIME_PUBLIC_URL` empty: live classes then connect through `/ws` on the Pages address.
+In the server's `.env` also set `TRUST_PROXY_HOPS=2` (Cloudflare + nginx), so rate limits see each visitor's real address.

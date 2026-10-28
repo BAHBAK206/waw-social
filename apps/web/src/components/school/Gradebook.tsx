@@ -10,6 +10,7 @@ import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { toast, toastError } from '@/lib/ui';
+import { downloadCsv } from '@/lib/download';
 
 const TONE: Record<GradeRating, string> = { excellent: 'badge-ok', veryGood: 'badge-ok', good: 'badge-info', pass: 'badge-warn', fail: 'badge-err' };
 const fmt = (n: number) => String(round1(n));
@@ -203,12 +204,7 @@ export function ClassGradebook({ course }: { course: CourseDto }) {
             r.result.percent ?? '',
             r.result.rating ? tr.t(`gradebook.ratings.${r.result.rating}`) : '',
           ]);
-          const csv = [head, ...lines].map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(new Blob([String.fromCharCode(0xfeff) + csv], { type: 'text/csv;charset=utf-8' }));
-          a.download = `${d.grading.subjectCode || course.title}-grades.csv`;
-          a.click();
-          URL.revokeObjectURL(a.href);
+          downloadCsv(`${d.grading.subjectCode || course.title}-grades.csv`, [head, ...lines]);
         };
         return (
           <div className="space-y-3">

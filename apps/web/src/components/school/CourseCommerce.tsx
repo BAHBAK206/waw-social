@@ -11,9 +11,8 @@ import { formatDate } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { toast, toastError } from '@/lib/ui';
+import { downloadCsv } from '@/lib/download';
 
-// Byte-order mark so Excel opens the CSV as UTF-8 (Arabic names).
-const BOM = String.fromCharCode(0xfeff);
 const CURRENCIES = ['USD', 'EUR', 'EGP', 'SAR', 'AED', 'MAD', 'DZD', 'TND', 'JOD', 'KWD', 'QAR', 'GBP'];
 
 /** Teacher: public catalog listing, price and currency. */
@@ -77,12 +76,7 @@ export function Vouchers({ course }: { course: CourseDto }) {
       ['code', 'used_by', 'used_at'],
       ...(q.data?.items ?? []).map((v) => [v.code, v.usedBy?.displayName ?? '', v.usedAt ? new Date(v.usedAt).toISOString() : '']),
     ];
-    const blob = new Blob([`${BOM}${rows.map((r) => r.map((x) => `"${x.replace(/"/g, '""')}"`).join(',')).join('\n')}`], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `vouchers-${course.title}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadCsv(`vouchers-${course.title}.csv`, rows);
   };
   return (
     <section className="card space-y-3 p-4" aria-label={tr.t('certificates.vouchers')}>

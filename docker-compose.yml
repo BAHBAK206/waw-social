@@ -102,6 +102,7 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       TRUST_PROXY: ${TRUST_PROXY:-true}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes: [apidata:/data]
 

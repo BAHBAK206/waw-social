@@ -66,6 +66,11 @@ export async function recordGap(deps: Deps, question: string, language: string) 
       target: assistantGaps.normalized,
       set: { count: sql`${assistantGaps.count} + 1`, lastAskedAt: new Date(), question: question.slice(0, 1000) },
     });
+  // Keep the list small and recent (questions can contain personal details): drop entries older than 90 days and
+  // keep at most 1000, the most-asked first.
+  if (Math.random() < 0.05)
+    await deps.db.execute(sql`delete from assistant_gaps where last_asked_at < now() - interval '90 days'
+      or id in (select id from assistant_gaps order by count desc, last_asked_at desc offset 1000)`);
 }
 
 /** Candidate chunks from the user's authorized courses (trigram + keyword pre-filter; the AI service re-ranks). */

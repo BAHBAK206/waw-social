@@ -1,0 +1,1 @@
+ALTER TABLE "guardian_requests" ADD COLUMN "awaiting_guardian" boolean DEFAULT false NOT NULL;

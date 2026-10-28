@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { and, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@qubedu/shared';
 import { guardianLinks, guardianRequests, users } from '../db/schema';
 import { randomToken, sha256 } from '../lib/crypto';
-import { controlsOf, minorColumns, tierOf } from '../lib/minors';
+import { controlsOf, isMinor, minorColumns, tierOf } from '../lib/minors';
 import type { AppEnv, Deps } from '../lib/context';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, requireUser } from '../lib/http';
@@ -147,6 +147,42 @@ async function createLink(deps: Deps, guardian: { id: string; displayName: strin
 }
 
 /**
+ * Links a parent, unless the student is under 18 and already has a parent: then an existing parent must approve first
+ * (a stranger cannot get a child to accept them as a second "parent" and gain contact with the child).
+ */
+async function linkOrHold(deps: Deps, guardian: { id: string; displayName: string }, studentId: string): Promise<'linked' | 'held'> {
+  const [student] = await deps.db
+    .select({ ...minorColumns, displayName: users.displayName })
+    .from(users)
+    .where(eq(users.id, studentId));
+  if (!student) throw notFound();
+  const others = await deps.db
+    .select({ id: guardianLinks.guardianId })
+    .from(guardianLinks)
+    .where(and(eq(guardianLinks.studentId, studentId), ne(guardianLinks.guardianId, guardian.id)));
+  const already = await isGuardianOf(deps, guardian.id, studentId);
+  if (!already && others.length && isMinor(student)) {
+    await deps.db.delete(guardianRequests).where(and(eq(guardianRequests.studentId, studentId), eq(guardianRequests.guardianId, guardian.id)));
+    await deps.db
+      .insert(guardianRequests)
+      .values({ from: 'guardian', studentId, guardianId: guardian.id, awaitingGuardian: true, expiresAt: new Date(Date.now() + INVITE_TTL) });
+    for (const o of others)
+      await notify(deps, {
+        userId: o.id,
+        type: 'guardian_approval',
+        icon: 'users',
+        actorId: guardian.id,
+        link: '/family',
+        data: { name: guardian.displayName, child: student.displayName },
+        pref: 'system',
+      });
+    return 'held';
+  }
+  await createLink(deps, guardian, studentId);
+  return 'linked';
+}
+
+/**
  * A student invites a parent by email. The parent gets a link (works once, 14 days); if they already have a parent
  * account, the invitation also shows in their Family page.
  */
@@ -223,7 +259,29 @@ export const familyRoutes = new Hono<AppEnv>()
         users,
         eq(users.id, sql`case when ${guardianRequests.studentId} = ${viewer.id} then ${guardianRequests.guardianId} else ${guardianRequests.studentId} end`),
       )
-      .where(and(or(eq(guardianRequests.studentId, viewer.id), eq(guardianRequests.guardianId, viewer.id)), gt(guardianRequests.expiresAt, now)));
+      .where(
+        and(
+          or(eq(guardianRequests.studentId, viewer.id), eq(guardianRequests.guardianId, viewer.id)),
+          // The student already approved these; they now wait for a parent, not for the student.
+          or(eq(guardianRequests.awaitingGuardian, false), ne(guardianRequests.studentId, viewer.id)),
+          gt(guardianRequests.expiresAt, now),
+        ),
+      );
+    const kidIds = kids.map((k) => k.id);
+    const approvals = kidIds.length
+      ? await deps.db
+          .select({ r: guardianRequests, ...summaryColumns })
+          .from(guardianRequests)
+          .innerJoin(users, eq(users.id, guardianRequests.guardianId))
+          .where(
+            and(
+              eq(guardianRequests.awaitingGuardian, true),
+              inArray(guardianRequests.studentId, kidIds),
+              ne(guardianRequests.guardianId, viewer.id),
+              gt(guardianRequests.expiresAt, now),
+            ),
+          )
+      : [];
     const outgoingEmails = await deps.db
       .select({ id: guardianRequests.id, email: guardianRequests.email, createdAt: guardianRequests.createdAt })
       .from(guardianRequests)
@@ -244,6 +302,19 @@ export const familyRoutes = new Hono<AppEnv>()
           person: toSummary(x),
           email: null,
           createdAt: x.r.createdAt.getTime(),
+          awaitingGuardian: x.r.awaitingGuardian,
+        };
+      }),
+      ...approvals.map((x) => {
+        const kid = kids.find((k) => k.id === x.r.studentId);
+        return {
+          id: x.r.id,
+          direction: 'incoming' as const,
+          person: toSummary(x),
+          email: null,
+          createdAt: x.r.createdAt.getTime(),
+          child: kid ? toSummary(kid) : null,
+          awaitingGuardian: true,
         };
       }),
       ...outgoingEmails.map((x) => ({ id: x.id, direction: 'outgoing' as const, person: null, email: x.email, createdAt: x.createdAt.getTime() })),
@@ -274,9 +345,9 @@ export const familyRoutes = new Hono<AppEnv>()
     if (studentId === viewer.id) throw badRequest('invalid_code');
     if ((await linkCount(deps, viewer.id)) >= MAX_CHILDREN) throw conflict('too_many_children');
     await deps.kv.del(`family-code:${code}`);
-    await createLink(deps, viewer, studentId);
+    const status = await linkOrHold(deps, viewer, studentId);
     const [child] = await deps.db.select(summaryColumns).from(users).where(eq(users.id, studentId));
-    return c.json({ child: child ? toSummary(child) : null });
+    return c.json({ child: child ? toSummary(child) : null, held: status === 'held' });
   })
   /** Student: invite a parent by email. */
   .post('/invite', async (c) => {
@@ -324,11 +395,29 @@ export const familyRoutes = new Hono<AppEnv>()
       .from(guardianRequests)
       .where(and(eq(guardianRequests.id, param(c, 'id')), gt(guardianRequests.expiresAt, new Date())));
     if (!r) throw notFound('request_not_found');
-    const recipient = r.from === 'guardian' ? r.studentId : r.guardianId;
-    if (recipient !== viewer.id) throw forbidden();
     const [guardian] = await deps.db.select({ id: users.id, displayName: users.displayName }).from(users).where(eq(users.id, r.guardianId!));
     if (!guardian) throw notFound();
-    await createLink(deps, guardian, r.studentId);
+    if (r.awaitingGuardian) {
+      // Only a parent already linked to this child can approve another parent.
+      if (viewer.id === r.guardianId || !(await isGuardianOf(deps, viewer.id, r.studentId))) throw forbidden();
+      await createLink(deps, guardian, r.studentId);
+      await notify(deps, {
+        userId: guardian.id,
+        type: 'guardian_accepted',
+        icon: 'users',
+        actorId: r.studentId,
+        link: '/family',
+        data: { name: (await deps.db.select({ n: users.displayName }).from(users).where(eq(users.id, r.studentId)))[0]?.n ?? '' },
+        pref: 'system',
+      });
+      return c.json({ ok: true, held: false });
+    }
+    const recipient = r.from === 'guardian' ? r.studentId : r.guardianId;
+    if (recipient !== viewer.id) throw forbidden();
+    if ((await linkOrHold(deps, guardian, r.studentId)) === 'held') {
+      await deps.db.delete(guardianRequests).where(and(eq(guardianRequests.id, r.id), eq(guardianRequests.awaitingGuardian, false)));
+      return c.json({ ok: true, held: true });
+    }
     if (r.from === 'guardian')
       await notify(deps, {
         userId: guardian.id,
@@ -339,7 +428,7 @@ export const familyRoutes = new Hono<AppEnv>()
         data: { name: viewer.displayName },
         pref: 'system',
       });
-    return c.json({ ok: true });
+    return c.json({ ok: true, held: false });
   })
   /** Decline (recipient) or cancel (sender). */
   .delete('/requests/:id', async (c) => {
@@ -347,7 +436,19 @@ export const familyRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     await deps.db
       .delete(guardianRequests)
-      .where(and(eq(guardianRequests.id, param(c, 'id')), or(eq(guardianRequests.studentId, viewer.id), eq(guardianRequests.guardianId, viewer.id))));
+      .where(
+        and(
+          eq(guardianRequests.id, param(c, 'id')),
+          or(
+            eq(guardianRequests.studentId, viewer.id),
+            eq(guardianRequests.guardianId, viewer.id),
+            and(
+              eq(guardianRequests.awaitingGuardian, true),
+              sql`${guardianRequests.studentId} in (select student_id from guardian_links where guardian_id = ${viewer.id})`,
+            ),
+          ),
+        ),
+      );
     return c.json({ ok: true });
   })
   /** A parent opens the emailed link while signed in to a parent account. */
@@ -364,9 +465,9 @@ export const familyRoutes = new Hono<AppEnv>()
     if (!r) throw badRequest('invalid_code');
     if (r.studentId === viewer.id) throw badRequest('invalid_code');
     await deps.db.delete(guardianRequests).where(eq(guardianRequests.id, r.id));
-    await createLink(deps, viewer, r.studentId);
+    const status = await linkOrHold(deps, viewer, r.studentId);
     const [child] = await deps.db.select(summaryColumns).from(users).where(eq(users.id, r.studentId));
-    return c.json({ child: child ? toSummary(child) : null });
+    return c.json({ child: child ? toSummary(child) : null, held: status === 'held' });
   })
   /** A parent sets what their child (under 18) can do, and can correct the school year. */
   .put('/children/:id/controls', async (c) => {
@@ -401,14 +502,26 @@ export const familyRoutes = new Hono<AppEnv>()
     const viewer = requireUser(c);
     const deps = c.get('deps');
     const other = param(c, 'id');
-    await deps.db
+    const removed = await deps.db
       .delete(guardianLinks)
       .where(
         or(
           and(eq(guardianLinks.guardianId, viewer.id), eq(guardianLinks.studentId, other)),
           and(eq(guardianLinks.studentId, viewer.id), eq(guardianLinks.guardianId, other)),
         ),
-      );
+      )
+      .returning({ g: guardianLinks.guardianId });
+    // The other side always hears about it (a parent learns if a child removed them).
+    if (removed.length)
+      await notify(deps, {
+        userId: other,
+        type: 'guardian_removed',
+        icon: 'users',
+        actorId: viewer.id,
+        link: viewer.accountType === 'parent' ? '/settings?tab=family' : '/family',
+        data: { name: viewer.displayName },
+        pref: 'system',
+      });
     return c.json({ ok: true });
   })
   .get('/children/:id', async (c) => {

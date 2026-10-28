@@ -54,7 +54,7 @@ async function issueSession(c: Ctx, userId: string): Promise<AuthResult> {
       userId,
       tokenHash: sha256(raw),
       userAgent: c.req.header('user-agent')?.slice(0, 300) ?? null,
-      ip: clientIp(c, deps.env.TRUST_PROXY),
+      ip: clientIp(c, deps.env.TRUST_PROXY, deps.env.TRUST_PROXY_HOPS),
       client: isMobile(c) ? 'mobile' : 'web',
       expiresAt: new Date(Date.now() + deps.env.REFRESH_TOKEN_TTL_DAYS * 86400_000),
     })

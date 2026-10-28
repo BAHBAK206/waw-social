@@ -34,3 +34,4 @@ Cloudflare Pages بيستضيف **الموقع** نفسه. أما جزء الس�
 
 في ملف `.env` على السيرفر خلّي `APP_URL` و`CORS_ORIGINS` = عنوان موقعك على Cloudflare (مثل `https://qubedu.pages.dev` أو دومينك)،
 واترك `REALTIME_PUBLIC_URL` فاضي عشان الحصص المباشرة تتصل من خلال `/ws` على نفس العنوان.
+وكمان في `.env` على السيرفر خلّي `TRUST_PROXY_HOPS=2` (Cloudflare + nginx) عشان حماية التكرار تشوف عنوان كل زائر الحقيقي.

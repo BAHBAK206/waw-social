@@ -99,7 +99,7 @@ export async function checkRate(c: Ctx, opts: RateLimitOptions): Promise<void> {
   if (env.NODE_ENV === 'test' && c.req.header('x-test-ratelimit') !== 'on') return;
   if (env.RATE_LIMIT_DISABLED && env.NODE_ENV !== 'production') return;
   const user = c.get('user');
-  const ip = clientIp(c, env.TRUST_PROXY);
+  const ip = clientIp(c, env.TRUST_PROXY, env.TRUST_PROXY_HOPS);
   const who = opts.by === 'user' ? (user?.id ?? ip) : opts.by === 'both' ? `${user?.id ?? '-'}:${ip}` : ip;
   const { count, ttl } = await kv.incr(`rl:${opts.bucket}:${who}`, opts.windowSec);
   if (count > opts.limit) throw tooMany(ttl);

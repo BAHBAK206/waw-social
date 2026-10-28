@@ -148,9 +148,9 @@ export default function FamilyPage() {
     void api.family
       .acceptInvite(invite)
       .then(async (r) => {
-        toast(tr.t('family.inviteLinked', { name: r.child?.displayName ?? '' }));
+        toast(r.held ? tr.t('family.heldForParent', { name: r.child?.displayName ?? '' }) : tr.t('family.inviteLinked', { name: r.child?.displayName ?? '' }));
         await qc.invalidateQueries({ queryKey: ['family'] });
-        setParams(r.child ? { child: r.child.id } : {}, { replace: true });
+        setParams(r.child && !r.held ? { child: r.child.id } : {}, { replace: true });
       })
       .catch((e: unknown) => {
         toastError(e);
@@ -180,7 +180,11 @@ export default function FamilyPage() {
               setBusy(true);
               try {
                 const res = await api.family.link(code.trim());
-                toast(tr.t('family.linked', { name: res.child?.displayName ?? '' }));
+                toast(
+                  res.held
+                    ? tr.t('family.heldForParent', { name: res.child?.displayName ?? '' })
+                    : tr.t('family.linked', { name: res.child?.displayName ?? '' }),
+                );
                 setCode('');
                 await qc.invalidateQueries({ queryKey: ['family'] });
                 if (res.child) setParams({ child: res.child.id });

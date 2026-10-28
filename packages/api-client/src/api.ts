@@ -618,14 +618,14 @@ export function createApi(options: ClientOptions) {
     family: {
       get: () => http.get<FamilyDto>('/family'),
       code: () => http.post<{ code: string; expiresAt: number }>('/family/code'),
-      link: (code: string) => http.post<{ child: UserSummary | null }>('/family/link', { code }),
+      link: (code: string) => http.post<{ child: UserSummary | null; held: boolean }>('/family/link', { code }),
       unlink: (otherId: string) => http.del<Ok>(`/family/${otherId}`),
       child: (id: string) => http.get<ChildReportDto>(`/family/children/${id}`),
       invite: (email: string) => http.post<Ok>('/family/invite', { email }),
       request: (who: string) => http.post<Ok>('/family/request', { who }),
-      acceptRequest: (id: string) => http.post<Ok>(`/family/requests/${id}/accept`),
+      acceptRequest: (id: string) => http.post<{ ok: true; held: boolean }>(`/family/requests/${id}/accept`),
       removeRequest: (id: string) => http.del<Ok>(`/family/requests/${id}`),
-      acceptInvite: (token: string) => http.post<{ child: UserSummary | null }>('/family/invite/accept', { token }),
+      acceptInvite: (token: string) => http.post<{ child: UserSummary | null; held: boolean }>('/family/invite/accept', { token }),
       setControls: (childId: string, body: Partial<ParentalControls> & { gradeLevel?: GradeLevel }) =>
         http.put<{ tier: AgeTier; controls: ParentalControls; gradeLevel: GradeLevel | null }>(`/family/children/${childId}/controls`, body),
     },

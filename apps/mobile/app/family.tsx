@@ -65,7 +65,11 @@ export default function FamilyScreen() {
                 setBusy(true);
                 try {
                   const res = await api.family.link(code.trim());
-                  toast(tr.t('family.linked', { name: res.child?.displayName ?? '' }));
+                  toast(
+                    res.held
+                      ? tr.t('family.heldForParent', { name: res.child?.displayName ?? '' })
+                      : tr.t('family.linked', { name: res.child?.displayName ?? '' }),
+                  );
                   setCode('');
                   await qc.invalidateQueries({ queryKey: ['family'] });
                   if (res.child) setPicked(res.child.id);

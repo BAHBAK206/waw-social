@@ -216,6 +216,8 @@ const forYouScore = (viewerId: string) => sql`(
   / power(extract(epoch from (now() - ${posts.createdAt})) / 3600.0 + 2, 1.35)
   * (case when ${posts.authorId} in (select ${follows.followeeId} from ${follows} where ${follows.followerId} = ${viewerId}) then 1.6 else 1 end)
   * (case when ${posts.kind} = 'question' and ${posts.solvedAt} is null then 1.4 else 1 end)
+  -- What you just posted stays on top for a few minutes, so you always see it right after sharing.
+  + (case when ${posts.authorId} = ${viewerId} and ${posts.createdAt} > now() - interval '10 minutes' then 1000 else 0 end)
 )`;
 
 export const postRoutes = new Hono<AppEnv>()

@@ -64,6 +64,11 @@ const schema = z.object({
   /** Development/e2e only: ignored when NODE_ENV=production. */
   RATE_LIMIT_DISABLED: bool,
   TRUST_PROXY: bool,
+  /**
+   * How many proxies in front of the API append to X-Forwarded-For (nginx = 1; Cloudflare Pages worker + nginx = 2).
+   * The client address is read that many entries from the right, so a client cannot fake it.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(1).max(5).default(1),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

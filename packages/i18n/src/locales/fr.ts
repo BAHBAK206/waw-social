@@ -385,6 +385,9 @@ export const fr: Dictionary = {
     dashboard: '{count, plural, one {# élève a besoin de votre attention} other {# élèves ont besoin de votre attention}}',
   },
   family: {
+    heldForParent: 'Presque fini : un parent déjà lié à {{name}} doit l’approuver.',
+    waitingParent: 'En attente de l’accord du parent actuel de {{name}}.',
+    approveParent: '{{name}} demande à être lié comme parent de {{child}}. N’acceptez que si vous le connaissez.',
     limits:
       'En tant que parent, vous suivez les progrès, réglez les contrôles et contactez les enseignants. Vous ne pouvez pas lire ses messages privés, publier en son nom ni rejoindre ses classes.',
     off: 'Désactivé',
@@ -1631,6 +1634,8 @@ export const fr: Dictionary = {
     empty: 'Aucune notification.',
     clear: 'Tout effacer',
     types: {
+      guardian_removed: '{{name}} a supprimé le lien familial.',
+      guardian_approval: '{{name}} demande à être lié comme parent de {{child}}. Ouvrez Famille pour accepter ou refuser.',
       teacher_rejected: 'Votre demande de vérification n’a pas été acceptée : {{reason}}',
       teacher_verified: 'Votre compte enseignant est vérifié. 🎓',
       controls_changed: '{{name}} a modifié ce que votre compte peut faire. Voir Paramètres → Famille.',

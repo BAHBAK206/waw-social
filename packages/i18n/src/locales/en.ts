@@ -382,6 +382,9 @@ export const en = {
     dashboard: '{count, plural, one {# student needs your attention} other {# students need your attention}}',
   },
   family: {
+    heldForParent: 'Almost done: a parent already linked to {{name}} must approve this.',
+    waitingParent: 'Waiting for {{name}}’s parent to approve the link.',
+    approveParent: '{{name}} asks to be linked as a parent of {{child}}. Approve only if you know them.',
     limits:
       'As a parent you can follow progress, set controls and contact teachers. You can’t read your child’s private messages, post as them or join their classes.',
     off: 'Off',
@@ -1622,6 +1625,8 @@ export const en = {
     empty: 'You have no notifications.',
     clear: 'Clear all',
     types: {
+      guardian_removed: '{{name}} removed the family link.',
+      guardian_approval: '{{name}} asks to be linked as a parent of {{child}}. Open Family to approve or decline.',
       teacher_rejected: 'Your verification request wasn’t approved: {{reason}}',
       teacher_verified: 'Your teacher account is verified. 🎓',
       controls_changed: '{{name}} changed what your account can do. See Settings → Family.',

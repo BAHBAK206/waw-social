@@ -501,7 +501,9 @@ export const videoRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     await checkRate(c, { bucket: 'video-view', limit: 120, windowSec: 600, by: viewer ? 'user' : 'ip' });
     const video = await loadVideo(deps, viewer, param(c, 'id'));
-    const viewerKey = viewer ? `u:${viewer.id}` : `g:${sha256(`${clientIp(c, deps.env.TRUST_PROXY)}|${c.req.header('user-agent') ?? ''}`).slice(0, 24)}`;
+    const viewerKey = viewer
+      ? `u:${viewer.id}`
+      : `g:${sha256(`${clientIp(c, deps.env.TRUST_PROXY, deps.env.TRUST_PROXY_HOPS)}|${c.req.header('user-agent') ?? ''}`).slice(0, 24)}`;
     const inserted = await deps.db
       .insert(videoViews)
       .values({ videoId: video.id, viewerKey, day: dayKey(Date.now(), 'UTC') })

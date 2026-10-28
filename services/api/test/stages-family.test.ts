@@ -120,3 +120,40 @@ describe('parent account', () => {
     expect((await call('POST', '/family/invite/accept', { token: parent.token, body: { token } })).status).toBe(400);
   });
 });
+
+describe('second parent for a minor', () => {
+  it('needs the approval of a parent who is already linked; removing a link tells the other side', async () => {
+    const reg = await call<AuthResult>('POST', '/auth/register', {
+      body: { email: `minor${Date.now()}@qubedu.test`, password: 'Password#123', displayName: 'Minor Mona', accountType: 'student', gradeLevel: 'm2' },
+      headers: { 'x-client': 'mobile' },
+    });
+    const kid = { token: reg.body.accessToken, user: reg.body.user, email: '' };
+    const mom = await newUser({ accountType: 'parent', name: 'Real Mom' });
+    const stranger = await newUser({ accountType: 'parent', name: 'Stranger Sam' });
+    // First parent: the child approves alone.
+    await call('POST', '/family/request', { token: mom.token, body: { who: (await call<Me>('GET', '/me', { token: kid.token })).body.email } });
+    let fam = await call<FamilyDto>('GET', '/family', { token: kid.token });
+    expect((await call<{ held: boolean }>('POST', `/family/requests/${fam.body.requests[0]!.id}/accept`, { token: kid.token })).body.held).toBe(false);
+
+    // A second "parent": the child says yes, but it waits for Mom.
+    await call('POST', '/family/request', { token: stranger.token, body: { who: (await call<Me>('GET', '/me', { token: kid.token })).body.email } });
+    fam = await call<FamilyDto>('GET', '/family', { token: kid.token });
+    const req = fam.body.requests.find((r) => r.person?.id === stranger.user.id)!;
+    expect((await call<{ held: boolean }>('POST', `/family/requests/${req.id}/accept`, { token: kid.token })).body.held).toBe(true);
+    expect((await call('GET', `/family/children/${kid.user.id}`, { token: stranger.token })).status).toBe(403);
+    // The child cannot approve it again; Mom sees it with the child's name and declines.
+    const momFam = await call<FamilyDto>('GET', '/family', { token: mom.token });
+    const approval = momFam.body.requests.find((r) => r.child?.id === kid.user.id)!;
+    expect(approval).toMatchObject({ direction: 'incoming', awaitingGuardian: true, person: { id: stranger.user.id } });
+    expect((await call('POST', `/family/requests/${approval.id}/accept`, { token: kid.token })).status).toBe(403);
+    expect((await call('POST', `/family/requests/${approval.id}/accept`, { token: stranger.token })).status).toBe(403);
+    expect((await call<FamilyDto>('GET', '/family', { token: kid.token })).body.requests.some((r) => r.id === approval.id)).toBe(false);
+    await call('DELETE', `/family/requests/${approval.id}`, { token: mom.token });
+    expect((await call('GET', `/family/children/${kid.user.id}`, { token: stranger.token })).status).toBe(403);
+
+    // Removing a link notifies the parent.
+    await call('DELETE', `/family/${mom.user.id}`, { token: kid.token });
+    const notes = await call<Page<{ type: string }>>('GET', '/notifications', { token: mom.token });
+    expect(notes.body.items.some((n) => n.type === 'guardian_removed')).toBe(true);
+  });
+});

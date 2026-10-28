@@ -37,11 +37,17 @@ function Bubble({ m }: { m: AssistantMessageDto }) {
         {!mine && <ReadAloud text={m.content} compact className="muted px-2 text-xs" />}
         {!mine && m.actions.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {m.actions.map((a) => (
-              <Link key={a.link} to={a.link} className="chip">
-                {a.label}
-              </Link>
-            ))}
+            {m.actions.map((a) =>
+              /^https?:\/\//i.test(a.link) ? (
+                <a key={a.link} href={a.link} target="_blank" rel="noopener noreferrer nofollow" className="chip">
+                  {a.label}
+                </a>
+              ) : a.link.startsWith('/') && !a.link.startsWith('//') ? (
+                <Link key={a.link} to={a.link} className="chip">
+                  {a.label}
+                </Link>
+              ) : null,
+            )}
           </div>
         )}
         {!mine && m.sources.length > 0 && (
