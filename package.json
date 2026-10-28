@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "pnpm -r --filter=!@qubedu/mobile run build",
+    "build:cloudflare": "pnpm --filter @qubedu/web... run build && node infra/cloudflare/prepare.mjs",
     "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
     "test": "pnpm -r --filter=!@qubedu/mobile --filter=!@qubedu/e2e run test",

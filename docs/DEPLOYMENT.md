@@ -54,3 +54,10 @@ Store listing texts (4 languages), data-safety and privacy-label answers and rev
 ## Health checks
 
 `GET /health` on the API (db/redis/storage status) and the realtime hub; both images ship a Docker `HEALTHCHECK`.
+
+## Web on Cloudflare Pages
+
+The web app can be hosted on Cloudflare Pages while the server keeps running with Docker Compose.
+Everything is in `infra/cloudflare/` (worker, headers, wrangler config) and
+`.github/workflows/cloudflare-pages.yml`; the steps are in `infra/cloudflare/README.md`.
+Build locally with `pnpm build:cloudflare`.

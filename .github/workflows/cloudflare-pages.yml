@@ -1,0 +1,38 @@
+name: Deploy web to Cloudflare Pages
+
+# Builds the web app and publishes it to Cloudflare Pages on every push to main (or by hand from the Actions tab).
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN  — a token with the "Cloudflare Pages: Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID — your Cloudflare account id
+# and optionally the variable CLOUDFLARE_PAGES_PROJECT (defaults to "qubedu").
+# BACKEND_ORIGIN (your Qubedu server) is set once in the Pages project settings.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --filter "@qubedu/web..."
+      - run: pnpm build:cloudflare
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: infra/cloudflare
+          command: pages deploy ../../apps/web/dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'qubedu' }} --branch=main
