@@ -1,4 +1,22 @@
 export const en = {
+  docs: {
+    newDoc: 'New document',
+    otherTools: 'Sheets, slides, whiteboard',
+    untitled: 'Untitled document',
+    title: 'Document title',
+    placeholder: 'Start writing…',
+    conflict: 'This document changed on another device. The newer copy is now shown.',
+    shareText: 'Share as text',
+    linkHint: 'Select the words first, then add a web address starting with https://',
+    alignStart: 'Align to start',
+    alignCenter: 'Center',
+    status: {
+      saved: 'All changes saved',
+      saving: 'Saving…',
+      dirty: 'Editing…',
+      error: 'Not saved yet. It will retry when you edit again.',
+    },
+  },
   offline: {
     banner: 'Offline · saved lessons still work',
     offlineNow: 'You are offline',

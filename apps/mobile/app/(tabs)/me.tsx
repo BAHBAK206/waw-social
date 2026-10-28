@@ -35,7 +35,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
       { id: 'events', icon: 'calendar-outline', href: '/events' },
       { id: 'classes', icon: 'videocam-outline', href: '/live' },
       { id: 'forms', icon: 'clipboard-outline', href: '/forms' },
-      { id: 'workspace', icon: 'document-text-outline', web: '/workspace' },
+      { id: 'workspace', icon: 'document-text-outline', href: '/workspace' },
     ],
   },
   {

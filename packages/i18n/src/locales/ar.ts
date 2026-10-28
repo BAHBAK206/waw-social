@@ -1,6 +1,24 @@
 import type { Dictionary } from './en';
 
 export const ar: Dictionary = {
+  docs: {
+    newDoc: 'مستند جديد',
+    otherTools: 'جداول وعروض وسبورة',
+    untitled: 'مستند بلا عنوان',
+    title: 'عنوان المستند',
+    placeholder: 'ابدأ الكتابة…',
+    conflict: 'تغيّر هذا المستند على جهاز آخر، وتظهر الآن النسخة الأحدث.',
+    shareText: 'مشاركة كنص',
+    linkHint: 'حدّد الكلمات أولًا ثم أضف عنوان موقع يبدأ بـ https://',
+    alignStart: 'محاذاة إلى البداية',
+    alignCenter: 'توسيط',
+    status: {
+      saved: 'حُفظت كل التغييرات',
+      saving: 'جارٍ الحفظ…',
+      dirty: 'جارٍ التعديل…',
+      error: 'لم يُحفظ بعد. ستُعاد المحاولة عند التعديل التالي.',
+    },
+  },
   offline: {
     banner: 'بلا اتصال · الدروس المحفوظة تعمل',
     offlineNow: 'أنت غير متصل',

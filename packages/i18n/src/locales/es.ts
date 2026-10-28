@@ -1,6 +1,24 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  docs: {
+    newDoc: 'Nuevo documento',
+    otherTools: 'Hojas, diapositivas, pizarra',
+    untitled: 'Documento sin título',
+    title: 'Título del documento',
+    placeholder: 'Empieza a escribir…',
+    conflict: 'Este documento cambió en otro dispositivo. Ahora se muestra la versión más reciente.',
+    shareText: 'Compartir como texto',
+    linkHint: 'Selecciona primero las palabras y añade una dirección que empiece por https://',
+    alignStart: 'Alinear al inicio',
+    alignCenter: 'Centrar',
+    status: {
+      saved: 'Todos los cambios guardados',
+      saving: 'Guardando…',
+      dirty: 'Editando…',
+      error: 'Aún no se guardó. Se reintentará en la próxima edición.',
+    },
+  },
   offline: {
     banner: 'Sin conexión · las lecciones guardadas funcionan',
     offlineNow: 'Estás sin conexión',
