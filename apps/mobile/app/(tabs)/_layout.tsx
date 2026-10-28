@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import type { ColorValue } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable, type ColorValue } from 'react-native';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
@@ -16,6 +16,7 @@ export default function TabsLayout() {
   const t = useTheme();
   const tr = useT();
   const unread = useSession((s) => s.me?.unreadMessages ?? 0);
+  const router = useRouter();
   return (
     <Tabs
       screenOptions={{
@@ -26,6 +27,17 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: t.cardSolid },
         headerTintColor: t.text,
         headerTitleStyle: { fontFamily: 'Tajawal_800ExtraBold' },
+        headerRight: () => (
+          <Pressable
+            onPress={() => router.push('/search')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={tr.t('nav.search')}
+            style={{ marginHorizontal: 16 }}
+          >
+            <Ionicons name="search" size={22} color={t.text} />
+          </Pressable>
+        ),
       }}
     >
       <Tabs.Screen name="index" options={{ title: tr.t('nav.home'), tabBarIcon: ICON('home-outline', 'home') }} />

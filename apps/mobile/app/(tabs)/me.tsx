@@ -39,6 +39,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
   {
     key: 'social',
     items: [
+      { id: 'explore', icon: 'compass-outline', href: '/explore' },
       { id: 'groups', icon: 'people-outline', href: '/groups' },
       { id: 'people', icon: 'person-add-outline', href: '/people' },
       { id: 'stories', icon: 'flash-outline', href: '/tips' },
@@ -55,6 +56,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
   {
     key: 'tools',
     items: [
+      { id: 'search', icon: 'search-outline', href: '/search' },
       { id: 'notifications', icon: 'notifications-outline', href: '/notifications' },
       { id: 'settings', icon: 'settings-outline', href: '/settings' },
     ],
@@ -62,10 +64,11 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
   {
     key: 'help',
     items: [
-      { id: 'help', icon: 'help-buoy-outline', web: '/help' },
-      { id: 'about', icon: 'information-circle-outline', web: '/about' },
-      { id: 'privacy', icon: 'shield-checkmark-outline', web: '/privacy' },
-      { id: 'terms', icon: 'document-outline', web: '/terms' },
+      { id: 'help', icon: 'help-buoy-outline', href: '/info/help' },
+      { id: 'about', icon: 'information-circle-outline', href: '/info/about' },
+      { id: 'privacy', icon: 'shield-checkmark-outline', href: '/info/privacy' },
+      { id: 'terms', icon: 'document-outline', href: '/info/terms' },
+      { id: 'contact', icon: 'mail-outline', href: '/info/contact' },
     ],
   },
 ];

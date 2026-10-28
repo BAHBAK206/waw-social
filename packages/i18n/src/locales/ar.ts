@@ -284,6 +284,7 @@ export const ar: Dictionary = {
     'workspace-export': 'تصدير الملفات',
   },
   auth: {
+    resetCode: 'الرابط أو الكود من البريد',
     loginTitle: 'مرحبًا بعودتك',
     loginSubtitle: 'سجّل الدخول لمتابعة رحلتك التعليمية.',
     registerTitle: 'أنشئ حسابك',

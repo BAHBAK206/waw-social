@@ -282,6 +282,7 @@ export const en = {
     'workspace-export': 'Export files',
   },
   auth: {
+    resetCode: 'Link or code from the email',
     loginTitle: 'Welcome back',
     loginSubtitle: 'Sign in to continue your learning journey.',
     registerTitle: 'Create your account',

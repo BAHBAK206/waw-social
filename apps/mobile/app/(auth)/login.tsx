@@ -53,6 +53,11 @@ export default function LoginScreen() {
         </Text>
       ) : null}
       <Button title={tr.t('auth.signIn')} onPress={submit} loading={busy} disabled={!email || !password} />
+      <Link href="/forgot" style={{ alignSelf: 'center' }}>
+        <Text weight="bold" color={t.primaryInk}>
+          {tr.t('auth.forgot')}
+        </Text>
+      </Link>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
         <Text muted>{tr.t('auth.noAccount')}</Text>
         <Link href="/register">

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { VideoDto } from '@qubedu/shared';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
@@ -28,7 +29,7 @@ export function VideoItem({ v, onPress }: { v: VideoDto; onPress: () => void }) 
           style={{ position: 'absolute', end: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}
         >
           <Text size={11} weight="bold" color="#fff">
-            {v.kind === 'short' ? 'Shorts' : formatClock(v.durationSec)}
+            {v.kind === 'short' ? tr.t('nav.shorts') : formatClock(v.durationSec)}
           </Text>
         </View>
       </View>
@@ -69,10 +70,42 @@ export default function WatchScreen() {
       onRefresh={() => void q.refetch()}
       onEndReached={() => q.hasNextPage && !q.isFetchingNextPage && void q.fetchNextPage()}
       ListHeaderComponent={
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          {(['home', 'trending', 'subscriptions', 'new'] as const).map((f) => (
-            <Chip key={f} label={tr.tDyn(`watch.feeds.${f}`, undefined, f)} active={feed === f} onPress={() => setFeed(f)} />
-          ))}
+        <View style={{ gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(
+              [
+                ['flash-outline', tr.t('nav.shorts'), '/shorts'],
+                ['library-outline', tr.t('watch.history'), '/watch-library'],
+                ['compass-outline', tr.t('nav.explore'), '/explore'],
+              ] as const
+            ).map(([icon, label, href]) => (
+              <Pressable
+                key={href}
+                onPress={() => router.push(href as never)}
+                accessibilityRole="button"
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingVertical: 10,
+                  borderRadius: t.radiusCard,
+                  backgroundColor: t.cardSolid,
+                  borderWidth: 1,
+                  borderColor: t.border,
+                }}
+              >
+                <Ionicons name={icon} size={22} color={t.primaryInk} />
+                <Text size={12} weight="bold" numberOfLines={1}>
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            {(['home', 'trending', 'subscriptions', 'new'] as const).map((f) => (
+              <Chip key={f} label={tr.tDyn(`watch.feeds.${f}`, undefined, f)} active={feed === f} onPress={() => setFeed(f)} />
+            ))}
+          </View>
         </View>
       }
       renderItem={({ item }) => <VideoItem v={item} onPress={() => router.push(`/video/${item.id}` as never)} />}

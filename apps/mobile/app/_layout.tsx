@@ -23,7 +23,9 @@ function Gate() {
   useEffect(() => {
     if (status === 'loading') return;
     const inAuth = segments[0] === '(auth)';
-    if (status === 'guest' && !inAuth) router.replace('/login');
+    // Forms and the info pages are open to visitors, like on the web.
+    const publicPage = segments[0] === 'form' || segments[0] === 'info';
+    if (status === 'guest' && !inAuth && !publicPage) router.replace('/login');
     else if (status === 'authed' && inAuth) router.replace('/');
   }, [status, segments, router]);
   return null;
@@ -74,6 +76,15 @@ function Shell() {
         <Stack.Screen name="form/[slug]" options={{ title: tr.t('nav.forms') }} />
         <Stack.Screen name="organizer" options={{ title: tr.t('nav.organizer') }} />
         <Stack.Screen name="studio" options={{ title: tr.t('nav.studio') }} />
+        <Stack.Screen name="search" options={{ title: tr.t('nav.search') }} />
+        <Stack.Screen name="explore" options={{ title: tr.t('nav.explore') }} />
+        <Stack.Screen name="tag/[tag]" options={{ title: tr.t('nav.explore') }} />
+        <Stack.Screen name="watch-library" options={{ title: tr.t('watch.history') }} />
+        <Stack.Screen name="playlist/[id]" options={{ title: tr.t('watch.playlists') }} />
+        <Stack.Screen name="channel/[id]" options={{ title: tr.t('nav.watch') }} />
+        <Stack.Screen name="shorts" options={{ title: tr.t('nav.shorts'), headerStyle: { backgroundColor: '#000' }, headerTintColor: '#fff' }} />
+        <Stack.Screen name="info/[page]" options={{ title: tr.t('nav.help') }} />
+        <Stack.Screen name="collection/[slug]" options={{ title: tr.t('saved.collections') }} />
       </Stack>
       <ToastHost />
     </View>

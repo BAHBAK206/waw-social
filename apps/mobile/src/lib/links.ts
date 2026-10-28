@@ -8,7 +8,15 @@ export function appPath(link: string | null | undefined): string | null {
   const qs = search ? `?${search}` : '';
   const m = (re: RegExp) => re.exec(path);
   let r: RegExpExecArray | null;
+  if (path === '/watch/library') return '/watch-library';
   if ((r = m(/^\/watch\/([\w-]+)$/))) return `/video/${r[1]}${qs}`;
+  if (path === '/shorts' || path.startsWith('/shorts/')) return '/shorts';
+  if ((r = m(/^\/channel\/([\w-]+)$/))) return `/channel/${r[1]}`;
+  if ((r = m(/^\/playlist\/([\w-]+)$/))) return `/playlist/${r[1]}`;
+  if ((r = m(/^\/c\/([\w-]+)$/))) return `/collection/${r[1]}`;
+  if ((r = m(/^\/explore\/tag\/([^/]+)$/))) return `/tag/${r[1]}`;
+  if (path === '/explore') return '/explore';
+  if (['/help', '/about', '/privacy', '/terms', '/contact'].includes(path)) return `/info${path}`;
   if ((r = m(/^\/post\/([\w-]+)$/))) return `/post/${r[1]}`;
   if ((r = m(/^\/(?:groups|group)\/([\w-]+)$/))) return `/group/${r[1]}`;
   if ((r = m(/^\/(?:chat|messages)\/([\w-]+)$/))) return `/chat/${r[1]}`;

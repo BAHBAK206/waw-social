@@ -284,6 +284,7 @@ export const fr: Dictionary = {
     'workspace-export': 'Exporter des fichiers',
   },
   auth: {
+    resetCode: 'Lien ou code reçu par e-mail',
     loginTitle: 'Bon retour',
     loginSubtitle: 'Connectez-vous pour poursuivre votre apprentissage.',
     registerTitle: 'Créez votre compte',
