@@ -1,6 +1,6 @@
-import type { AssignmentDto, RubricDto, SubmissionDto } from '@qubedu/shared';
+import type { AssignmentDto, RubricDto, RubricFeedbackDto, SubmissionDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, FileText, Paperclip } from 'lucide-react';
+import { ArrowLeft, Check, FileText, Paperclip, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { UserChip } from '@/components/ui/Avatar';
@@ -10,6 +10,7 @@ import { NoticeCard } from '@/components/layout/Banners';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { UploadButton } from '@/components/ui/Upload';
 import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
+import { DraftFeedback, RubricFeedbackView, SimilarityPanel } from '@/components/school/AiWriting';
 import { api, fileUrl } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { formatBytes, formatDateTime, relativeTime } from '@/lib/format';
@@ -81,6 +82,7 @@ function StudentPanel({ a, onChanged }: { a: AssignmentDto; onChanged: () => voi
         aria-label={tr.t('school.assignment.yourWork')}
         className="min-h-32"
       />
+      {a.rubricId && !locked && !closed && <DraftFeedback assignmentId={a.id} text={text} />}
       <Files files={files} />
       {!locked && !closed && (
         <div className="flex flex-wrap gap-2">
@@ -136,6 +138,8 @@ function GradeForm({ s, a, rubric, onSaved }: { s: SubmissionDto; a: AssignmentD
   const [voice, setVoice] = useState<Att | null>(s.feedbackAudio);
   const [scores, setScores] = useState<Record<string, number>>(s.rubricScores ?? {});
   const [busy, setBusy] = useState(false);
+  const [ai, setAi] = useState<RubricFeedbackDto | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
   const rubricTotal = rubric ? rubric.criteria.reduce((sum, c, i) => sum + (scores[String(i)] ?? 0), 0) : null;
   const rubricMax = rubric ? rubric.criteria.reduce((sum, c) => sum + Math.max(0, ...c.levels.map((l) => l.points)), 0) : 0;
   const save = async (returned: boolean) => {
@@ -158,6 +162,46 @@ function GradeForm({ s, a, rubric, onSaved }: { s: SubmissionDto; a: AssignmentD
   };
   return (
     <div className="mt-3 space-y-3 border-t border-line pt-3">
+      {rubric && s.text.trim().length >= 20 && (
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            variant="soft"
+            icon={<Sparkles className="size-4" />}
+            loading={aiBusy}
+            onClick={async () => {
+              setAiBusy(true);
+              try {
+                setAi(await api.ai.rubricFeedback({ submissionId: s.id }));
+              } catch (e) {
+                toastError(e);
+              } finally {
+                setAiBusy(false);
+              }
+            }}
+          >
+            {tr.t('aiGuard.suggest')}
+          </Button>
+          {ai && (
+            <>
+              <RubricFeedbackView fb={ai} />
+              {ai.suggestedGrade !== null && <p className="text-sm font-bold">{tr.t('aiGuard.suggested', { grade: ai.suggestedGrade, points: a.points })}</p>}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const next = { ...scores };
+                  for (const c of ai.criteria) if (c.points !== null) next[String(c.index)] = c.points;
+                  setScores(next);
+                  if (!feedback.trim()) setFeedback([...ai.criteria.map((c) => c.comment), ai.overall].filter(Boolean).join('\n'));
+                }}
+              >
+                {tr.t('aiGuard.apply')}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
       {rubric ? (
         <div className="space-y-3">
           {rubric.criteria.map((c, i) => (
@@ -304,7 +348,10 @@ export default function AssignmentPage() {
                 <Files files={a.attachments} />
               </header>
               {staff ? (
-                <Submissions a={a} />
+                <>
+                  <SimilarityPanel assignmentId={a.id} />
+                  <Submissions a={a} />
+                </>
               ) : (
                 <StudentPanel
                   a={a}

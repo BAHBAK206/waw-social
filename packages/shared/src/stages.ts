@@ -63,15 +63,17 @@ export interface ParentalControls {
   joinGroups: boolean;
   /** The AI tutor and study assistant. */
   ai: boolean;
+  /** The AI guides with hints and questions instead of giving answers. */
+  aiHints: boolean;
 }
 
-export const PARENTAL_CONTROL_KEYS = ['messages', 'publicPosts', 'joinGroups', 'ai'] as const;
+export const PARENTAL_CONTROL_KEYS = ['messages', 'publicPosts', 'joinGroups', 'ai', 'aiHints'] as const;
 
-const OPEN: ParentalControls = { messages: 'known', publicPosts: true, joinGroups: true, ai: true };
+const OPEN: ParentalControls = { messages: 'known', publicPosts: true, joinGroups: true, ai: true, aiHints: false };
 
 /** Under 13: classes only until a parent decides otherwise. 13–17: open, a parent can tighten. */
 export function defaultControls(tier: AgeTier): ParentalControls {
-  if (tier === 'child') return { messages: 'classes', publicPosts: false, joinGroups: false, ai: true };
+  if (tier === 'child') return { messages: 'classes', publicPosts: false, joinGroups: false, ai: true, aiHints: true };
   return { ...OPEN };
 }
 
@@ -84,5 +86,6 @@ export function effectiveControls(tier: AgeTier, stored: Partial<ParentalControl
     publicPosts: typeof s.publicPosts === 'boolean' ? s.publicPosts : d.publicPosts,
     joinGroups: typeof s.joinGroups === 'boolean' ? s.joinGroups : d.joinGroups,
     ai: typeof s.ai === 'boolean' ? s.ai : d.ai,
+    aiHints: typeof s.aiHints === 'boolean' ? s.aiHints : d.aiHints,
   };
 }

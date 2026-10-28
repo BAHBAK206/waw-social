@@ -1,4 +1,6 @@
 import type {
+  RubricFeedbackDto,
+  SimilarityReportDto,
   SchoolClassDto,
   SchoolDto,
   SchoolImportResultDto,
@@ -754,6 +756,7 @@ export function createApi(options: ClientOptions) {
           priceCents: number;
           currency: string;
           transferInfo: TransferInfoDto | null;
+          aiHintsOnly: boolean;
           regenerateCode: boolean;
           subjectCode: string | null;
           maxMarks: number;
@@ -780,6 +783,7 @@ export function createApi(options: ClientOptions) {
         http.post<SubmissionDto>(`/school/assignments/${assignmentId}/submit`, body),
       unsubmit: (assignmentId: string) => http.del<Ok>(`/school/assignments/${assignmentId}/submit`),
       submissions: (assignmentId: string) => http.get<{ items: SubmissionDto[] }>(`/school/assignments/${assignmentId}/submissions`),
+      similarity: (assignmentId: string) => http.get<SimilarityReportDto>(`/school/assignments/${assignmentId}/similarity`),
       grade: (
         submissionId: string,
         body: { grade: number; feedback?: string; feedbackAudio?: SubmissionDto['feedbackAudio']; rubricScores?: Record<string, number>; returned?: boolean },
@@ -920,17 +924,24 @@ export function createApi(options: ClientOptions) {
 
     ai: {
       courses: () => http.get<{ items: { id: string; title: string; subject: string | null; materials: number }[] }>('/ai/courses'),
-      quota: () => http.get<{ enabled: boolean; limit: number; used: number }>('/ai/quota'),
-      solve: (body: { question: string; material?: string; options?: string[]; courseId?: string | null; mode?: 'solve' | 'explain' | 'summarize' | 'quiz' }) =>
-        http.post<AiAnswerDto>('/ai/solve', body),
+      quota: () => http.get<{ enabled: boolean; limit: number; used: number; hintsOnly: boolean; exam: { title: string; until: number } | null }>('/ai/quota'),
+      solve: (body: {
+        question: string;
+        material?: string;
+        options?: string[];
+        courseId?: string | null;
+        mode?: 'solve' | 'explain' | 'summarize' | 'quiz' | 'socratic';
+      }) => http.post<AiAnswerDto>('/ai/solve', body),
       gradeEssay: (body: { answer: string; keyId?: string; modelAnswer?: string; keyPoints?: string[] }) => http.post<EssayGradeDto>('/ai/grade-essay', body),
       explain: (attemptId: string, questionId: string) => http.post<AiAnswerDto>('/ai/explain', { attemptId, questionId }),
+      /** Rubric feedback: a draft (`assignmentId` + `text`) or a submission (`submissionId`, teachers). */
+      rubricFeedback: (body: { assignmentId?: string; submissionId?: string; text?: string }) => http.post<RubricFeedbackDto>('/ai/rubric-feedback', body),
     },
     assistant: {
       threads: () => http.get<{ items: AssistantThreadDto[] }>('/assistant/threads'),
       thread: (id: string) => http.get<{ thread: AssistantThreadDto; messages: AssistantMessageDto[] }>(`/assistant/threads/${id}`),
       deleteThread: (id: string) => http.del<Ok>(`/assistant/threads/${id}`),
-      send: (body: { threadId?: string | null; text: string; language?: string }) =>
+      send: (body: { threadId?: string | null; text: string; language?: string; hints?: boolean }) =>
         http.post<{ threadId: string; userMessage: AssistantMessageDto; message: AssistantMessageDto; remainingQuota: number }>('/assistant/messages', body),
       feedback: (messageId: string, rating: 'up' | 'down', comment?: string) => http.post<Ok>('/assistant/feedback', { messageId, rating, comment }),
     },

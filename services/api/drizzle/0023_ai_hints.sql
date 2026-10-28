@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "ai_hints_only" boolean DEFAULT false NOT NULL;

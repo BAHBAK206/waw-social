@@ -1053,6 +1053,8 @@ export const courses = pgTable(
     /** A class section of a school (e.g. 5A), created by the school admin. */
     schoolId: uuid('school_id').references((): AnyPgColumn => schools.id, { onDelete: 'set null' }),
     schoolSection: text('school_section'),
+    /** The class's AI tutor gives hints and questions instead of answers. */
+    aiHintsOnly: boolean('ai_hints_only').notNull().default(false),
     transferInfo: jsonb('transfer_info').$type<{ instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null } | null>(),
     /** Subject grading: code (e.g. MATH-3), total marks ("out of 60"), pass mark, whether it counts in the overall total. */
     subjectCode: text('subject_code'),

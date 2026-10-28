@@ -115,6 +115,7 @@ export const parentalControlsSchema = z.object({
   publicPosts: z.boolean().optional(),
   joinGroups: z.boolean().optional(),
   ai: z.boolean().optional(),
+  aiHints: z.boolean().optional(),
   gradeLevel: z.enum(GRADE_LEVELS as unknown as [string, ...string[]]).optional(),
 });
 

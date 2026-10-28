@@ -171,7 +171,7 @@ export function MyControls() {
           <span>{tr.t('family.controls.messages')}</span>
           <b>{c.messages === 'classes' ? tr.t('family.controls.messagesClasses') : tr.t('family.controls.messagesKnown')}</b>
         </li>
-        {(['publicPosts', 'joinGroups', 'ai'] as const).map((k) => (
+        {(['publicPosts', 'joinGroups', 'ai', 'aiHints'] as const).map((k) => (
           <li key={k} className="flex justify-between gap-3">
             <span>{tr.t(`family.controls.${k}`)}</span>
             <b className={c[k] ? 'text-ok' : 'text-err'}>{c[k] ? tr.t('family.on') : tr.t('family.off')}</b>

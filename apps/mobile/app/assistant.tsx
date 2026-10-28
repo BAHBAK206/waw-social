@@ -93,6 +93,7 @@ export default function AssistantScreen() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(false);
+  const [hints, setHints] = useState(false);
   const ref = useRef<FlatList<AssistantMessageDto>>(null);
   const messages = [...(threadId ? (thread.data?.messages ?? []) : []), ...pending];
 
@@ -106,7 +107,7 @@ export default function AssistantScreen() {
       { id: `tmp-${Date.now()}`, threadId: threadId ?? '', role: 'user', content: body, sources: [], actions: [], rating: null, createdAt: Date.now() },
     ]);
     try {
-      const res = await api.assistant.send({ threadId, text: body, language });
+      const res = await api.assistant.send({ threadId, text: body, language, hints });
       qc.setQueryData(['assistant', 'thread', res.threadId], (old: { thread: unknown; messages: AssistantMessageDto[] } | undefined) => ({
         thread: old?.thread ?? { id: res.threadId, title: body.slice(0, 60), updatedAt: Date.now() },
         messages: [...(old?.messages ?? []), res.userMessage, res.message],
@@ -187,7 +188,16 @@ export default function AssistantScreen() {
             borderTopColor: t.border,
           }}
         >
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Pressable
+              onPress={() => setHints((v) => !v)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: hints }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Ionicons name={hints ? 'checkbox' : 'square-outline'} size={18} color={hints ? t.primary : t.text3} />
+              <Text size={12}>{tr.t('aiGuard.hintsToggle')}</Text>
+            </Pressable>
             <Input value={text} onChangeText={setText} placeholder={tr.t('assistant.placeholder')} multiline maxLength={4000} />
           </View>
           <Pressable

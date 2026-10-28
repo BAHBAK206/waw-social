@@ -13,6 +13,7 @@ import { formatDay, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { toast, toastError } from '@/lib/ui';
+import { DraftFeedback, SimilarityCard } from '@/components/AiWriting';
 
 async function attach(): Promise<Attachment | null> {
   const f = await pickDocument();
@@ -61,6 +62,7 @@ function StudentPanel({ a, onChanged }: { a: AssignmentDto; onChanged: () => voi
         style={{ minHeight: 120, textAlignVertical: 'top' }}
       />
       <Files files={files} onRemove={!locked && !closed ? (i) => setFiles((x) => x.filter((_, k) => k !== i)) : undefined} />
+      {a.rubricId && !locked && !closed ? <DraftFeedback assignmentId={a.id} text={text} /> : null}
       {!locked && !closed && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Button
@@ -235,7 +237,10 @@ export default function AssignmentScreen() {
         {course.isPending ? (
           <Loading />
         ) : staff ? (
-          <Submissions a={a} />
+          <View style={{ gap: 12 }}>
+            <SimilarityCard assignmentId={a.id} />
+            <Submissions a={a} />
+          </View>
         ) : (
           <StudentPanel
             key={a.mySubmission?.id ?? 'new'}

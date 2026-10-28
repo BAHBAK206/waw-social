@@ -12,7 +12,7 @@ import { useTheme } from '@/lib/theme';
 import { toast, toastError } from '@/lib/ui';
 import { GuideHint } from '@/components/Guide';
 
-type Mode = 'solve' | 'explain' | 'summarize' | 'quiz';
+type Mode = 'solve' | 'explain' | 'summarize' | 'quiz' | 'socratic';
 
 function Answer({ a }: { a: AiAnswerDto }) {
   const tr = useT();
@@ -135,11 +135,13 @@ function Solver() {
   return (
     <View style={{ gap: 12 }}>
       <Segmented
-        tabs={(['solve', 'explain', 'summarize', 'quiz'] as const).map((k) => ({ key: k, label: tr.t(`ai.modes.${k}`) }))}
+        tabs={(['solve', 'socratic', 'explain', 'summarize', 'quiz'] as const).map((k) => ({ key: k, label: tr.t(`ai.modes.${k}`) }))}
         value={mode}
         onChange={setMode}
       />
       {quota.data && !quota.data.enabled && <Text weight="bold">{tr.t('errors.ai_disabled')}</Text>}
+      {quota.data?.exam ? <Text weight="bold">{tr.t('aiGuard.examLocked', { title: quota.data.exam.title })}</Text> : null}
+      {quota.data?.hintsOnly ? <Text muted>{tr.t('aiGuard.hintsOn')}</Text> : null}
       <Input
         label={tr.t('ai.question')}
         value={question}

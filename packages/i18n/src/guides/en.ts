@@ -18,6 +18,7 @@ export const en: GuideBook = {
       'Set up “Subject grading” in the class settings first, so every mark counts toward the right total.',
       'You can import classes from Google Classroom from the Classroom page.',
       'Parents linked to a student see that student’s homework, attendance and marks, but cannot post in the class.',
+      'With a rubric, students can get AI feedback on their draft, and you can get suggested levels; “Check for copying” compares submissions with each other and with your materials.',
     ],
     roles: {
       student: 'Join with the code, hand in work before the due date, and check Grades to see your result in each subject.',
@@ -171,6 +172,7 @@ export const en: GuideBook = {
       'Teachers feed the AI by uploading materials to a class; administrators add common questions and answers in the moderation console.',
       'There is a daily limit of questions per account.',
       'For students under 18, a parent can turn the AI off.',
+      'Tick “Guide me (hints, not answers)” to learn step by step. During an exam the AI pauses until you submit.',
     ],
     roles: {
       student: 'The AI only reads materials from your own classes.',

@@ -10,6 +10,7 @@ import {
   courseMaterialSchema,
   courseMemberRoleSchema,
   essayKeySchema,
+  findSimilar,
   gradeInputSchema,
   hasPermission,
   joinCourseSchema,
@@ -19,6 +20,7 @@ import {
   submissionInputSchema,
   synonymSchema,
   type AssignmentDto,
+  type SimilarityReportDto,
   type AttendanceSessionDto,
   type CourseAnalyticsDto,
   type CourseAnnouncementDto,
@@ -122,6 +124,7 @@ export async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Pro
         priceCents: r.c.priceCents,
         currency: r.c.currency,
         transferInfo: r.c.transferInfo ?? null,
+        aiHintsOnly: r.c.aiHintsOnly,
         grading: gradingOf(r.c),
         createdAt: r.c.createdAt.getTime(),
       };
@@ -765,6 +768,41 @@ export const schoolRoutes = new Hono<AppEnv>()
     if (prev.status !== 'submitted') throw conflict('already_graded');
     await deps.db.delete(submissions).where(eq(submissions.id, prev.id));
     return c.json({ ok: true });
+  })
+  /** Possible copying: submissions that share much of their wording with each other or with the class's materials. */
+  .get('/assignments/:id/similarity', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'similarity', limit: 30, windowSec: 600, by: 'user' });
+    const deps = c.get('deps');
+    const a = await loadAssignment(deps, param(c, 'id'));
+    await requireRole(deps, a.courseId, user, STAFF);
+    const subs = await deps.db
+      .select({ studentId: submissions.studentId, text: submissions.text, ...summaryColumns })
+      .from(submissions)
+      .innerJoin(users, eq(users.id, submissions.studentId))
+      .where(eq(submissions.assignmentId, a.id));
+    const people = new Map(subs.map((x) => [x.studentId, toSummary(x)]));
+    const docs = subs.filter((x) => x.text.trim()).map((x) => ({ id: x.studentId, text: x.text.slice(0, 50_000) }));
+    const pairs = findSimilar(docs, { ignore: a.description, threshold: 0.25 }).slice(0, 100);
+    const chunks = await deps.db
+      .select({ materialId: knowledgeChunks.materialId, text: knowledgeChunks.text, title: courseMaterials.title })
+      .from(knowledgeChunks)
+      .innerJoin(courseMaterials, eq(courseMaterials.id, knowledgeChunks.materialId))
+      .where(eq(knowledgeChunks.courseId, a.courseId))
+      .orderBy(knowledgeChunks.materialId, knowledgeChunks.position)
+      .limit(2000);
+    const materials = new Map<string, { title: string; text: string }>();
+    for (const ch of chunks) {
+      const m = materials.get(ch.materialId) ?? { title: ch.title, text: '' };
+      if (m.text.length < 200_000) m.text += `\n${ch.text}`;
+      materials.set(ch.materialId, m);
+    }
+    const sources = materials.size ? findSimilar(docs, { against: [...materials].map(([id, m]) => ({ id, text: m.text })), threshold: 0.3 }).slice(0, 100) : [];
+    return c.json({
+      pairs: pairs.map((p) => ({ a: people.get(p.a)!, b: people.get(p.b)!, score: p.score, excerpt: p.excerpt })),
+      sources: sources.map((p) => ({ student: people.get(p.a)!, material: materials.get(p.b)?.title ?? '', score: p.score, excerpt: p.excerpt })),
+      checked: docs.length,
+    } satisfies SimilarityReportDto);
   })
   .get('/assignments/:id/submissions', async (c) => {
     const user = requireUser(c);

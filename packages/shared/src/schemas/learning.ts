@@ -185,7 +185,8 @@ export const aiSolveSchema = z.object({
   material: trimmed(LIMITS.aiMaterial).optional(),
   options: z.array(trimmed(500, 1)).max(8).optional(),
   courseId: idSchema.optional().nullable(),
-  mode: z.enum(['solve', 'explain', 'summarize', 'quiz']).default('solve'),
+  /** socratic: hints and guiding questions instead of the answer. */
+  mode: z.enum(['solve', 'explain', 'summarize', 'quiz', 'socratic']).default('solve'),
 });
 export type AiSolveInput = z.infer<typeof aiSolveSchema>;
 
@@ -200,7 +201,13 @@ export const assistantMessageSchema = z.object({
   threadId: idSchema.optional().nullable(),
   text: trimmed(4000, 1),
   language: z.enum(['ar', 'en', 'fr', 'es']).optional(),
+  /** Guide me: hints and questions instead of answers. */
+  hints: z.boolean().optional(),
 });
+/** Feedback on writing against an assignment's rubric: the student's draft, or a submission (teacher). */
+export const rubricFeedbackSchema = z
+  .object({ assignmentId: idSchema.optional(), submissionId: idSchema.optional(), text: trimmed(20000).optional() })
+  .refine((v) => !!v.submissionId || (!!v.assignmentId && !!v.text && v.text.length >= 20), { message: 'submission_or_text' });
 export const assistantFeedbackSchema = z.object({
   messageId: idSchema,
   rating: z.enum(['up', 'down']),

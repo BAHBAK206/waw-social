@@ -15,6 +15,7 @@ from . import engine, teacher, transcribe
 from .essay import grade_essay
 from .extract import ExtractError, extract
 from .llm import build_provider
+from .rubric import rubric_feedback
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 
@@ -48,7 +49,7 @@ class SolveIn(BaseModel):
     options: list[str] | None = Field(default=None, max_length=8)
     chunks: list[ChunkIn] = Field(default_factory=list, max_length=60)
     synonyms: dict[str, list[str]] = Field(default_factory=dict)
-    mode: Literal["solve", "explain", "summarize", "quiz"] = "solve"
+    mode: Literal["solve", "explain", "summarize", "quiz", "socratic"] = "solve"
     language: str = "ar"
 
 
@@ -90,6 +91,7 @@ class AssistantIn(BaseModel):
     guides: list[GuideIn] = Field(default_factory=list, max_length=60)
     language: str = "ar"
     userName: str = ""
+    socratic: bool = False
 
 
 @app.get("/health")
@@ -105,6 +107,28 @@ async def solve(body: SolveIn) -> dict:
 @app.post("/v1/grade-essay", dependencies=[Internal])
 async def essay(body: EssayIn) -> dict:
     return grade_essay(body.answer, body.modelAnswer, body.keyPoints, body.synonyms, body.language)
+
+
+class LevelIn(BaseModel):
+    label: str = Field(max_length=80)
+    points: float = 0
+
+
+class CriterionIn(BaseModel):
+    title: str = Field(max_length=160)
+    description: str = Field(default="", max_length=1000)
+    levels: list[LevelIn] = Field(default_factory=list, max_length=8)
+
+
+class RubricIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)
+    criteria: list[CriterionIn] = Field(min_length=1, max_length=20)
+    language: str = "ar"
+
+
+@app.post("/v1/rubric", dependencies=[Internal])
+async def rubric(body: RubricIn) -> dict:
+    return await rubric_feedback(body.text, [c.model_dump() for c in body.criteria], body.language[:2], provider)
 
 
 @app.post("/v1/assistant", dependencies=[Internal])

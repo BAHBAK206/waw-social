@@ -43,7 +43,7 @@ class ClaudeProvider:
         # SDK retries 408/409/429/5xx and connection errors itself (max_retries).
         self.client = anthropic.AsyncAnthropic(timeout=timeout, max_retries=2)
 
-    async def reply(self, message: str, history: list[dict], context: str, language: str) -> LlmReply | None:
+    async def reply(self, message: str, history: list[dict], context: str, language: str, system: str | None = None) -> LlmReply | None:
         anthropic = self._anthropic
         messages: list[dict] = []
         for h in history[-8:]:
@@ -60,7 +60,7 @@ class ClaudeProvider:
             response = await self.client.beta.messages.create(
                 model=self.model,
                 max_tokens=16000,
-                system=SYSTEM_PROMPT,
+                system=system or SYSTEM_PROMPT,
                 messages=messages,
                 output_config={"effort": self.effort},
                 betas=["server-side-fallback-2026-07-01"],

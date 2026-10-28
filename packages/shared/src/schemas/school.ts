@@ -38,6 +38,8 @@ export const courseInputSchema = z.object({
     .string()
     .regex(/^[A-Z]{3}$/)
     .optional(),
+  /** The class's AI tutor gives hints and questions instead of answers. */
+  aiHintsOnly: z.boolean().optional(),
   /** Manual payment details (InstaPay handle, wallet number, bank account). */
   transferInfo: transferInfoSchema.nullable().optional(),
   /** Subject grading. */

@@ -9,8 +9,10 @@ import {
   dayKey,
   essayGradeSchema,
   normalizeSearch,
+  rubricFeedbackSchema,
   truncate,
   type AiAnswerDto,
+  type RubricFeedbackDto,
   type AssistantMessageDto,
   type AssistantThreadDto,
   type EssayGradeDto,
@@ -27,15 +29,20 @@ import {
   courses,
   essayKeys,
   knowledgeChunks,
+  assignments,
   quizAttempts,
   quizQuestions,
+  rubrics,
+  submissions,
+  users,
 } from '../db/schema';
 import { courseRole } from '../lib/access';
 import type { AiChunk } from '../lib/ai';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
-import { AppError, forbidden, notFound } from '../lib/errors';
+import { AppError, badRequest, forbidden, notFound } from '../lib/errors';
+import { activeExam } from '../lib/examLock';
 import { body, param, requireUser } from '../lib/http';
-import { requireControl } from '../lib/minors';
+import { controlsOf, minorColumns, requireControl } from '../lib/minors';
 import { guideKnowledge } from '../lib/guides';
 import { getSettings } from '../lib/settings';
 import { checkRate } from '../middleware';
@@ -130,12 +137,31 @@ async function synonymsFor(deps: Deps, userId: string, courseId?: string | null)
 
 const languageOf = (c: { req: { header: (n: string) => string | undefined } }) => (c.req.header('accept-language') ?? 'ar').slice(0, 2);
 
-/** The AI tools follow the parent's setting for students under 18. */
+/**
+ * The AI tools follow the parent's setting for students under 18, and stay quiet while the student is sitting an
+ * exam (reading past conversations still works).
+ */
 const aiAllowed = createMiddleware<AppEnv>(async (c, next) => {
   const user = c.get('user');
-  if (user) await requireControl(c.get('deps').db, user.id, 'ai');
+  if (user) {
+    await requireControl(c.get('deps').db, user.id, 'ai');
+    if (c.req.method !== 'GET' && (await activeExam(c.get('deps'), user.id))) throw new AppError(423, 'exam_in_progress');
+  }
   await next();
 });
+
+/** Hints instead of answers: a parent's setting for a child, or the teacher's setting for the class being asked about. */
+async function hintsOnly(deps: Deps, userId: string, courseId?: string | null): Promise<{ parent: boolean; course: boolean }> {
+  const [me] = await deps.db.select(minorColumns).from(users).where(eq(users.id, userId));
+  const parent = !!me && controlsOf(me).aiHints;
+  let course = false;
+  if (courseId) {
+    const [c] = await deps.db.select({ h: courses.aiHintsOnly }).from(courses).where(eq(courses.id, courseId));
+    const role = await courseRole(deps.db, courseId, userId);
+    course = !!c?.h && role === 'student';
+  }
+  return { parent, course };
+}
 
 export const aiRoutes = new Hono<AppEnv>()
   .use('*', aiAllowed)
@@ -163,7 +189,14 @@ export const aiRoutes = new Hono<AppEnv>()
       .select({ count: aiUsage.count })
       .from(aiUsage)
       .where(and(eq(aiUsage.userId, user.id), eq(aiUsage.day, dayKey(Date.now(), user.timezone))));
-    return c.json({ enabled: settings.ai.enabled, limit: settings.ai.dailyQuota, used: row?.count ?? 0 });
+    const exam = await activeExam(deps, user.id);
+    return c.json({
+      enabled: settings.ai.enabled,
+      limit: settings.ai.dailyQuota,
+      used: row?.count ?? 0,
+      hintsOnly: (await hintsOnly(deps, user.id)).parent,
+      exam: exam ? { title: exam.title, until: exam.until } : null,
+    });
   })
   .post('/solve', async (c) => {
     const user = requireUser(c);
@@ -171,6 +204,8 @@ export const aiRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const input = await body(c, aiSolveSchema);
     if (input.courseId && !(await courseRole(deps.db, input.courseId, user.id))) throw forbidden('not_enrolled');
+    const hints = await hintsOnly(deps, user.id, input.courseId);
+    const mode = (hints.parent || hints.course) && (input.mode === 'solve' || input.mode === 'explain') ? 'socratic' : input.mode;
     const remaining = await consumeQuota(deps, user);
     const [chunks, synonyms] = await Promise.all([
       input.material ? Promise.resolve([]) : retrieveChunks(deps, user.id, input.question, input.courseId),
@@ -182,7 +217,7 @@ export const aiRoutes = new Hono<AppEnv>()
       options: input.options,
       chunks,
       synonyms,
-      mode: input.mode,
+      mode,
       language: languageOf(c),
     });
     return c.json({ ...result, remainingQuota: remaining } satisfies AiAnswerDto);
@@ -212,6 +247,63 @@ export const aiRoutes = new Hono<AppEnv>()
       language: languageOf(c),
     });
     return c.json(result);
+  })
+  /**
+   * Feedback on writing against the assignment's rubric: a student's draft (formative, no grade), or a submission for
+   * the teacher (suggested levels and grade to review, never applied automatically).
+   */
+  .post('/rubric-feedback', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'ai', limit: 20, windowSec: 60, by: 'user' });
+    const deps = c.get('deps');
+    const input = await body(c, rubricFeedbackSchema);
+    let text: string;
+    let assignmentId: string;
+    let staff = false;
+    if (input.submissionId) {
+      const [sub] = await deps.db.select().from(submissions).where(eq(submissions.id, input.submissionId));
+      if (!sub) throw notFound('submission_not_found');
+      const [a] = await deps.db.select({ courseId: assignments.courseId }).from(assignments).where(eq(assignments.id, sub.assignmentId));
+      const role = a ? await courseRole(deps.db, a.courseId, user.id) : null;
+      if (role !== 'teacher' && role !== 'assistant') throw notFound('submission_not_found');
+      text = sub.text;
+      assignmentId = sub.assignmentId;
+      staff = true;
+    } else {
+      assignmentId = input.assignmentId!;
+      text = input.text!;
+    }
+    const [a] = await deps.db.select().from(assignments).where(eq(assignments.id, assignmentId));
+    if (!a || !(await courseRole(deps.db, a.courseId, user.id))) throw notFound('assignment_not_found');
+    if (!a.rubricId) throw badRequest('no_rubric');
+    if (text.trim().length < 20) throw badRequest('text_too_short');
+    const [rubric] = await deps.db.select().from(rubrics).where(eq(rubrics.id, a.rubricId));
+    if (!rubric) throw badRequest('no_rubric');
+    await consumeQuota(deps, user);
+    const r = await deps.ai.rubric({ text, criteria: rubric.criteria, language: languageOf(c) });
+    const criteria = rubric.criteria.map((cr, index) => {
+      const got = r.criteria.find((x) => x.index === index);
+      const lv = got?.level !== null && got?.level !== undefined ? cr.levels[got.level] : undefined;
+      return {
+        index,
+        title: cr.title,
+        level: lv ? got!.level : null,
+        levelLabel: lv?.label ?? null,
+        points: lv?.points ?? null,
+        comment: got?.comment ?? '',
+        found: got?.found ?? [],
+        missing: got?.missing ?? [],
+      };
+    });
+    const max = rubric.criteria.reduce((n, cr) => n + Math.max(0, ...cr.levels.map((l) => l.points)), 0);
+    const earned = criteria.reduce((n, cr) => n + (cr.points ?? 0), 0);
+    return c.json({
+      criteria,
+      overall: r.overall,
+      stats: r.stats,
+      suggestedGrade: staff && max > 0 ? Math.round((earned / max) * a.points * 10) / 10 : null,
+      provider: r.provider,
+    } satisfies RubricFeedbackDto);
   })
   .post('/explain', async (c) => {
     const user = requireUser(c);
@@ -342,6 +434,7 @@ export const assistantRoutes = new Hono<AppEnv>()
       guides: guideKnowledge(language, user.accountType),
       language,
       userName: user.displayName,
+      socratic: !!input.hints || (await hintsOnly(deps, user.id)).parent,
     });
     if (reply.provider === 'qubedu:none') await recordGap(deps, input.text, language);
     const [assistantMsg] = await deps.db

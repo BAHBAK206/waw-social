@@ -18,6 +18,7 @@ export const fr: GuideBook = {
       'Configurez d’abord la « Notation de la matière » dans les paramètres de la classe, pour que chaque note compte dans le bon total.',
       'Vous pouvez importer vos classes Google Classroom depuis la page Classe.',
       'Les parents liés à un élève voient ses devoirs, présences et notes, mais ne publient pas dans la classe.',
+      'Avec une grille, les élèves obtiennent un avis de l’IA sur leur brouillon et vous des niveaux suggérés ; « Vérifier le plagiat » compare les copies entre elles et avec vos documents.',
     ],
     roles: {
       student: 'Rejoignez avec le code, rendez vos travaux avant l’échéance et consultez Mes notes pour votre résultat par matière.',
@@ -174,6 +175,7 @@ export const fr: GuideBook = {
       'Les enseignants nourrissent l’IA en ajoutant des documents à la classe ; les administrateurs ajoutent questions et réponses fréquentes dans la console de modération.',
       'Le nombre de questions par jour est limité pour chaque compte.',
       'Pour les moins de 18 ans, un parent peut désactiver l’IA.',
+      'Cochez « Guide-moi (indices, pas de réponses) » pour apprendre pas à pas. Pendant un examen, l’IA se met en pause jusqu’à la remise.',
     ],
     roles: {
       student: 'L’IA ne lit que les documents de vos propres classes.',

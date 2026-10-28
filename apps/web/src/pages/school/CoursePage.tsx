@@ -860,6 +860,19 @@ function Settings({ course }: { course: CourseDto }) {
         <Input label={tr.t('common.title')} value={title} onChange={(e) => setTitle(e.target.value)} />
         <Input label={tr.t('academic.subject')} value={subject} onChange={(e) => setSubject(e.target.value)} />
         <Textarea label={tr.t('common.description')} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Switch
+          checked={course.aiHintsOnly}
+          label={tr.t('school.aiHintsOnly')}
+          description={tr.t('school.aiHintsOnlyHint')}
+          onChange={async (v) => {
+            try {
+              await api.school.update(course.id, { aiHintsOnly: v });
+              refresh();
+            } catch (e) {
+              toastError(e);
+            }
+          }}
+        />
         <Button
           onClick={async () => {
             try {

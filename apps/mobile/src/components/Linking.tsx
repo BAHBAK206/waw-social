@@ -193,7 +193,7 @@ export function MyControlsCard() {
         label={tr.t('family.controls.messages')}
         value={c.messages === 'classes' ? tr.t('family.controls.messagesClasses') : tr.t('family.controls.messagesKnown')}
       />
-      {(['publicPosts', 'joinGroups', 'ai'] as const).map((k) => (
+      {(['publicPosts', 'joinGroups', 'ai', 'aiHints'] as const).map((k) => (
         <Row key={k} label={tr.t(`family.controls.${k}`)} value={c[k] ? tr.t('family.on') : tr.t('family.off')} ok={c[k]} />
       ))}
       <Text muted size={11}>
@@ -227,7 +227,7 @@ export function ControlsEditorCard({ report }: { report: ChildReportDto }) {
           { value: 'known' as const, label: tr.t('family.controls.messagesKnown') },
         ]}
       />
-      {(['publicPosts', 'joinGroups', 'ai'] as const).map((k) => (
+      {(['publicPosts', 'joinGroups', 'ai', 'aiHints'] as const).map((k) => (
         <SwitchRow key={k} label={tr.t(`family.controls.${k}`)} value={c[k]} onChange={(v) => setC({ ...c, [k]: v })} />
       ))}
       <GradeLevelField label={tr.t('family.controls.gradeLevel')} value={grade} onChange={setGrade} />

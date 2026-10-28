@@ -1,6 +1,27 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  aiGuard: {
+    examLocked: 'La IA está en pausa durante «{{title}}». Vuelve cuando entregues.',
+    hintsOn: 'Modo pistas activado: la IA te guía con pistas y preguntas en lugar de respuestas.',
+    hintsToggle: 'Guíame (pistas, no respuestas)',
+    feedback: 'Comentarios sobre mi borrador',
+    feedbackTitle: 'Comentarios según la rúbrica',
+    feedbackHint: 'Una estimación para mejorar antes de entregar. La nota real la pone tu docente.',
+    suggest: 'Sugerir con IA',
+    suggested: 'Sugerencia: {{grade}}/{{points}}. Revísala antes de guardar.',
+    apply: 'Usar estos niveles',
+    found: 'Has cubierto: {{list}}',
+    missing: 'Piensa en: {{list}}',
+    stats: '{{words}} palabras · {{sentences}} frases · {{paragraphs}} párrafos',
+    similarity: 'Comprobación de similitud',
+    similarityRun: 'Comprobar copias',
+    similarityHint: 'Una similitud alta invita a revisar, no es prueba de copia.',
+    similarityNone: 'Sin similitudes entre {count, plural, one {# entrega} other {# entregas}}.',
+    pairs: 'Estudiantes con trabajos parecidos',
+    sources: 'Parecido al material de la clase',
+    score: '{{pct}} % similar',
+  },
   schools: {
     title: 'Colegios',
     empty: 'Aún no perteneces a ningún colegio.',
@@ -696,6 +717,7 @@ export const es: Dictionary = {
     inviteHint: 'Recibe un enlace para conectarse. Ve tu tiempo de estudio, tareas, notas y cuestionarios, nunca tus mensajes privados.',
     inviteTitle: 'Invitar a un padre o madre por correo',
     controls: {
+      aiHints: 'La IA da pistas y preguntas, no respuestas',
       title: 'Lo que {{name}} puede hacer',
       hint: 'Se aplica mientras tu hijo sea menor de 18. Clases, tareas, lecciones y cuestionarios siempre funcionan.',
       messages: 'Mensajes privados',
@@ -1133,6 +1155,9 @@ export const es: Dictionary = {
     bannedHelp: 'Si crees que es un error, contacta con los administradores.',
   },
   errors: {
+    text_too_short: 'Escribe un poco más primero.',
+    no_rubric: 'Esta tarea no tiene rúbrica.',
+    exam_in_progress: 'La IA está en pausa durante tu examen. Termínalo y entrégalo primero.',
     section_required: 'Elige un grupo.',
     teacher_not_in_school: 'Elige un docente que se haya unido al colegio.',
     not_managed: 'Solo las cuentas creadas por el colegio pueden recibir una contraseña nueva aquí.',
@@ -1493,7 +1518,7 @@ export const es: Dictionary = {
   ai: {
     title: 'Tutor de estudio',
     subtitle: 'Matemáticas paso a paso, respuestas de tu material, resúmenes y preguntas de práctica.',
-    modes: { solve: 'Resolver', explain: 'Explicar', summarize: 'Resumir', quiz: 'Crear preguntas' },
+    modes: { solve: 'Resolver', explain: 'Explicar', summarize: 'Resumir', quiz: 'Crear preguntas', socratic: 'Solo pistas' },
     question: 'Tu pregunta',
     questionPlaceholder: 'Ej.: «Resuelve 2x + 3 = 7» o «¿Qué produce la mitocondria?»',
     material: 'Texto de la lección (opcional)',
@@ -1748,6 +1773,8 @@ export const es: Dictionary = {
     },
   },
   school: {
+    aiHintsOnlyHint: 'Cuando los estudiantes preguntan a la IA sobre esta clase, los guía con pistas y preguntas.',
+    aiHintsOnly: 'La IA de la clase da pistas, no respuestas',
     roster: {
       open: 'Importar alumnos',
       title: 'Importar una lista de clase',

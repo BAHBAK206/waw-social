@@ -21,8 +21,13 @@ export const fakePush: PushSender = {
 /** The last payload the fake assistant received (tests check what the API feeds the AI). */
 export let lastAssistantInput: Parameters<AiClient['assistant']>[0] | null = null;
 
+/** The last solve payload (tests check the mode the API chose). */
+export let lastSolveInput: Parameters<AiClient['solve']>[0] | null = null;
+
 export const fakeAi: AiClient = {
   async solve(input) {
+    lastSolveInput = input;
+    if (input.mode === 'socratic') return { answer: 'hint', steps: [], confidence: 'medium', kind: 'socratic', sources: [], choice: null, provider: 'fake' };
     const m = input.question.match(/^\s*(\d+)\s*\+\s*(\d+)\s*$/);
     if (m)
       return { answer: String(Number(m[1]) + Number(m[2])), steps: ['add'], confidence: 'high', kind: 'math', sources: [], choice: null, provider: 'fake' };
@@ -45,8 +50,23 @@ export const fakeAi: AiClient = {
     const text = Buffer.from(input.data).toString('utf8');
     return { text, chunks: [{ heading: 'Section', page: 1, text }] };
   },
+  async rubric(input) {
+    return {
+      criteria: input.criteria.map((c, index) => ({
+        index,
+        level: input.text.toLowerCase().includes(c.title.toLowerCase()) ? c.levels.length - 1 : 0,
+        comment: `about ${c.title}`,
+        found: [],
+        missing: [],
+      })),
+      overall: 'ok',
+      stats: { words: input.text.split(/\s+/).length, sentences: 1, paragraphs: 1, avgSentence: 1 },
+      provider: 'fake',
+    };
+  },
   async assistant(input) {
     lastAssistantInput = input;
+    if (input.socratic) return { content: 'hint: think about it', sources: [], actions: [], provider: 'fake:socratic' };
     const hit = input.knowledge[0];
     if (hit) return { content: hit.answer, sources: [], actions: [], provider: 'qubedu:kb' };
     if (input.message.startsWith('??')) return { content: 'not sure', sources: [], actions: [], provider: 'qubedu:none' };

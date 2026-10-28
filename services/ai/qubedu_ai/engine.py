@@ -9,6 +9,7 @@ from .i18n import t
 from .llm import ClaudeProvider
 from .mathsolver import option_matches, solve_math
 from .retrieval import Chunk, best_sentences, coverage, rank
+from .socratic import socratic
 from .text import is_arabic, normalize, sentences, tokens
 
 _NAV = [
@@ -173,6 +174,9 @@ async def solve(payload: dict, provider: ClaudeProvider | None) -> dict:
     chunks = _chunks(payload.get("chunks") or [], payload.get("material"))
     base = {"steps": [], "sources": [], "choice": None, "provider": "qubedu"}
 
+    if mode == "socratic":
+        return await socratic(question, lang, chunks, synonyms, provider, context=_context(rank(question, chunks, synonyms, top=4)))
+
     if mode == "summarize":
         text = payload.get("material") or "\n\n".join(c.text for c in chunks[:20])
         summary = summarize(text, 6)
@@ -280,6 +284,11 @@ async def assistant(payload: dict, provider: ClaudeProvider | None) -> dict:
             return {"content": str(k.get("answer", "")), "sources": [], "actions": link_actions + actions, "provider": "qubedu:kb"}
 
     guide = _guide_match(message, payload.get("guides") or [])
+    if payload.get("socratic") and guide is None:
+        # Hints mode: guiding questions and partial steps, never the answer.
+        hits = rank(message, chunks, top=6)
+        r = await socratic(message, lang, chunks, {}, provider, payload.get("history") or [], _context(hits, knowledge))
+        return {"content": r["answer"], "sources": _sources(hits[:1]), "actions": actions, "provider": r["provider"]}
     math = solve_math(message)
     if guide is not None and math is None:
         return _guide_reply(guide, lang, actions)

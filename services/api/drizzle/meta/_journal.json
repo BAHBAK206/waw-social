@@ -162,6 +162,13 @@
       "when": 1793223848478,
       "tag": "0022_schools",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793224863458,
+      "tag": "0023_ai_hints",
+      "breakpoints": true
     }
   ]
 }

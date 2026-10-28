@@ -35,7 +35,16 @@ export interface AiClient {
     guides?: AiGuide[];
     language: string;
     userName: string;
+    /** Hints mode: guiding questions instead of answers. */
+    socratic?: boolean;
   }): Promise<{ content: string; sources: AiSource[]; actions: { label: string; link: string }[]; provider: string }>;
+  /** Feedback on writing against a rubric (levels are indexes into each criterion's levels). */
+  rubric(input: { text: string; criteria: { title: string; description: string; levels: { label: string; points: number }[] }[]; language: string }): Promise<{
+    criteria: { index: number; level: number | null; comment: string; found: string[]; missing: string[] }[];
+    overall: string;
+    stats: { words: number; sentences: number; paragraphs: number; avgSentence: number };
+    provider: string;
+  }>;
   /** Teacher tools; `translate` needs Claude on the AI service (else rejected with ai_rejected / needs_ai). */
   teacher(input: {
     task: 'quiz' | 'summary' | 'chapters' | 'ideas' | 'translate';
@@ -86,6 +95,7 @@ export function createAiClient(baseUrl: string, internalToken: string, timeoutMs
         headers: { 'content-type': 'application/octet-stream', 'x-filename': encodeURIComponent(input.filename), 'x-mime': input.mime },
       }),
     assistant: (input) => call('/v1/assistant', input),
+    rubric: (input) => call('/v1/rubric', input, undefined, 90_000),
     // Claude may take a while on long lessons or full caption files.
     teacher: (input) => call('/v1/teacher', input, undefined, input.task === 'translate' ? 600_000 : 120_000),
     transcribe: (input) =>

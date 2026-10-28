@@ -14,14 +14,20 @@ import { useT } from '@/lib/i18n';
 import { toast, toastError } from '@/lib/ui';
 import { ReadAloud } from '@/components/common/ReadAloud';
 
-type Mode = 'solve' | 'explain' | 'summarize' | 'quiz';
+type Mode = 'solve' | 'explain' | 'summarize' | 'quiz' | 'socratic';
 
 function Quota() {
   const tr = useT();
   const q = useQuery({ queryKey: ['ai', 'quota'], queryFn: () => api.ai.quota(), staleTime: 30_000 });
   if (!q.data) return null;
   if (!q.data.enabled) return <NoticeCard tone="warn">{tr.t('errors.ai_disabled')}</NoticeCard>;
-  return <p className="muted text-sm">{tr.t('ai.quota', { remaining: Math.max(0, q.data.limit - q.data.used) })}</p>;
+  return (
+    <div className="space-y-2">
+      {q.data.exam && <NoticeCard tone="warn">{tr.t('aiGuard.examLocked', { title: q.data.exam.title })}</NoticeCard>}
+      {q.data.hintsOnly && <NoticeCard>{tr.t('aiGuard.hintsOn')}</NoticeCard>}
+      <p className="muted text-sm">{tr.t('ai.quota', { remaining: Math.max(0, q.data.limit - q.data.used) })}</p>
+    </div>
+  );
 }
 
 function Answer({ a }: { a: AiAnswerDto }) {
@@ -145,7 +151,7 @@ function Solver() {
   return (
     <div className="space-y-4">
       <div className="tabs" role="tablist">
-        {(['solve', 'explain', 'summarize', 'quiz'] as const).map((k) => (
+        {(['solve', 'socratic', 'explain', 'summarize', 'quiz'] as const).map((k) => (
           <button key={k} type="button" role="tab" aria-selected={mode === k} className="tab" onClick={() => setMode(k)}>
             {tr.t(`ai.modes.${k}`)}
           </button>

@@ -1,4 +1,25 @@
 export const en = {
+  aiGuard: {
+    examLocked: 'The AI is paused while you sit “{{title}}”. It comes back when you submit.',
+    hintsOn: 'Hints mode is on: the AI guides you with hints and questions instead of answers.',
+    hintsToggle: 'Guide me (hints, not answers)',
+    feedback: 'Get feedback on my draft',
+    feedbackTitle: 'Feedback by rubric',
+    feedbackHint: 'An estimate to help you improve before you hand in. Your teacher gives the real grade.',
+    suggest: 'Suggest with AI',
+    suggested: 'Suggested: {{grade}}/{{points}}. Review before saving.',
+    apply: 'Use these levels',
+    found: 'You covered: {{list}}',
+    missing: 'Think about: {{list}}',
+    stats: '{{words}} words · {{sentences}} sentences · {{paragraphs}} paragraphs',
+    similarity: 'Similarity check',
+    similarityRun: 'Check for copying',
+    similarityHint: 'High similarity is a reason to look closer, not proof of copying.',
+    similarityNone: 'No similar work among {count, plural, one {# submission} other {# submissions}}.',
+    pairs: 'Students with similar work',
+    sources: 'Similar to class material',
+    score: '{{pct}}% similar',
+  },
   schools: {
     title: 'Schools',
     empty: 'You are not part of a school yet.',
@@ -693,6 +714,7 @@ export const en = {
     inviteHint: 'They get a link to connect. They see your study time, homework, grades and quizzes — never your private messages.',
     inviteTitle: 'Invite a parent by email',
     controls: {
+      aiHints: 'AI gives hints and questions, not answers',
       title: 'What {{name}} can do',
       hint: 'These apply while your child is under 18. Classes, homework, lessons and quizzes always work.',
       messages: 'Private messages',
@@ -1121,6 +1143,9 @@ export const en = {
     bannedHelp: 'If you think this is a mistake, contact the administrators.',
   },
   errors: {
+    text_too_short: 'Write a little more first.',
+    no_rubric: 'This assignment has no rubric.',
+    exam_in_progress: 'The AI is paused while you are in an exam. Finish and submit it first.',
     section_required: 'Choose a class.',
     teacher_not_in_school: 'Choose a teacher who has joined the school.',
     not_managed: 'Only accounts the school created can get a new password here.',
@@ -1481,7 +1506,7 @@ export const en = {
   ai: {
     title: 'Study tutor',
     subtitle: 'Math step by step, answers from your course material, summaries and practice questions.',
-    modes: { solve: 'Solve', explain: 'Explain', summarize: 'Summarize', quiz: 'Make questions' },
+    modes: { solve: 'Solve', explain: 'Explain', summarize: 'Summarize', quiz: 'Make questions', socratic: 'Hints only' },
     question: 'Your question',
     questionPlaceholder: 'Type a question, e.g. "Solve 2x + 3 = 7" or "What does the mitochondria produce?"',
     material: 'Lesson text (optional)',
@@ -1731,6 +1756,8 @@ export const en = {
     },
   },
   school: {
+    aiHintsOnlyHint: 'When students ask the AI about this class, it guides them with hints and questions so they work it out themselves.',
+    aiHintsOnly: 'Class AI tutor gives hints, not answers',
     roster: {
       open: 'Import students',
       title: 'Import a class list',

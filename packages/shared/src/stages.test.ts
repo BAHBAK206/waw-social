@@ -22,7 +22,8 @@ describe('school stages and age groups', () => {
     expect(ageTier({ birthYear: 2011, accountType: 'teacher' }, now)).toBe('teen');
   });
   it('controls: children start in classes-only mode, parents can open or tighten', () => {
-    expect(defaultControls('child')).toEqual({ messages: 'classes', publicPosts: false, joinGroups: false, ai: true });
+    expect(defaultControls('child')).toEqual({ messages: 'classes', publicPosts: false, joinGroups: false, ai: true, aiHints: true });
+    expect(defaultControls('teen').aiHints).toBe(false);
     expect(effectiveControls('child', { publicPosts: true })).toMatchObject({ messages: 'classes', publicPosts: true });
     expect(effectiveControls('teen', { ai: false })).toMatchObject({ messages: 'known', publicPosts: true, ai: false });
     // Adults are never restricted by stored controls.

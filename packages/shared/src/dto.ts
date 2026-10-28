@@ -551,6 +551,8 @@ export interface CourseDto {
   currency: string;
   /** Manual payment details; null when the teacher accepts no transfers. */
   transferInfo: TransferInfoDto | null;
+  /** The class's AI tutor gives hints only. */
+  aiHintsOnly: boolean;
   grading: CourseGradingDto;
   createdAt: number;
 }
@@ -892,7 +894,7 @@ export interface AiAnswerDto {
   answer: string;
   steps: string[];
   confidence: 'high' | 'medium' | 'low' | 'uncertain';
-  kind: 'math' | 'mcq' | 'retrieval' | 'essay' | 'llm' | 'summary' | 'quiz' | 'unknown';
+  kind: 'math' | 'mcq' | 'retrieval' | 'essay' | 'llm' | 'summary' | 'quiz' | 'socratic' | 'unknown';
   sources: AiSource[];
   choice: number | null;
   provider: string;
@@ -1461,4 +1463,30 @@ export interface SchoolReportCardsDto {
   term: string | null;
   terms: string[];
   cards: (ReportCardDto & { section: string | null; studentNumber: string | null; gradeLevel: GradeLevel | null })[];
+}
+
+/** AI feedback on writing, criterion by criterion of the assignment's rubric. */
+export interface RubricFeedbackDto {
+  criteria: {
+    index: number;
+    title: string;
+    level: number | null;
+    levelLabel: string | null;
+    points: number | null;
+    comment: string;
+    found: string[];
+    missing: string[];
+  }[];
+  overall: string;
+  stats: { words: number; sentences: number; paragraphs: number; avgSentence: number };
+  /** Suggested total in the assignment's points (teachers), from the rubric. */
+  suggestedGrade: number | null;
+  provider: string;
+}
+
+/** Possible copying between students' submissions, and from the class's materials. */
+export interface SimilarityReportDto {
+  pairs: { a: UserSummary; b: UserSummary; score: number; excerpt: string }[];
+  sources: { student: UserSummary; material: string; score: number; excerpt: string }[];
+  checked: number;
 }

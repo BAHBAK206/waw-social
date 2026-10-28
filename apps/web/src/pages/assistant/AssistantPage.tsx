@@ -97,6 +97,7 @@ export default function AssistantPage() {
   const [pending, setPending] = useState<AssistantMessageDto[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [hints, setHints] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const messages = [...(thread.data?.messages ?? []), ...pending];
 
@@ -121,7 +122,7 @@ export default function AssistantPage() {
     };
     setPending((p) => [...p, optimistic]);
     try {
-      const res = await api.assistant.send({ threadId, text: t, language });
+      const res = await api.assistant.send({ threadId, text: t, language, hints });
       setPending([]);
       if (!threadId) setThreadId(res.threadId);
       await qc.invalidateQueries({ queryKey: ['assistant', 'thread', res.threadId] });
@@ -236,8 +237,12 @@ export default function AssistantPage() {
           )}
           <div ref={bottom} />
         </div>
+        <label className="flex items-center gap-2 border-t border-line px-3 pt-2 text-sm">
+          <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={hints} onChange={(e) => setHints(e.target.checked)} />
+          {tr.t('aiGuard.hintsToggle')}
+        </label>
         <form
-          className="flex items-end gap-2 border-t border-line p-3"
+          className="flex items-end gap-2 p-3"
           onSubmit={(e) => {
             e.preventDefault();
             void send(text);

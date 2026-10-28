@@ -18,6 +18,7 @@ export const es: GuideBook = {
       'Configura primero la «Calificación de la materia» en los ajustes de la clase, para que cada nota cuente en el total correcto.',
       'Puedes importar clases de Google Classroom desde la página Aula.',
       'Los padres vinculados a un estudiante ven sus tareas, asistencia y notas, pero no publican en la clase.',
+      'Con una rúbrica, los estudiantes reciben comentarios de la IA sobre su borrador y tú niveles sugeridos; «Comprobar copias» compara las entregas entre sí y con tus materiales.',
     ],
     roles: {
       student: 'Únete con el código, entrega a tiempo y revisa Mis notas para ver tu resultado en cada materia.',
@@ -171,6 +172,7 @@ export const es: GuideBook = {
       'Los docentes alimentan la IA subiendo materiales a la clase; los administradores añaden preguntas frecuentes y respuestas en la consola de moderación.',
       'Hay un límite diario de preguntas por cuenta.',
       'Para menores de 18, un padre o madre puede desactivar la IA.',
+      'Marca «Guíame (pistas, no respuestas)» para aprender paso a paso. Durante un examen la IA se pausa hasta que entregues.',
     ],
     roles: {
       student: 'La IA solo lee materiales de tus propias clases.',

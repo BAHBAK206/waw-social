@@ -1,6 +1,27 @@
 import type { Dictionary } from './en';
 
 export const fr: Dictionary = {
+  aiGuard: {
+    examLocked: 'L’IA est en pause pendant « {{title}} ». Elle revient quand vous rendez la copie.',
+    hintsOn: 'Mode indices activé : l’IA vous guide par des indices et des questions.',
+    hintsToggle: 'Guide-moi (indices, pas de réponses)',
+    feedback: 'Avoir un avis sur mon brouillon',
+    feedbackTitle: 'Avis selon la grille',
+    feedbackHint: 'Une estimation pour progresser avant de rendre. La vraie note vient de votre enseignant.',
+    suggest: 'Suggérer avec l’IA',
+    suggested: 'Suggestion : {{grade}}/{{points}}. Vérifiez avant d’enregistrer.',
+    apply: 'Utiliser ces niveaux',
+    found: 'Abordé : {{list}}',
+    missing: 'Pensez à : {{list}}',
+    stats: '{{words}} mots · {{sentences}} phrases · {{paragraphs}} paragraphes',
+    similarity: 'Vérification des similitudes',
+    similarityRun: 'Vérifier le plagiat',
+    similarityHint: 'Une forte similitude invite à regarder de plus près ; ce n’est pas une preuve.',
+    similarityNone: 'Aucune similitude parmi {count, plural, one {# copie} other {# copies}}.',
+    pairs: 'Élèves aux copies proches',
+    sources: 'Proche des documents de la classe',
+    score: '{{pct}} % similaire',
+  },
   schools: {
     title: 'Écoles',
     empty: 'Vous ne faites encore partie d’aucune école.',
@@ -696,6 +717,7 @@ export const fr: Dictionary = {
     inviteHint: 'Il reçoit un lien pour se connecter. Il voit votre temps d’étude, devoirs, notes et quiz — jamais vos messages privés.',
     inviteTitle: 'Inviter un parent par e-mail',
     controls: {
+      aiHints: 'L’IA donne des indices et des questions, pas les réponses',
       title: 'Ce que {{name}} peut faire',
       hint: 'S’applique tant que votre enfant a moins de 18 ans. Classes, devoirs, leçons et quiz fonctionnent toujours.',
       messages: 'Messages privés',
@@ -1124,6 +1146,9 @@ export const fr: Dictionary = {
     bannedHelp: "Si vous pensez qu'il s'agit d'une erreur, contactez les administrateurs.",
   },
   errors: {
+    text_too_short: 'Écrivez un peu plus d’abord.',
+    no_rubric: 'Ce devoir n’a pas de grille d’évaluation.',
+    exam_in_progress: 'L’IA est en pause pendant votre examen. Terminez-le et rendez-le d’abord.',
     section_required: 'Choisissez une classe.',
     teacher_not_in_school: 'Choisissez un enseignant membre de l’école.',
     not_managed: 'Seuls les comptes créés par l’école peuvent recevoir un nouveau mot de passe ici.',
@@ -1485,7 +1510,7 @@ export const fr: Dictionary = {
   ai: {
     title: "Tuteur d'étude",
     subtitle: 'Maths pas à pas, réponses tirées de vos cours, résumés et questions d’entraînement.',
-    modes: { solve: 'Résoudre', explain: 'Expliquer', summarize: 'Résumer', quiz: 'Créer des questions' },
+    modes: { solve: 'Résoudre', explain: 'Expliquer', summarize: 'Résumer', quiz: 'Créer des questions', socratic: 'Indices seulement' },
     question: 'Votre question',
     questionPlaceholder: 'Ex. « Résoudre 2x + 3 = 7 » ou « Que produit la mitochondrie ? »',
     material: 'Texte du cours (facultatif)',
@@ -1740,6 +1765,8 @@ export const fr: Dictionary = {
     },
   },
   school: {
+    aiHintsOnlyHint: 'Quand les élèves interrogent l’IA sur cette classe, elle les guide par des indices et des questions.',
+    aiHintsOnly: 'L’IA de la classe donne des indices, pas les réponses',
     roster: {
       open: 'Importer des élèves',
       title: 'Importer une liste de classe',
