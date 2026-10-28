@@ -32,3 +32,4 @@ tests/e2e/playwright-report/
 expo-env.d.ts
 test-results/
 playwright-report/
+backups/

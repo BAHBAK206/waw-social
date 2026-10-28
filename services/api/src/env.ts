@@ -31,6 +31,14 @@ const schema = z.object({
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_PUBLIC_URL: z.string().optional(),
+  /** Where server errors, failed backups and video processing problems are announced (Slack/Discord/Telegram webhook). */
+  ALERT_WEBHOOK_URL: z.string().url().optional(),
+  /** Video processing into 360p/720p/1080p streams (needs ffmpeg). */
+  TRANSCODE_ENABLED: bool.default(true),
+  FFMPEG_PATH: z.string().default('ffmpeg'),
+  FFPROBE_PATH: z.string().default('ffprobe'),
+  /** CDN in front of public files (e.g. https://cdn.example.com). Public file links use it instead of the API address. */
+  PUBLIC_FILES_URL: z.string().optional(),
   /** Web Push (browser notifications). Generated and stored automatically when not set. */
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),

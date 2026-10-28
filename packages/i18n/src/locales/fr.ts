@@ -1251,6 +1251,15 @@ export const fr: Dictionary = {
     saved: 'Paramètres enregistrés',
   },
   admin: {
+    system: {
+      title: 'État du serveur',
+      lastBackup: 'Dernière sauvegarde',
+      never: 'Aucune sauvegarde — lancez scripts/backup.sh chaque jour (l’installation Docker le fait pour vous).',
+      videosProcessing: 'Vidéos en préparation en 360p/720p/1080p',
+      videosFailed: 'Vidéos non préparées (elles restent lisibles telles quelles)',
+      alertsOff: 'Alertes d’erreur désactivées. Définissez ALERT_WEBHOOK_URL pour les recevoir sur Slack, Discord ou Telegram.',
+      alertsOn: 'Les alertes d’erreur sont envoyées à votre équipe.',
+    },
     title: 'Administration',
     tabs: {
       overview: "Vue d'ensemble",
@@ -1401,6 +1410,8 @@ export const fr: Dictionary = {
     },
   },
   watch: {
+    qualityAuto: 'Auto',
+    quality: 'Qualité vidéo',
     lessonXp: 'Leçon terminée ! +{{xp}} XP',
     jumpTo: 'Aller à {{time}}',
     noNotes: 'Aucune note pour l’instant. Mettez en pause à un moment clé et écrivez-en une.',

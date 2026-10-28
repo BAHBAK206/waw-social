@@ -16,6 +16,8 @@ RUN mkdir /out && cp -r services/api/dist /out/dist \
 
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production PORT=8787 STORAGE_DIR=/data/storage
+# ffmpeg turns uploaded lessons into 360p/720p/1080p streams.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /out ./
 RUN mkdir -p /data/storage && chown -R node:node /data /app

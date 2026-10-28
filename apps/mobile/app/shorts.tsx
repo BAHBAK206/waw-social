@@ -16,7 +16,7 @@ import { useT } from '@/lib/i18n';
 import { toastError } from '@/lib/ui';
 
 function ShortPlayer({ v }: { v: VideoDto }) {
-  const player = useVideoPlayer({ uri: fileUrl(v.videoUrl)!, headers: { 'x-client': 'mobile', authorization: `Bearer ${api.http.token ?? ''}` } }, (p) => {
+  const player = useVideoPlayer({ uri: fileUrl(v.streamUrl ?? v.videoUrl)! }, (p) => {
     p.loop = true;
     p.play();
   });

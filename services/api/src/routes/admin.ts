@@ -51,6 +51,7 @@ import {
   reports,
   events,
   sessions,
+  siteSettings,
   stories,
   users,
   videoComments,
@@ -93,6 +94,22 @@ const toAdminUser = (u: typeof users.$inferSelect): AdminUserDto => ({
   birthYear: u.birthYear ?? null,
   isMinor: isMinor(u.birthYear),
 });
+
+async function systemHealth(db: Parameters<typeof audit>[0], alertUrl: string | undefined): Promise<AdminOverviewDto['system']> {
+  const [backup] = await db.select({ v: siteSettings.value }).from(siteSettings).where(eq(siteSettings.key, 'lastBackup'));
+  const b = (backup?.v ?? null) as { at?: string; sizeKb?: number } | null;
+  const [streams] = await db.execute<{ processing: number; failed: number }>(sql`
+    select count(*) filter (where stream_status in ('pending', 'processing'))::int as processing,
+           count(*) filter (where stream_status = 'failed')::int as failed
+    from videos where deleted_at is null`);
+  return {
+    lastBackupAt: b?.at ? new Date(b.at).getTime() : null,
+    lastBackupSizeKb: b?.sizeKb ?? null,
+    videosProcessing: streams?.processing ?? 0,
+    videosFailed: streams?.failed ?? 0,
+    alertsConfigured: !!alertUrl,
+  };
+}
 
 async function targetUser(db: Parameters<typeof audit>[0], id: string) {
   const [u] = await db.select().from(users).where(eq(users.id, id));
@@ -164,6 +181,7 @@ export const adminRoutes = new Hono<AppEnv>()
       },
       openReports: openReports?.n ?? 0,
       errors24h: errors?.n ?? 0,
+      system: await systemHealth(db, c.get('deps').env.ALERT_WEBHOOK_URL),
       signupsByDay: signups.map((s) => ({ day: s.day, count: Number(s.n) })),
       activityByDay: activity.map((a) => ({ day: a.day, attempts: Number(a.attempts), posts: Number(a.posts), messages: Number(a.messages) })),
     };

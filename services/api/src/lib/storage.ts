@@ -1,6 +1,7 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -25,6 +26,10 @@ export interface Storage {
   size?(key: string): Promise<number | null>;
   /** Local driver only: streams a byte range (inclusive) so large videos never sit in memory. */
   stream?(key: string, start?: number, end?: number): Readable;
+  /** Writes a derived file at a fixed key (video stream playlists and segments). */
+  putAt(key: string, data: Uint8Array, mime: string): Promise<void>;
+  /** Copies an object to a local file (video processing input) without loading it into memory. */
+  download(key: string, dest: string): Promise<void>;
   readonly driver: 'local' | 's3';
 }
 
@@ -41,7 +46,12 @@ function newKey(visibility: Visibility, ext: string): string {
 }
 
 export function isSafeKey(key: string): boolean {
-  return /^(public|private)\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.[a-z0-9]{1,8}$/.test(key);
+  return /^(public|private)\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.[a-z0-9]{1,8}$/.test(key) || isStreamKey(key);
+}
+
+/** Adaptive video stream files: public/hls/<video id>/<name>.m3u8|ts */
+export function isStreamKey(key: string): boolean {
+  return /^public\/hls\/[0-9a-f-]{36}\/[a-z0-9_]{1,40}\.(m3u8|ts)$/.test(key);
 }
 
 class LocalStorage implements Storage {
@@ -50,6 +60,8 @@ class LocalStorage implements Storage {
     private readonly dir: string,
     private readonly publicBase: string,
     private readonly secret: string,
+    /** A CDN that pulls /files/public/* from this server. */
+    private readonly cdnBase?: string,
   ) {}
   private file(key: string) {
     if (!isSafeKey(key)) throw new Error('unsafe key');
@@ -81,10 +93,19 @@ class LocalStorage implements Storage {
   stream(key: string, start?: number, end?: number) {
     return createReadStream(this.file(key), { start, end });
   }
+  async putAt(key: string, data: Uint8Array) {
+    const file = this.file(key);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, data);
+  }
+  async download(key: string, dest: string) {
+    await copyFile(this.file(key), dest);
+  }
   async remove(key: string) {
     await rm(this.file(key), { force: true });
   }
   async urlFor(key: string) {
+    if (key.startsWith('public/') && this.cdnBase) return `${this.cdnBase.replace(/\/$/, '')}/files/${key}`;
     const base = `${this.publicBase.replace(/\/$/, '')}/files/${key}`;
     if (key.startsWith('public/')) return base;
     const exp = String(Date.now() + SIGNED_TTL_MS);
@@ -137,8 +158,19 @@ class S3Storage implements Storage {
   async remove(key: string) {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
+  async putAt(key: string, data: Uint8Array, mime: string) {
+    await this.client.send(
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: data, ContentType: mime, CacheControl: 'public, max-age=31536000, immutable' }),
+    );
+  }
+  async download(key: string, dest: string) {
+    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!res.Body) throw new Error('empty object');
+    await pipeline(res.Body as Readable, createWriteStream(dest));
+  }
   async urlFor(key: string) {
-    if (key.startsWith('public/') && this.env.S3_PUBLIC_URL) return `${this.env.S3_PUBLIC_URL.replace(/\/$/, '')}/${key}`;
+    const pub = this.env.PUBLIC_FILES_URL ?? this.env.S3_PUBLIC_URL;
+    if (key.startsWith('public/') && pub) return `${pub.replace(/\/$/, '')}/${key}`;
     return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: 6 * 24 * 3600 });
   }
   verifySignature() {
@@ -148,7 +180,7 @@ class S3Storage implements Storage {
 
 export function createStorage(env: Env): Storage {
   if (env.STORAGE_DRIVER === 's3') return new S3Storage(env);
-  return new LocalStorage(path.resolve(env.STORAGE_DIR), env.API_PUBLIC_URL, env.JWT_SECRET);
+  return new LocalStorage(path.resolve(env.STORAGE_DIR), env.API_PUBLIC_URL, env.JWT_SECRET, env.PUBLIC_FILES_URL);
 }
 
 /** Detects the real file type from magic bytes. Returns null when unknown/unsafe. */

@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { LIMITS } from '@qubedu/shared';
 import type { AppEnv, Deps } from './lib/context';
+import { recordServerError } from './lib/alerts';
 import { AppError, errorResponse } from './lib/errors';
 import { authenticate, injectDeps, maintenanceGate, securityHeaders } from './middleware';
 import { authRoutes } from './routes/auth';
@@ -120,6 +121,7 @@ export function createApp(deps: Deps) {
       return handled;
     }
     deps.log.error({ err, path: c.req.path, requestId: c.get('requestId') }, 'unhandled error');
+    void recordServerError(deps, err, { path: c.req.path, method: c.req.method, userId: c.get('user')?.id ?? null });
     return c.json({ error: { code: 'internal', message: 'internal_error' } }, 500);
   });
   return app;

@@ -1236,6 +1236,15 @@ export const en = {
     saved: 'Settings saved',
   },
   admin: {
+    system: {
+      title: 'Server health',
+      lastBackup: 'Last backup',
+      never: 'No backup yet — run scripts/backup.sh daily (the Docker setup does it for you).',
+      videosProcessing: 'Videos being prepared in 360p/720p/1080p',
+      videosFailed: 'Videos that could not be prepared (they still play as uploaded)',
+      alertsOff: 'Error alerts are off. Set ALERT_WEBHOOK_URL to get them in Slack, Discord or Telegram.',
+      alertsOn: 'Error alerts are sent to your team chat.',
+    },
     title: 'Admin',
     tabs: {
       overview: 'Overview',
@@ -1379,6 +1388,8 @@ export const en = {
     },
   },
   watch: {
+    qualityAuto: 'Auto',
+    quality: 'Video quality',
     lessonXp: 'Lesson completed! +{{xp}} XP',
     jumpTo: 'Jump to {{time}}',
     noNotes: 'No notes yet. Pause at an important moment and write one.',

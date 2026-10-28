@@ -11,7 +11,8 @@ import { Modal } from '@/components/ui/Modal';
 import { CardSkeletons, EmptyState, ErrorState, LoadMore, Spinner } from '@/components/ui/States';
 import { Tabs } from '@/components/ui/Tabs';
 import { api } from '@/lib/api';
-import { formatNumber, relativeTime } from '@/lib/format';
+import { cx } from '@/lib/cx';
+import { formatBytes, formatNumber, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { usePaged } from '@/lib/infinite';
 import { useSession } from '@/lib/session';
@@ -50,6 +51,34 @@ export function OverviewTab() {
           </div>
         ))}
       </div>
+      <section className="card space-y-2 p-4">
+        <h2 className="font-black">{tr.t('admin.system.title')}</h2>
+        <p className="text-sm">
+          <b>{tr.t('admin.system.lastBackup')}:</b>{' '}
+          {o.system.lastBackupAt ? (
+            <span className={cx(Date.now() - o.system.lastBackupAt > 2 * 86400_000 && 'text-err font-bold')}>
+              {relativeTime(o.system.lastBackupAt, tr)}
+              {o.system.lastBackupSizeKb ? ` · ${formatBytes(o.system.lastBackupSizeKb * 1024)}` : ''}
+            </span>
+          ) : (
+            <span className="text-warn">{tr.t('admin.system.never')}</span>
+          )}
+        </p>
+        <p className="text-sm">
+          {tr.t('admin.system.videosProcessing')}: <b className="tabular-nums">{o.system.videosProcessing}</b>
+          {o.system.videosFailed > 0 && (
+            <>
+              {' · '}
+              <span className="text-err">
+                {tr.t('admin.system.videosFailed')}: <b className="tabular-nums">{o.system.videosFailed}</b>
+              </span>
+            </>
+          )}
+        </p>
+        <p className={cx('text-sm', !o.system.alertsConfigured && 'muted')}>
+          {o.system.alertsConfigured ? tr.t('admin.system.alertsOn') : tr.t('admin.system.alertsOff')}
+        </p>
+      </section>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card p-4">
           <ColumnChart title={tr.t('admin.stats.signups')} data={o.signupsByDay.map((d) => ({ label: d.day.slice(5), value: d.count, title: d.day }))} />

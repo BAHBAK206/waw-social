@@ -1231,6 +1231,15 @@ export const ar: Dictionary = {
     saved: 'تم حفظ الإعدادات',
   },
   admin: {
+    system: {
+      title: 'حالة الخادم',
+      lastBackup: 'آخر نسخة احتياطية',
+      never: 'لا توجد نسخة احتياطية بعد — شغّل scripts/backup.sh يوميًا (إعداد Docker يقوم بذلك تلقائيًا).',
+      videosProcessing: 'فيديوهات قيد التجهيز بجودات 360p/720p/1080p',
+      videosFailed: 'فيديوهات تعذّر تجهيزها (ما زالت تعمل بالملف الأصلي)',
+      alertsOff: 'تنبيهات الأخطاء متوقفة. أضف ALERT_WEBHOOK_URL لتصلك على Slack أو Discord أو Telegram.',
+      alertsOn: 'تنبيهات الأخطاء تُرسل إلى محادثة فريقك.',
+    },
     title: 'الإدارة',
     tabs: {
       overview: 'نظرة عامة',
@@ -1373,6 +1382,8 @@ export const ar: Dictionary = {
     },
   },
   watch: {
+    qualityAuto: 'تلقائي',
+    quality: 'جودة الفيديو',
     lessonXp: 'أكملت الدرس! +{{xp}} نقطة',
     jumpTo: 'انتقل إلى {{time}}',
     noNotes: 'لا توجد ملاحظات بعد. أوقف الدرس عند لحظة مهمة واكتب ملاحظتك.',

@@ -33,8 +33,10 @@ function Player({
   onEnd: () => void;
 }) {
   const tr = useT();
-  const uri = fileUrl(video.videoUrl)!;
-  const player = useVideoPlayer({ uri, headers: { 'x-client': 'mobile', authorization: `Bearer ${api.http.token ?? ''}` } }, (p) => {
+  // The adaptive stream (360p/720p/1080p by connection speed) when ready, else the original file.
+  // File links are public or signed: no sign-in token is sent (it would reach the CDN / storage host).
+  const uri = fileUrl(video.streamUrl ?? video.videoUrl)!;
+  const player = useVideoPlayer({ uri }, (p) => {
     p.timeUpdateEventInterval = 1;
     if (video.progressSec > 5 && video.progressSec < video.durationSec - 5) p.currentTime = video.progressSec;
     if (autoPlay) p.play();

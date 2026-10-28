@@ -1397,11 +1397,17 @@ export const videos = pgTable(
     dislikes: integer('dislikes').notNull().default(0),
     commentCount: integer('comment_count').notNull().default(0),
     watchSeconds: integer('watch_seconds').notNull().default(0),
+    /** Adaptive stream (HLS, 360p/720p/1080p) made from the upload: none → pending → processing → ready | failed. */
+    streamStatus: text('stream_status').$type<'none' | 'pending' | 'processing' | 'ready' | 'failed'>().notNull().default('none'),
+    streamUrl: text('stream_url'),
+    streamRenditions: jsonb('stream_renditions').$type<number[]>().notNull().default([]),
+    streamError: text('stream_error'),
     deletedAt: ts('deleted_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
+    index('videos_stream_idx').on(t.streamStatus),
     index('videos_feed_idx').on(t.visibility, t.kind, t.createdAt),
     index('videos_owner_idx').on(t.ownerId, t.createdAt),
     index('videos_views_idx').on(t.views),

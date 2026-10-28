@@ -23,7 +23,7 @@ export async function body<T extends z.ZodType>(c: Ctx, schema: T): Promise<z.in
  * solicitation are rejected. Admin console writes are exempt so moderators can quote what they act on.
  */
 async function screen<V>(c: Ctx, value: V): Promise<V> {
-  if (c.req.path.includes('/admin/') || c.req.path.includes('/internal/')) return value;
+  if (c.req.path.includes('/admin/') || c.req.path.includes('/internal/') || c.req.path.endsWith('/client-errors')) return value;
   const deps = c.get('deps');
   if (!deps) return value;
   const settings = await getSettings(deps.db, deps.env.AI_DAILY_QUOTA);

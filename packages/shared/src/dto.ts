@@ -740,6 +740,8 @@ export interface AdminOverviewDto {
   content: { posts: number; quizzes: number; attempts: number; groups: number; courses: number; forms: number; library: number };
   openReports: number;
   errors24h: number;
+  /** Health of the server side: last backup, video processing queue. */
+  system: { lastBackupAt: number | null; lastBackupSizeKb: number | null; videosProcessing: number; videosFailed: number; alertsConfigured: boolean };
   signupsByDay: { day: string; count: number }[];
   activityByDay: { day: string; attempts: number; posts: number; messages: number }[];
 }
@@ -846,6 +848,10 @@ export interface VideoDto {
   title: string;
   description: string;
   videoUrl: string;
+  /** Adaptive stream (HLS master playlist) once processed; players prefer it over the original file. */
+  streamUrl: string | null;
+  /** Heights available in the stream, e.g. [360, 720, 1080]. */
+  streamRenditions: number[];
   thumbnailUrl: string | null;
   durationSec: number;
   visibility: 'public' | 'unlisted' | 'private';

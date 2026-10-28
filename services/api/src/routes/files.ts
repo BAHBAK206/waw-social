@@ -4,8 +4,12 @@ import type { AppEnv } from '../lib/context';
 import { notFound } from '../lib/errors';
 import { EXT_FOR_MIME, isSafeKey } from '../lib/storage';
 
-const MIME_FOR_EXT = Object.fromEntries(Object.entries(EXT_FOR_MIME).map(([mime, ext]) => [ext, mime]));
-const INLINE = /^(image\/(jpeg|png|gif|webp)|audio\/|video\/|application\/pdf)/;
+const MIME_FOR_EXT: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(EXT_FOR_MIME).map(([mime, ext]) => [ext, mime])),
+  m3u8: 'application/vnd.apple.mpegurl',
+  ts: 'video/mp2t',
+};
+const INLINE = /^(image\/(jpeg|png|gif|webp)|audio\/|video\/|application\/pdf|application\/vnd\.apple\.mpegurl)/;
 
 /** Parses a single "bytes=a-b" range; returns null when absent, 'invalid' when unsatisfiable. */
 export function parseRange(header: string | undefined, size: number): { start: number; end: number } | 'invalid' | null {
@@ -42,6 +46,8 @@ export const fileRoutes = new Hono<AppEnv>().on(['GET', 'HEAD'], '/*', async (c)
     'X-Content-Type-Options': 'nosniff',
     'Content-Security-Policy': "default-src 'none'; sandbox",
     'Cache-Control': key.startsWith('public/') ? 'public, max-age=31536000, immutable' : 'private, max-age=3600',
+    // Video streams are fetched by the player script (hls.js), possibly from a CDN domain.
+    ...(key.startsWith('public/hls/') ? { 'Access-Control-Allow-Origin': '*' } : {}),
   };
   if (!INLINE.test(mime)) headers['Content-Disposition'] = 'attachment';
 

@@ -137,6 +137,8 @@ export async function hydrateVideos(deps: Deps, viewer: AuthUser | null, rows: V
     title: r.title,
     description: r.description,
     videoUrl: r.videoUrl,
+    streamUrl: r.streamStatus === 'ready' ? r.streamUrl : null,
+    streamRenditions: r.streamStatus === 'ready' ? r.streamRenditions : [],
     thumbnailUrl: r.thumbnailUrl,
     durationSec: r.durationSec,
     visibility: r.visibility,
@@ -374,6 +376,8 @@ export const videoRoutes = new Hono<AppEnv>()
         description: input.description,
         searchText: normalizeSearch(`${input.title} ${input.tags.join(' ')} ${input.description.slice(0, 500)}`),
         videoUrl: input.videoUrl,
+        // Made into 360p/720p/1080p in the background; the original plays until then.
+        streamStatus: deps.env.TRANSCODE_ENABLED ? 'pending' : 'none',
         thumbnailUrl: input.thumbnailUrl ?? null,
         durationSec: input.durationSec,
         visibility: input.visibility,

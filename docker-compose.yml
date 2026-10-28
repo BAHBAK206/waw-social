@@ -94,6 +94,8 @@ services:
       TURN_URLS: ${TURN_URLS:-}
       TURN_USERNAME: ${TURN_USERNAME:-}
       TURN_CREDENTIAL: ${TURN_CREDENTIAL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      PUBLIC_FILES_URL: ${PUBLIC_FILES_URL:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
@@ -129,6 +131,25 @@ services:
       API_UPSTREAM: http://api:8787
       REALTIME_UPSTREAM: http://realtime:8788
     ports: ['${WEB_PORT:-8080}:80']
+
+  # Daily database + files backup into ./backups (keeps BACKUP_KEEP_DAYS days). Copy that folder off the server too.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://qubedu:${POSTGRES_PASSWORD:-qubedu}@postgres:5432/qubedu
+      BACKUP_DIR: /backups
+      STORAGE_DIR: /files
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups:/backups
+      - miniodata:/files/minio:ro
+      - apidata:/files/api:ro
+    entrypoint: ['sh', '-c', 'sleep 60; while true; do sh /scripts/backup.sh; sleep 86400; done']
 
   # Relay for users behind strict NATs:  docker compose --profile turn up -d
   coturn:

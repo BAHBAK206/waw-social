@@ -1,5 +1,6 @@
 import type { VideoDto } from '@qubedu/shared';
-import { Gauge, Play, RotateCcw } from 'lucide-react';
+import type Hls from 'hls.js';
+import { Gauge, Play, RotateCcw, Settings2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, fileUrl } from '@/lib/api';
 import { cx } from '@/lib/cx';
@@ -43,6 +44,8 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
   const playedSec = useRef(0);
   const lastSync = useRef(0);
   const lastWhole = useRef(-1);
+  const stream = useAdaptiveStream(ref, video);
+  const [qualityOpen, setQualityOpen] = useState(false);
 
   useEffect(() => {
     counted.current = false;
@@ -164,7 +167,7 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
           if (playerRef) playerRef.current = el;
         }}
         key={video.id}
-        src={fileUrl(video.videoUrl)}
+        src={video.streamUrl ? undefined : fileUrl(video.videoUrl)}
         poster={fileUrl(video.thumbnailUrl)}
         className={cx('size-full', vertical ? 'object-cover' : 'object-contain')}
         controls={!vertical}
@@ -235,6 +238,40 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
             >
               <Gauge className="size-4" /> {speed}×
             </button>
+            {stream.levels.length > 1 && (
+              <button
+                type="button"
+                className="btn btn-sm ms-1 bg-black/70 text-white hover:bg-black/90"
+                aria-haspopup="menu"
+                aria-expanded={qualityOpen}
+                aria-label={tr.t('watch.quality')}
+                onClick={() => {
+                  setSpeedOpen(false);
+                  setQualityOpen((o) => !o);
+                }}
+              >
+                <Settings2 className="size-4" /> {stream.level < 0 ? tr.t('watch.qualityAuto') : `${stream.levels[stream.level]}p`}
+              </button>
+            )}
+            {qualityOpen && (
+              <div role="menu" className="card absolute end-0 z-10 mt-1 w-28 overflow-hidden bg-[var(--card-solid)] py-1">
+                {[-1, ...stream.levels.map((_, i) => i)].map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={i === stream.level}
+                    className={cx('flex min-h-9 w-full items-center justify-center text-sm font-bold hover:bg-bg-3', i === stream.level && 'text-ink')}
+                    onClick={() => {
+                      stream.setLevel(i);
+                      setQualityOpen(false);
+                    }}
+                  >
+                    {i < 0 ? tr.t('watch.qualityAuto') : `${stream.levels[i]}p`}
+                  </button>
+                ))}
+              </div>
+            )}
             {speedOpen && (
               <div role="menu" className="card absolute end-0 z-10 mt-1 w-24 overflow-hidden bg-[var(--card-solid)] py-1">
                 {SPEEDS.map((s) => (
@@ -259,4 +296,62 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
       )}
     </div>
   );
+}
+
+/**
+ * Plays the adaptive stream (360p/720p/1080p, picked by connection speed) when the lesson has one: natively on Safari,
+ * through hls.js elsewhere (loaded only when needed). Falls back to the original file on any fatal stream error.
+ */
+function useAdaptiveStream(ref: { current: HTMLVideoElement | null }, video: VideoDto) {
+  const [levels, setLevels] = useState<number[]>([]);
+  const [level, setLevelState] = useState(-1);
+  const hls = useRef<Hls | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const src = fileUrl(video.streamUrl);
+    setLevels([]);
+    setLevelState(-1);
+    if (!el || !src) return;
+    const original = fileUrl(video.videoUrl)!;
+    if (el.canPlayType('application/vnd.apple.mpegurl')) {
+      el.src = src;
+      return;
+    }
+    let cancelled = false;
+    void import('hls.js')
+      .then(({ default: HlsClass }) => {
+        if (cancelled) return;
+        if (!HlsClass.isSupported()) {
+          el.src = original;
+          return;
+        }
+        const h = new HlsClass({ capLevelToPlayerSize: true, startLevel: -1 });
+        h.on(HlsClass.Events.MANIFEST_PARSED, (_e, d) => setLevels(d.levels.map((l) => l.height)));
+        h.on(HlsClass.Events.ERROR, (_e, d) => {
+          if (!d.fatal) return;
+          h.destroy();
+          hls.current = null;
+          setLevels([]);
+          const at = el.currentTime;
+          el.src = original;
+          el.currentTime = at;
+        });
+        h.loadSource(src);
+        h.attachMedia(el);
+        hls.current = h;
+      })
+      .catch(() => {
+        if (!cancelled) el.src = original;
+      });
+    return () => {
+      cancelled = true;
+      hls.current?.destroy();
+      hls.current = null;
+    };
+  }, [ref, video.id, video.streamUrl, video.videoUrl]);
+  const setLevel = (i: number) => {
+    setLevelState(i);
+    if (hls.current) hls.current.currentLevel = i;
+  };
+  return { levels, level, setLevel };
 }
