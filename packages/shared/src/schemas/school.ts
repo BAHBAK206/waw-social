@@ -142,6 +142,23 @@ export const liveRoomInputSchema = z.object({
 });
 export type LiveRoomInput = z.infer<typeof liveRoomInputSchema>;
 
+/** Split the people in a live class into small groups (each gets its own room). */
+export const breakoutsSchema = z.object({
+  groups: z.number().int().min(2).max(20),
+  /** Who to split (the students in the room now). */
+  participants: z.array(idSchema).min(2).max(300),
+  /** Optional fixed groups: participant → group index. */
+  assignments: z.record(z.string(), z.number().int().min(0).max(19)).optional(),
+});
+export const liveBroadcastSchema = z.object({ text: trimmed(500, 1) });
+/** A quick poll or quiz question in a live class (with `correct`, it's a quiz question). */
+export const livePollSchema = z.object({
+  question: trimmed(300, 1),
+  options: z.array(trimmed(120, 1)).min(2).max(6),
+  correct: z.number().int().min(0).max(5).nullable().optional(),
+});
+export const livePollVoteSchema = z.object({ choice: z.number().int().min(0).max(5) });
+
 export const scheduledClassSchema = z.object({
   title: trimmed(160, 1),
   subject: trimmed(120).optional().nullable(),

@@ -727,6 +727,32 @@ export interface LiveRoomDto {
   isHost: boolean;
   canModerate: boolean;
   iceServers: { urls: string | string[]; username?: string; credential?: string }[];
+  /** Breakout room: the main class it belongs to, and its group name. */
+  parentId: string | null;
+  breakoutName: string | null;
+  /** Main room: the breakout groups now open, with their members' ids. */
+  breakouts: { id: string; name: string; members: string[] }[];
+}
+
+/** A poll or quick quiz question asked during a live class. */
+export interface LivePollDto {
+  id: string;
+  question: string;
+  options: string[];
+  status: 'open' | 'closed';
+  /** The right option for a quiz question (shown to students once it closes). */
+  correct: number | null;
+  /** Votes per option (moderators always; students after it closes). */
+  counts: number[] | null;
+  total: number;
+  myChoice: number | null;
+  createdAt: number;
+}
+
+/** Who attended a live class and for how long. */
+export interface LiveAttendanceDto {
+  items: { user: UserSummary; minutes: number; firstAt: number; lastAt: number }[];
+  startedAt: number | null;
 }
 
 export interface ScheduledClassDto {

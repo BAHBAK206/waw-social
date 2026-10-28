@@ -1,4 +1,6 @@
 import type {
+  LiveAttendanceDto,
+  LivePollDto,
   RubricFeedbackDto,
   SimilarityReportDto,
   SchoolClassDto,
@@ -835,6 +837,16 @@ export function createApi(options: ClientOptions) {
       whiteboard: (id: string) => http.get<{ strokes: unknown[] }>(`/live/${id}/whiteboard`),
       saveWhiteboard: (id: string, strokes: unknown[]) => http.put<Ok>(`/live/${id}/whiteboard`, { strokes }),
       remove: (id: string) => http.del<Ok>(`/live/${id}`),
+      breakouts: (id: string, body: { groups: number; participants: string[]; assignments?: Record<string, number> }) =>
+        http.post<{ rooms: LiveRoomDto['breakouts'] }>(`/live/${id}/breakouts`, body),
+      closeBreakouts: (id: string) => http.post<Ok>(`/live/${id}/breakouts/close`),
+      broadcast: (id: string, text: string) => http.post<Ok>(`/live/${id}/broadcast`, { text }),
+      polls: (id: string) => http.get<{ items: LivePollDto[] }>(`/live/${id}/polls`),
+      createPoll: (id: string, body: { question: string; options: string[]; correct?: number | null }) => http.post<LivePollDto>(`/live/${id}/polls`, body),
+      vote: (pollId: string, choice: number) => http.post<Ok>(`/live/polls/${pollId}/vote`, { choice }),
+      closePoll: (pollId: string) => http.post<LivePollDto>(`/live/polls/${pollId}/close`),
+      presence: (id: string) => http.post<{ ok: boolean }>(`/live/${id}/presence`),
+      attendance: (id: string) => http.get<LiveAttendanceDto>(`/live/${id}/attendance`),
     },
     classes: {
       list: () => http.get<{ items: ScheduledClassDto[] }>('/classes'),

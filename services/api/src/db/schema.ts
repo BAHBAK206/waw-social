@@ -1304,9 +1304,66 @@ export const liveRooms = pgTable(
     settings: jsonb('settings').$type<Record<string, boolean>>().notNull(),
     conversationId: uuid('conversation_id'),
     whiteboard: jsonb('whiteboard').$type<unknown[]>().notNull().default([]),
+    /** Breakout rooms belong to a main class; the main class lists its open groups. */
+    parentId: uuid('parent_id').references((): AnyPgColumn => liveRooms.id, { onDelete: 'cascade' }),
+    breakoutName: text('breakout_name'),
+    breakouts: jsonb('breakouts').$type<{ id: string; name: string; members: string[] }[]>().notNull().default([]),
+    /** The register entry made from this class when it ended (automatic attendance). */
+    attendanceSessionId: uuid('attendance_session_id'),
     createdAt: createdAt(),
   },
-  (t) => [index('live_rooms_scope_idx').on(t.scopeType, t.scopeId), index('live_rooms_status_idx').on(t.status)],
+  (t) => [index('live_rooms_scope_idx').on(t.scopeType, t.scopeId), index('live_rooms_status_idx').on(t.status), index('live_rooms_parent_idx').on(t.parentId)],
+);
+
+/** Polls and quick quiz questions asked during a live class. */
+export const livePolls = pgTable(
+  'live_polls',
+  {
+    id: id(),
+    roomId: uuid('room_id')
+      .notNull()
+      .references(() => liveRooms.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    question: text('question').notNull(),
+    options: jsonb('options').$type<string[]>().notNull(),
+    correct: integer('correct'),
+    status: text('status').$type<'open' | 'closed'>().notNull().default('open'),
+    createdAt: createdAt(),
+    closedAt: ts('closed_at'),
+  },
+  (t) => [index('live_polls_room_idx').on(t.roomId)],
+);
+
+export const livePollVotes = pgTable(
+  'live_poll_votes',
+  {
+    pollId: uuid('poll_id')
+      .notNull()
+      .references(() => livePolls.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    choice: integer('choice').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.pollId, t.userId] })],
+);
+
+/** Time each person spent in a live class (breakout rooms count toward their main class). */
+export const liveAttendance = pgTable(
+  'live_attendance',
+  {
+    roomId: uuid('room_id')
+      .notNull()
+      .references(() => liveRooms.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    firstAt: ts('first_at').notNull().defaultNow(),
+    lastAt: ts('last_at').notNull().defaultNow(),
+    seconds: integer('seconds').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.roomId, t.userId] })],
 );
 
 export const scheduledClasses = pgTable('scheduled_classes', {

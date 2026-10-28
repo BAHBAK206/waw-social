@@ -127,6 +127,7 @@ export const en: GuideBook = {
       'Start the room at lesson time. Students in the class get a notification and join with one tap.',
       'Students join muted with the camera off. Raise your hand to ask to speak; the teacher sees how many hands are up.',
       'Use the whiteboard to explain, and Record to save the lesson for students who missed it.',
+      'During the class, use “Questions & polls” for a quick question (mark the right answer to make it a quiz), “Group work” to split students into rooms, and “Attendance” to see who is there. When a class lesson ends, its register is filled in automatically.',
     ],
     tips: [
       'If audio or video does not start, allow the camera and microphone for the site in your browser settings.',

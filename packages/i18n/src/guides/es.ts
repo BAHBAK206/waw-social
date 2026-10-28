@@ -127,6 +127,7 @@ export const es: GuideBook = {
       'Inicia la sala a la hora de la clase. Los estudiantes reciben una notificación y entran con un toque.',
       'Los estudiantes entran con el micrófono silenciado y la cámara apagada. Levanta la mano para pedir la palabra; el docente ve cuántas manos hay levantadas.',
       'Usa la pizarra para explicar y Grabar para guardar la clase para quien faltó.',
+      'Durante la clase usa «Preguntas y encuestas» para una pregunta rápida (marca la correcta para hacer un cuestionario), «Trabajo en grupos» para dividir a los estudiantes y «Asistencia» para ver quién está. Al terminar, la asistencia se registra sola.',
     ],
     tips: [
       'Si el audio o el vídeo no arrancan, permite la cámara y el micrófono para el sitio en tu navegador.',

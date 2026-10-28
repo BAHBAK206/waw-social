@@ -127,6 +127,7 @@ export const fr: GuideBook = {
       'Démarrez la salle à l’heure du cours. Les élèves de la classe reçoivent une notification et entrent en un clic.',
       'Les élèves entrent micro coupé et caméra éteinte. Levez la main pour demander la parole ; l’enseignant voit le nombre de mains levées.',
       'Utilisez le tableau blanc pour expliquer, et Enregistrer pour garder le cours pour les absents.',
+      'Pendant le cours : « Questions et sondages » pour une question rapide (indiquez la bonne réponse pour en faire un quiz), « Travail en groupes » pour répartir les élèves, « Présence » pour voir qui est là. À la fin, la présence est notée automatiquement.',
     ],
     tips: [
       'Si le son ou l’image ne démarre pas, autorisez la caméra et le micro pour le site dans votre navigateur.',

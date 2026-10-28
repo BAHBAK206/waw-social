@@ -1,9 +1,29 @@
 import type { Frame } from '@qubedu/api-client';
 import type { LiveRoomDto, MessageDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Circle, Hand, Mic, MicOff, MonitorUp, MonitorX, PenTool, PhoneOff, Send, Settings as SettingsIcon, Users, Video, VideoOff, X } from 'lucide-react';
+import {
+  BarChart3,
+  Circle,
+  ClipboardCheck,
+  Hand,
+  LayoutGrid,
+  Mic,
+  MicOff,
+  MonitorUp,
+  MonitorX,
+  PenTool,
+  PhoneOff,
+  Send,
+  Settings as SettingsIcon,
+  Undo2,
+  Users,
+  Video,
+  VideoOff,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { AttendancePanel, BreakoutPanel, PollPanel } from '@/components/live/ClassTools';
 import { ch } from '@/app/channels';
 import { Whiteboard, type Stroke } from '@/components/common/Whiteboard';
 import { NoticeCard } from '@/components/layout/Banners';
@@ -200,7 +220,9 @@ export default function LiveRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<LiveSession | null>(null);
   const [, bump] = useState(0);
-  const [panel, setPanel] = useState<'chat' | 'people' | 'board' | null>(null);
+  const [panel, setPanel] = useState<'chat' | 'people' | 'board' | 'polls' | 'breakouts' | 'attendance' | null>(null);
+  const [params] = useSearchParams();
+  const autoJoin = params.get('auto') === '1';
   const [pinned, setPinned] = useState<string | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -243,6 +265,12 @@ export default function LiveRoomPage() {
     [navigate],
   );
 
+  /** Leaves this room and joins another one (a breakout group, or back to the main class). */
+  const moveTo = (id: string) => {
+    leave(false);
+    navigate(`/live/${id}?auto=1`, { replace: true });
+  };
+
   // Room-level events (status, settings, moderation, whiteboard). The subscription itself is created in join(), *before* the
   // media session starts, so the hub's initial peer list is never swallowed by an earlier subscriber.
   const roomHandler = useRef<(f: Frame) => void>(() => undefined);
@@ -280,6 +308,37 @@ export default function LiveRoomPage() {
         }
         break;
       }
+      case 'room:breakouts': {
+        // Students placed in a group move to its room; everyone else sees the new groups.
+        const rooms = (d?.rooms as { id: string; members: string[] }[] | undefined) ?? [];
+        const mine = rooms.find((r) => r.members.includes(me.id));
+        void qc.invalidateQueries({ queryKey: qk(roomId) });
+        if (mine && !canModerate) {
+          toast(tr.t('liveTools.moved'), 'info');
+          moveTo(mine.id);
+        }
+        break;
+      }
+      case 'room:breakouts-closed':
+        if (room?.parentId) {
+          toast(tr.t('liveTools.back'), 'info');
+          moveTo(room.parentId);
+        }
+        break;
+      case 'room:broadcast':
+        toast(`${String(d?.from ?? '')}: ${String(d?.text ?? '')}`, 'info');
+        break;
+      case 'poll:open':
+        void qc.invalidateQueries({ queryKey: ['live-polls', roomId] });
+        if (!canModerate) {
+          setPanel('polls');
+          toast(tr.t('liveTools.newQuestion'), 'info');
+        }
+        break;
+      case 'poll:votes':
+      case 'poll:closed':
+        void qc.invalidateQueries({ queryKey: ['live-polls', roomId] });
+        break;
       case 'whiteboard':
         setStrokes((prev) => [...prev, d as unknown as Stroke]);
         break;
@@ -302,6 +361,24 @@ export default function LiveRoomPage() {
     },
     [],
   );
+
+  // Moved here from another room: join straight away (the camera/mic permission was already given).
+  const autoTried = useRef<string | null>(null);
+  useEffect(() => {
+    if (!autoJoin || joined || joining || !room || room.status !== 'live' || autoTried.current === room.id) return;
+    autoTried.current = room.id;
+    void join();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoJoin, joined, joining, room?.id, room?.status]);
+
+  // Attendance: a beat every minute while in the class.
+  useEffect(() => {
+    if (!joined || !room) return;
+    const beat = () => void api.live.presence(room.id).catch(() => undefined);
+    beat();
+    const t = setInterval(beat, 60_000);
+    return () => clearInterval(t);
+  }, [joined, room?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const join = async () => {
     if (!room) return;
@@ -489,7 +566,13 @@ export default function LiveRoomPage() {
         <span className="size-2.5 animate-pulse rounded-full bg-err-fill" aria-hidden />
         <h1 className="min-w-0 flex-1 truncate font-black" dir="auto">
           {room.title}
+          {room.breakoutName && <span className="badge badge-primary ms-2">{tr.t('liveTools.group', { name: room.breakoutName })}</span>}
         </h1>
+        {room.parentId && (
+          <Button size="sm" variant="outline" icon={<Undo2 className="size-4" />} onClick={() => moveTo(room.parentId!)}>
+            {tr.t('liveTools.backToMain')}
+          </Button>
+        )}
         {raised.length > 0 && (
           <span className="badge badge-warn">
             <Hand className="size-3.5" /> {raised.length}
@@ -537,7 +620,17 @@ export default function LiveRoomPage() {
           >
             <div className="flex items-center border-b border-line p-2">
               <h2 className="flex-1 ps-2 font-black">
-                {panel === 'chat' ? tr.t('live.chat') : panel === 'people' ? tr.t('live.participants', { count: participants.length }) : tr.t('live.board')}
+                {panel === 'chat'
+                  ? tr.t('live.chat')
+                  : panel === 'people'
+                    ? tr.t('live.participants', { count: participants.length })
+                    : panel === 'polls'
+                      ? tr.t('liveTools.polls')
+                      : panel === 'breakouts'
+                        ? tr.t('liveTools.breakouts')
+                        : panel === 'attendance'
+                          ? tr.t('liveTools.attendance')
+                          : tr.t('live.board')}
               </h2>
               <button type="button" className="icon-btn icon-btn-sm" aria-label={tr.t('common.close')} onClick={() => setPanel(null)}>
                 <X className="size-4" />
@@ -602,6 +695,15 @@ export default function LiveRoomPage() {
                   )}
                 </ul>
               )}
+              {panel === 'polls' && <PollPanel roomId={room.id} moderator={canModerate} />}
+              {panel === 'breakouts' && canModerate && !room.parentId && (
+                <BreakoutPanel
+                  room={room}
+                  people={peers.filter((p) => p.uid !== me.id).map((p) => ({ id: p.uid, name: p.name }))}
+                  onVisit={(id) => moveTo(id)}
+                />
+              )}
+              {panel === 'attendance' && canModerate && <AttendancePanel roomId={room.id} />}
               {panel === 'board' && boardOn && (
                 <div className="p-2">
                   <Whiteboard
@@ -695,6 +797,37 @@ export default function LiveRoomPage() {
             onClick={() => setPanel(panel === 'chat' ? null : 'chat')}
           >
             <Send className="size-5" />
+          </button>
+        )}
+        <button
+          type="button"
+          className={btn(panel === 'polls')}
+          aria-label={tr.t('liveTools.polls')}
+          aria-pressed={panel === 'polls'}
+          onClick={() => setPanel(panel === 'polls' ? null : 'polls')}
+        >
+          <BarChart3 className="size-5" />
+        </button>
+        {canModerate && !room.parentId && (
+          <button
+            type="button"
+            className={btn(panel === 'breakouts')}
+            aria-label={tr.t('liveTools.breakouts')}
+            aria-pressed={panel === 'breakouts'}
+            onClick={() => setPanel(panel === 'breakouts' ? null : 'breakouts')}
+          >
+            <LayoutGrid className="size-5" />
+          </button>
+        )}
+        {canModerate && (
+          <button
+            type="button"
+            className={btn(panel === 'attendance')}
+            aria-label={tr.t('liveTools.attendance')}
+            aria-pressed={panel === 'attendance'}
+            onClick={() => setPanel(panel === 'attendance' ? null : 'attendance')}
+          >
+            <ClipboardCheck className="size-5" />
           </button>
         )}
         <button
