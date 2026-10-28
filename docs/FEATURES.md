@@ -19,7 +19,7 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Quizzes, tests, exams, smart practice, results review | ✅ | ✅ |
 | Flashcards, weekly plan, study sessions, focus timer, mastery, exams countdown, planner tasks and notes | ✅ | ✅ |
 | AI tutor, math solver, essay grading, study assistant | ✅ | ✅ |
-| Documents, spreadsheets (formulas), slides, whiteboards + Office export | ✅ | ✅ (same editors, opened in the app already signed in) |
+| Documents, spreadsheets (formulas), slides, whiteboards + Office export | ✅ | ✅ (native document editor with autosave; sheets, slides and whiteboards open the web editors in the app, signed in) |
 | Forms builder (graded forms, analytics, CSV) | ✅ | ✅ (build, fill, responses; advanced analytics in the same web screen inside the app) |
 | Library with approval workflow | ✅ | ✅ |
 | Courses, assignments, grades, attendance | ✅ | ✅ |
@@ -27,6 +27,19 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Workshops and revision sessions with RSVP | ✅ | ✅ |
 | Profiles, follow, leaderboard, achievements | ✅ | ✅ |
 | Notifications (in-app, realtime) | ✅ | ✅ |
+| Push notifications while the app is closed, in each reader's language | ✅ (web push) | ✅ (Expo) |
 | Settings: profile, 6 designs × 8 skins × light/dark, 4 languages with proper plurals, text size, privacy, data export/delete | ✅ | ✅ |
+| Accessibility: high contrast (AAA), dyslexia-friendly font and spacing, reduce motion | ✅ | ✅ |
 | Admin console (12 tabs) | ✅ | ✅ (same console inside the app, signed in) |
 | Admin feature controls (hide / lock / disable) | ✅ | ✅ (applied to the tools hub and screens) |
+| Safety: report posts/comments/messages/stories/profiles, word filter (4 languages), auto-hide after reports, under-18 protections, block + blocked list | ✅ | ✅ |
+| Lesson captions and searchable transcript (upload, automatic, translated), search inside lesson speech | ✅ | ✅ |
+| Teacher AI tools: quiz, summary, chapters and ideas from a lesson | ✅ | ✅ |
+| Adaptive video (360p/720p/1080p HLS), CDN | ✅ | ✅ |
+| Parent accounts (linked by the student's code), weekly email report | ✅ | ✅ |
+| "Who needs help": at-risk students with reasons, encourage / message | ✅ | ✅ |
+| Course catalog, paid courses (Stripe), school vouchers, verifiable certificates | ✅ | ✅ (iPhone: vouchers only, per App Store rules) |
+| Weekly leagues with promotion and relegation | ✅ | ✅ |
+| Calendar feed (Google / Apple / Outlook), class roster import from CSV (e.g. Google Classroom) | ✅ | ✅ |
+| Offline: downloaded lessons with captions, offline flashcards, sync queue | — | ✅ |
+| Backups, error alerts, health and last-backup status in the admin overview | ✅ | — |
