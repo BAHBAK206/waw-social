@@ -65,7 +65,7 @@ import { body, param, query, requirePerm } from '../lib/http';
 import { ms, onlineKey, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
-import { isMinor } from '../lib/minors';
+import { isMinor, tierOf } from '../lib/minors';
 import { setHidden } from '../lib/moderation';
 import { getRawSetting, getSettings, putSetting } from '../lib/settings';
 import { toAd, toAnnouncement } from './config';
@@ -92,7 +92,9 @@ const toAdminUser = (u: typeof users.$inferSelect): AdminUserDto => ({
   createdAt: u.createdAt.getTime(),
   lastSeenAt: ms(u.lastSeenAt),
   birthYear: u.birthYear ?? null,
-  isMinor: isMinor(u.birthYear),
+  isMinor: isMinor(u),
+  gradeLevel: u.gradeLevel ?? null,
+  ageTier: tierOf(u),
 });
 
 async function systemHealth(db: Parameters<typeof audit>[0], alertUrl: string | undefined): Promise<AdminOverviewDto['system']> {

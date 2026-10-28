@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LIMITS } from '../limits';
+import { GRADE_LEVELS } from '../stages';
 import { DESIGNS, LANGUAGES, READING_FONTS, SKINS, TEXT_SIZES, THEME_MODES } from '../appearance';
 import { birthYearSchema, displayNameSchema, usernameSchema } from './auth';
 import { optionalUrl, trimmed } from './common';
@@ -17,6 +18,10 @@ export const updateProfileSchema = z.object({
   institution: trimmed(LIMITS.institution).optional().nullable(),
   accountType: z.enum(['student', 'teacher', 'parent']).optional(),
   birthYear: birthYearSchema.optional(),
+  gradeLevel: z
+    .enum(GRADE_LEVELS as unknown as [string, ...string[]])
+    .optional()
+    .nullable(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
@@ -103,3 +108,16 @@ export const pushDeviceSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 export type PushDeviceInput = z.infer<typeof pushDeviceSchema>;
+
+/** A parent sets these for a linked child under 18. */
+export const parentalControlsSchema = z.object({
+  messages: z.enum(['classes', 'known']).optional(),
+  publicPosts: z.boolean().optional(),
+  joinGroups: z.boolean().optional(),
+  ai: z.boolean().optional(),
+  gradeLevel: z.enum(GRADE_LEVELS as unknown as [string, ...string[]]).optional(),
+});
+
+export const guardianInviteSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
+/** A parent asks to link with a student by the student's email or username. */
+export const guardianRequestSchema = z.object({ who: z.string().trim().toLowerCase().min(3).max(254) });

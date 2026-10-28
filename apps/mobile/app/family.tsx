@@ -3,6 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChildReport, confirmUnlink, FamilyCodeCard, RiskBadge } from '@/components/Family';
+import { FamilyRequestsCard, InviteParentCard, MyControlsCard, RequestChildCard } from '@/components/Linking';
 import { FeatureGate } from '@/components/kit';
 import { Screen } from '@/components/Screen';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
@@ -31,7 +32,14 @@ export default function FamilyScreen() {
     <FeatureGate id="family">
       <Screen refreshing={fam.isRefetching} onRefresh={() => void Promise.all([fam.refetch(), report.refetch()])}>
         <Text muted>{tr.t('family.subtitle')}</Text>
-        {me.accountType === 'student' && <FamilyCodeCard />}
+        <FamilyRequestsCard />
+        {me.accountType === 'student' ? (
+          <>
+            <MyControlsCard />
+            <FamilyCodeCard />
+            <InviteParentCard />
+          </>
+        ) : null}
         {parent && (
           <Card style={{ gap: 8 }}>
             <Text weight="black">{tr.t('family.linkTitle')}</Text>
@@ -113,6 +121,7 @@ export default function FamilyScreen() {
             ))}
           </ScrollView>
         )}
+        {parent ? <RequestChildCard /> : null}
         {parent && selected ? report.isPending ? <Loading /> : report.data ? <ChildReport report={report.data} /> : null : null}
       </Screen>
     </FeatureGate>

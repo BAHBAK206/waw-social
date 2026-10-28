@@ -6,14 +6,15 @@ import {
   permissionsFor,
   privacySchema,
   type Appearance,
+  type GradeLevel,
   type Me,
   type PublicProfile,
 } from '@qubedu/shared';
-import { conversationMembers, conversations, follows, messages, notifications, studyLog, userAchievements, users } from '../db/schema';
+import { conversationMembers, conversations, follows, guardianLinks, messages, notifications, studyLog, userAchievements, users } from '../db/schema';
 import type { Deps } from './context';
 import { notFound } from './errors';
 import { ms, onlineKey, toSummary } from './mappers';
-import { isMinor, knowsMinor } from './minors';
+import { controlsOf, isMinor, isParentOfStudentTaughtBy, knowsMinor, minorColumns, minorContactAllowed, tierOf, type MinorRow } from './minors';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -25,28 +26,18 @@ export function privacyOf(row: UserRow) {
   return privacySchema.parse(row.privacy ?? {});
 }
 
-/**
- * Under-18 rule, applied on top of everyone's own message setting: an adult and a student under 18 can only message
- * each other when the student already knows them (follows them, same study group or course). Returns null when the
- * rule doesn't apply (both adults, or both under 18).
- */
-export async function minorContactAllowed(deps: Deps, a: Pick<UserRow, 'id' | 'birthYear'>, b: Pick<UserRow, 'id' | 'birthYear'>): Promise<boolean | null> {
-  const am = isMinor(a.birthYear);
-  const bm = isMinor(b.birthYear);
-  if (am === bm) return null;
-  return am ? knowsMinor(deps.db, a.id, b.id) : knowsMinor(deps.db, b.id, a.id);
-}
-
-async function canMessage(deps: Deps, target: UserRow, viewerId: string | null, viewerBirthYear: number | null): Promise<boolean> {
-  if (!viewerId || viewerId === target.id) return false;
-  if ((await minorContactAllowed(deps, target, { id: viewerId, birthYear: viewerBirthYear })) === false) return false;
+async function canMessage(deps: Deps, target: UserRow, viewer: MinorRow | null): Promise<boolean> {
+  if (!viewer || viewer.id === target.id) return false;
+  if ((await minorContactAllowed(deps.db, target, viewer)) === false) return false;
   const p = privacyOf(target);
   if (p.allowMessages === 'everyone') return true;
   if (p.allowMessages === 'none') return false;
+  // Parents can always reach the teachers of their child's classes.
+  if (await isParentOfStudentTaughtBy(deps.db, viewer.id, target.id)) return true;
   const [f] = await deps.db
     .select({ n: count() })
     .from(follows)
-    .where(and(eq(follows.followerId, target.id), eq(follows.followeeId, viewerId)));
+    .where(and(eq(follows.followerId, target.id), eq(follows.followeeId, viewer.id)));
   return (f?.n ?? 0) > 0;
 }
 
@@ -73,16 +64,19 @@ export async function buildProfile(deps: Deps, row: UserRow, viewerId: string | 
   const privacy = privacyOf(row);
   const self = viewerId === row.id;
   const statsHidden = !self && !privacy.showStats;
-  const [viewerRow] = viewerId && !self ? await db.select({ birthYear: users.birthYear }).from(users).where(eq(users.id, viewerId)) : [];
+  const [viewerRow] = viewerId && !self ? await db.select(minorColumns).from(users).where(eq(users.id, viewerId)) : [];
   // A student under 18 shows school and activity details only to people they already know.
-  const guarded = !self && isMinor(row.birthYear) && !(viewerId && (await knowsMinor(db, row.id, viewerId)));
+  // "Signed-in members only": visitors who aren't signed in (public channel pages) see just the name and photo.
+  const membersOnly = !viewerId && privacy.profileVisibility === 'members';
+  const guarded = membersOnly || (!self && isMinor(row) && !(viewerId && (await knowsMinor(db, row, viewerId))));
   return {
     ...toSummary(row),
     online: !guarded && (self || privacy.showOnline) ? !!online : false,
-    bio: row.bio,
-    coverUrl: row.coverUrl,
+    bio: membersOnly ? '' : row.bio,
+    coverUrl: membersOnly ? null : row.coverUrl,
     institution: guarded ? null : row.institution,
     educationLevel: guarded ? null : row.educationLevel,
+    gradeLevel: guarded ? null : ((row.gradeLevel as GradeLevel | null) ?? null),
     streak: statsHidden ? 0 : row.streak,
     quizCount: statsHidden ? 0 : row.quizCount,
     studyMinutes: statsHidden ? 0 : row.studyMinutes,
@@ -93,7 +87,7 @@ export async function buildProfile(deps: Deps, row: UserRow, viewerId: string | 
     achievements: achievements.map((a) => ({ id: a.achievementId, unlockedAt: a.unlockedAt.getTime() })),
     createdAt: row.createdAt.getTime(),
     lastSeenAt: !guarded && (self || privacy.showOnline) ? ms(row.lastSeenAt) : null,
-    canMessage: await canMessage(deps, row, viewerId, viewerRow?.birthYear ?? null),
+    canMessage: await canMessage(deps, row, viewerRow ?? null),
     statsHidden,
   };
 }
@@ -124,7 +118,7 @@ export async function buildMe(deps: Deps, userId: string): Promise<Me> {
     .where(and(eq(users.id, userId), isNull(users.deletedAt)));
   if (!row) throw notFound('user_not_found');
   const today = dayKey(Date.now(), row.timezone);
-  const [profile, [unread], [todayLog], unreadMessages] = await Promise.all([
+  const [profile, [unread], [todayLog], unreadMessages, [guardians]] = await Promise.all([
     buildProfile(deps, row, userId),
     deps.db
       .select({ n: count() })
@@ -135,6 +129,7 @@ export async function buildMe(deps: Deps, userId: string): Promise<Me> {
       .from(studyLog)
       .where(and(eq(studyLog.userId, userId), eq(studyLog.day, today))),
     unreadMessageCount(deps, userId),
+    deps.db.select({ n: count() }).from(guardianLinks).where(eq(guardianLinks.studentId, userId)),
   ]);
   const banned = !!row.bannedAt && (!row.bannedUntil || row.bannedUntil.getTime() > Date.now());
   return {
@@ -147,7 +142,10 @@ export async function buildMe(deps: Deps, userId: string): Promise<Me> {
     appearance: appearanceOf(row),
     privacy: privacyOf(row),
     birthYear: row.birthYear ?? null,
-    isMinor: isMinor(row.birthYear),
+    isMinor: isMinor(row),
+    ageTier: tierOf(row),
+    parentalControls: controlsOf(row),
+    guardianCount: guardians?.n ?? 0,
     notificationPrefs: notificationPrefsSchema.parse(row.notificationPrefs ?? {}),
     timezone: row.timezone,
     dailyGoalMinutes: row.dailyGoalMinutes,

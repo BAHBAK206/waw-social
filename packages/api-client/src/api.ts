@@ -90,6 +90,9 @@ import type {
   TaxonomyDto,
   UploadResultDto,
   UserSummary,
+  AgeTier,
+  GradeLevel,
+  ParentalControls,
   CourseGradingDto,
   GradeComponentDto,
   ComponentSource,
@@ -138,6 +141,8 @@ export function createApi(options: ClientOptions) {
         displayName: string;
         accountType: 'student' | 'teacher' | 'parent';
         birthYear?: number;
+        gradeLevel?: GradeLevel;
+        parentEmail?: string;
         language?: string;
         timezone?: string;
       }) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/register', { body, anonymous: true })),
@@ -176,7 +181,20 @@ export function createApi(options: ClientOptions) {
       get: () => http.get<Me>('/me'),
       update: (
         body: Partial<
-          Pick<Me, 'displayName' | 'username' | 'bio' | 'avatarUrl' | 'coverUrl' | 'gender' | 'educationLevel' | 'institution' | 'accountType' | 'birthYear'>
+          Pick<
+            Me,
+            | 'displayName'
+            | 'username'
+            | 'bio'
+            | 'avatarUrl'
+            | 'coverUrl'
+            | 'gender'
+            | 'educationLevel'
+            | 'institution'
+            | 'accountType'
+            | 'birthYear'
+            | 'gradeLevel'
+          >
         >,
       ) => http.patch<Me>('/me', body),
       prefs: (body: {
@@ -590,6 +608,13 @@ export function createApi(options: ClientOptions) {
       link: (code: string) => http.post<{ child: UserSummary | null }>('/family/link', { code }),
       unlink: (otherId: string) => http.del<Ok>(`/family/${otherId}`),
       child: (id: string) => http.get<ChildReportDto>(`/family/children/${id}`),
+      invite: (email: string) => http.post<Ok>('/family/invite', { email }),
+      request: (who: string) => http.post<Ok>('/family/request', { who }),
+      acceptRequest: (id: string) => http.post<Ok>(`/family/requests/${id}/accept`),
+      removeRequest: (id: string) => http.del<Ok>(`/family/requests/${id}`),
+      acceptInvite: (token: string) => http.post<{ child: UserSummary | null }>('/family/invite/accept', { token }),
+      setControls: (childId: string, body: Partial<ParentalControls> & { gradeLevel?: GradeLevel }) =>
+        http.put<{ tier: AgeTier; controls: ParentalControls; gradeLevel: GradeLevel | null }>(`/family/children/${childId}/controls`, body),
     },
 
     school: {

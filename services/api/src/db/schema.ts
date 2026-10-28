@@ -54,6 +54,10 @@ export const users = pgTable(
     institution: text('institution'),
     /** Used only to apply under-18 protections; never shown to other people. */
     birthYear: integer('birth_year'),
+    /** School stage and year (p1…p6, m1…m3, s1…s3, uni, adult). */
+    gradeLevel: text('grade_level'),
+    /** Set by a linked parent for a student under 18 (see ParentalControls). */
+    parentalControls: jsonb('parental_controls').$type<Record<string, unknown>>(),
     /** Weekly league tier for the next placement (0 = bronze). */
     leagueTier: integer('league_tier').notNull().default(0),
     /** Secret for the private calendar feed (subscribe in Google / Apple Calendar). */
@@ -478,6 +482,31 @@ export const certificates = pgTable(
 );
 
 /** A parent (or guardian) who follows a student's progress. Created with a one-time code from the student. */
+/**
+ * A pending parent ↔ student link: a student invites a parent by email (token in the email link), or a parent asks a
+ * student, who approves it.
+ */
+export const guardianRequests = pgTable(
+  'guardian_requests',
+  {
+    id: id(),
+    from: text('from').$type<'student' | 'guardian'>().notNull(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    guardianId: uuid('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
+    email: text('email'),
+    tokenHash: text('token_hash'),
+    expiresAt: ts('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('guardian_requests_student_idx').on(t.studentId),
+    index('guardian_requests_guardian_idx').on(t.guardianId),
+    uniqueIndex('guardian_requests_token_uq').on(t.tokenHash),
+  ],
+);
+
 export const guardianLinks = pgTable(
   'guardian_links',
   {

@@ -1,3 +1,4 @@
+import { createMiddleware } from 'hono/factory';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -33,6 +34,7 @@ import type { AiChunk } from '../lib/ai';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { AppError, forbidden, notFound } from '../lib/errors';
 import { body, param, requireUser } from '../lib/http';
+import { requireControl } from '../lib/minors';
 import { getSettings } from '../lib/settings';
 import { checkRate } from '../middleware';
 
@@ -108,7 +110,15 @@ async function synonymsFor(deps: Deps, userId: string, courseId?: string | null)
 
 const languageOf = (c: { req: { header: (n: string) => string | undefined } }) => (c.req.header('accept-language') ?? 'ar').slice(0, 2);
 
+/** The AI tools follow the parent's setting for students under 18. */
+const aiAllowed = createMiddleware<AppEnv>(async (c, next) => {
+  const user = c.get('user');
+  if (user) await requireControl(c.get('deps').db, user.id, 'ai');
+  await next();
+});
+
 export const aiRoutes = new Hono<AppEnv>()
+  .use('*', aiAllowed)
   .get('/courses', async (c) => {
     const user = requireUser(c);
     const { db } = c.get('deps');
@@ -246,6 +256,7 @@ async function ownThread(deps: Deps, user: AuthUser, id: string) {
 }
 
 export const assistantRoutes = new Hono<AppEnv>()
+  .use('*', aiAllowed)
   .get('/threads', async (c) => {
     const user = requireUser(c);
     const { db } = c.get('deps');

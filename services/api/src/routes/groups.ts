@@ -24,6 +24,7 @@ import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { decodeCursor, pageOf } from '../lib/cursor';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
+import { requireControl } from '../lib/minors';
 import { pickSummary, summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { checkAchievements } from '../lib/progress';
@@ -165,6 +166,7 @@ export const groupRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'group-create', limit: 10, windowSec: 3600, by: 'user' });
     const deps = c.get('deps');
     const input = await body(c, createGroupSchema);
+    await requireControl(deps.db, viewer.id, 'joinGroups');
     const groupId = await deps.db.transaction(async (tx) => {
       const [conv] = await tx.insert(conversations).values({ kind: 'group', title: input.name }).returning({ id: conversations.id });
       const [g] = await tx
@@ -231,6 +233,7 @@ export const groupRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const g = await loadGroup(deps.db, param(c, 'id'));
     if (await groupRole(deps.db, g.id, viewer.id)) return c.json({ status: 'member' });
+    await requireControl(deps.db, viewer.id, 'joinGroups');
     if (g.privacy === 'public') {
       await addMember(deps, g.id, viewer.id);
       await checkAchievements(deps.db, viewer.id);

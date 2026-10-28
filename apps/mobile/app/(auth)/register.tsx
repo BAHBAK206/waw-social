@@ -1,4 +1,5 @@
-import { LIMITS, birthYearChoices } from '@qubedu/shared';
+import { LIMITS, ageTier, birthYearChoices, type GradeLevel } from '@qubedu/shared';
+import { GradeLevelField } from '@/components/Linking';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -15,7 +16,17 @@ export default function RegisterScreen() {
   const tr = useT();
   const t = useTheme();
   const open = useSession((s) => s.config?.registrationOpen ?? true);
-  const [f, setF] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher' | 'parent', birthYear: '' });
+  const [f, setF] = useState({
+    displayName: '',
+    email: '',
+    password: '',
+    accountType: 'student' as 'student' | 'teacher' | 'parent',
+    birthYear: '',
+    gradeLevel: '' as GradeLevel | '',
+    parentEmail: '',
+  });
+  const student = f.accountType === 'student';
+  const tier = ageTier({ birthYear: f.birthYear ? Number(f.birthYear) : null, gradeLevel: f.gradeLevel || null, accountType: f.accountType });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const valid = f.displayName.trim().length >= LIMITS.displayName.min && /.+@.+\..+/.test(f.email) && f.password.length >= LIMITS.password.min;
@@ -24,8 +35,11 @@ export default function RegisterScreen() {
     setError(null);
     try {
       await api.auth.register({
-        ...f,
+        password: f.password,
+        accountType: f.accountType,
         birthYear: f.birthYear ? Number(f.birthYear) : undefined,
+        gradeLevel: student && f.gradeLevel ? f.gradeLevel : undefined,
+        parentEmail: student && f.parentEmail.trim() ? f.parentEmail.trim() : undefined,
         displayName: f.displayName.trim(),
         email: f.email.trim(),
         language: useAppearance.getState().appearance.language,
@@ -88,6 +102,21 @@ export default function RegisterScreen() {
           <Text muted size={12}>
             {tr.t('auth.birthYearHint')}
           </Text>
+          {student ? <GradeLevelField value={f.gradeLevel} onChange={(v) => setF({ ...f, gradeLevel: v })} /> : null}
+          {student && tier !== 'adult' ? (
+            <Input
+              label={tr.t('auth.parentEmail')}
+              value={f.parentEmail}
+              onChangeText={(v) => setF({ ...f, parentEmail: v })}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          ) : null}
+          {student && tier === 'child' ? (
+            <Text size={13} style={{ backgroundColor: t.primarySoft, padding: 10, borderRadius: 10 }}>
+              {tr.t('auth.childNotice')}
+            </Text>
+          ) : null}
           {error ? (
             <Text color={t.err} weight="bold" accessibilityRole="alert">
               {error}

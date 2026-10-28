@@ -14,12 +14,28 @@ import {
   type Page,
   type UserSummary,
 } from '@qubedu/shared';
-import { blocks, exams, flashcards, follows, notes, posts, pushDevices, quizBest, reports, studyLog, tasks, users, xpLedger } from '../db/schema';
+import {
+  blocks,
+  exams,
+  guardianLinks,
+  flashcards,
+  follows,
+  notes,
+  posts,
+  pushDevices,
+  quizBest,
+  reports,
+  studyLog,
+  tasks,
+  users,
+  xpLedger,
+} from '../db/schema';
 import type { AppEnv } from '../lib/context';
 import { verifyPassword } from '../lib/crypto';
 import { decodeCursor, pageOf } from '../lib/cursor';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser, type Ctx } from '../lib/http';
+import { childFindableSql, minorColumns, tierOf } from '../lib/minors';
 import { summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { appearanceOf, buildMe, buildProfile } from '../lib/profile';
@@ -77,6 +93,16 @@ export const meRoutes = new Hono<AppEnv>()
       const [cur] = await deps.db.select({ y: users.birthYear }).from(users).where(eq(users.id, user.id));
       if (cur?.y != null && cur.y !== input.birthYear) throw forbidden('birth_year_locked');
       patch.birthYear = input.birthYear;
+    }
+    if (input.gradeLevel !== undefined || (input.accountType !== undefined && input.accountType !== 'student')) {
+      const [cur] = await deps.db.select(minorColumns).from(users).where(eq(users.id, user.id));
+      const linked = (await deps.db.select({ s: guardianLinks.studentId }).from(guardianLinks).where(eq(guardianLinks.studentId, user.id)).limit(1)).length > 0;
+      // A student with a linked parent asks the parent to change the school year (Family page).
+      if (input.gradeLevel !== undefined && linked && input.gradeLevel !== cur?.gradeLevel) throw forbidden('ask_parent');
+      // Teacher and parent accounts are for adults; a student with a parent stays a student.
+      if (input.accountType !== undefined && input.accountType !== 'student' && cur?.accountType === 'student' && (linked || tierOf(cur) !== 'adult'))
+        throw forbidden('adult_account_required');
+      if (input.gradeLevel !== undefined) patch.gradeLevel = input.gradeLevel;
     }
     for (const key of ['bio', 'avatarUrl', 'coverUrl', 'gender', 'educationLevel', 'institution', 'accountType'] as const) {
       if (input[key] !== undefined) (patch as Record<string, unknown>)[key] = input[key];
@@ -206,6 +232,7 @@ export const userRoutes = new Hono<AppEnv>()
       isNull(users.deletedAt),
       ne(users.id, viewer.id),
       term ? or(ilike(users.searchName, `%${term}%`), sql`${users.searchName} % ${term}`) : undefined,
+      childFindableSql(viewer),
       cursor ? sql`(${users.createdAt}, ${users.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
     );
     const rows = await deps.db
@@ -224,7 +251,14 @@ export const userRoutes = new Hono<AppEnv>()
     const rows = await deps.db
       .select(summaryColumns)
       .from(users)
-      .where(and(isNull(users.deletedAt), ne(users.id, viewer.id), sql`${users.id} not in (select followee_id from follows where follower_id = ${viewer.id})`))
+      .where(
+        and(
+          isNull(users.deletedAt),
+          ne(users.id, viewer.id),
+          sql`${users.id} not in (select followee_id from follows where follower_id = ${viewer.id})`,
+          childFindableSql(viewer),
+        ),
+      )
       .orderBy(desc(users.xp))
       .limit(12);
     return c.json({ items: await withOnline(deps.kv, rows.map(toSummary)) });

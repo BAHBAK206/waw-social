@@ -1,12 +1,13 @@
 import type { ChildReportDto } from '@qubedu/shared';
 import { ReportCard } from '@/components/school/Gradebook';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Flame, Link2, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Flame, Link2, MessageCircle, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { ColumnChart } from '@/components/ui/Charts';
 import { ReasonChips, RiskBadge } from '@/components/family/Insights';
 import { FamilyCode } from '@/components/family/FamilyCode';
+import { ControlsEditor, FamilyRequests, InviteParent, MyControls, RequestChild } from '@/components/family/Linking';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
@@ -17,6 +18,28 @@ import { formatDate, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { confirmDialog, toast, toastError } from '@/lib/ui';
+
+function MessageTeacher({ teacherId }: { teacherId: string }) {
+  const tr = useT();
+  const navigate = useNavigate();
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      icon={<MessageCircle className="size-4" />}
+      onClick={async () => {
+        try {
+          const conv = await api.chat.direct(teacherId);
+          navigate(`/chat/${conv.id}`);
+        } catch (e) {
+          toastError(e);
+        }
+      }}
+    >
+      {tr.t('family.messageTeacher')}
+    </Button>
+  );
+}
 
 function ChildReport({ report }: { report: ChildReportDto }) {
   const tr = useT();
@@ -35,6 +58,7 @@ function ChildReport({ report }: { report: ChildReportDto }) {
           <ReasonChips reasons={report.risk.reasons} />
         </div>
       </section>
+      <ControlsEditor key={report.child.id} report={report} />
       <section className="card p-4">
         <ColumnChart
           title={tr.t('family.studyChart')}
@@ -67,9 +91,12 @@ function ChildReport({ report }: { report: ChildReportDto }) {
             <p className="font-bold" dir="auto">
               {c.title}
             </p>
-            <p className="muted text-xs">
-              {c.teacher && `${tr.t('family.teacher', { name: c.teacher })} · `}
-              {tr.t('family.attendance', c.attendance)}
+            <p className="muted flex flex-wrap items-center gap-2 text-xs">
+              <span>
+                {c.teacher && `${tr.t('family.teacher', { name: c.teacher })} · `}
+                {tr.t('family.attendance', c.attendance)}
+              </span>
+              {c.teacherId && <MessageTeacher teacherId={c.teacherId} />}
             </p>
             <ul className="divide-y divide-line">
               {c.assignments.map((a) => (
@@ -108,11 +135,40 @@ export default function FamilyPage() {
   const selected = params.get('child') ?? fam.data?.children[0]?.id ?? null;
   const report = useQuery({ queryKey: ['family-child', selected], queryFn: () => api.family.child(selected!), enabled: !!selected });
   const parent = me.accountType === 'parent';
+  // A parent opens the link a child sent by email (/family?invite=…).
+  const invite = params.get('invite');
+  const used = useRef(false);
+  useEffect(() => {
+    if (!invite || used.current) return;
+    used.current = true;
+    if (!parent) {
+      toast(tr.t('family.inviteNeedsParent'), 'err');
+      return;
+    }
+    void api.family
+      .acceptInvite(invite)
+      .then(async (r) => {
+        toast(tr.t('family.inviteLinked', { name: r.child?.displayName ?? '' }));
+        await qc.invalidateQueries({ queryKey: ['family'] });
+        setParams(r.child ? { child: r.child.id } : {}, { replace: true });
+      })
+      .catch((e: unknown) => {
+        toastError(e);
+        setParams({}, { replace: true });
+      });
+  }, [invite, parent, qc, setParams, tr]);
 
   return (
     <div className="page-narrow space-y-5">
       <PageHeader title={tr.t('family.title')} subtitle={tr.t('family.subtitle')} />
-      {me.accountType === 'student' && <FamilyCode />}
+      <FamilyRequests />
+      {me.accountType === 'student' && (
+        <>
+          <MyControls />
+          <FamilyCode />
+          <InviteParent />
+        </>
+      )}
       {parent && (
         <section className="card space-y-3 p-4">
           <h2 className="font-black">{tr.t('family.linkTitle')}</h2>
@@ -150,6 +206,7 @@ export default function FamilyPage() {
           </form>
         </section>
       )}
+      {parent && <RequestChild />}
       {fam.isPending ? (
         <CardSkeletons count={2} />
       ) : fam.error ? (

@@ -1,4 +1,17 @@
-import { DESIGNS, LANGUAGES, LIMITS, SKINS, birthYearChoices, TEXT_SIZES, THEME_MODES, type Me, type NotificationPrefs, type Privacy } from '@qubedu/shared';
+import {
+  DESIGNS,
+  LANGUAGES,
+  LIMITS,
+  SKINS,
+  birthYearChoices,
+  TEXT_SIZES,
+  THEME_MODES,
+  type GradeLevel,
+  type Me,
+  type NotificationPrefs,
+  type Privacy,
+} from '@qubedu/shared';
+import { GradeLevelSelect } from '@/components/common/GradeLevelSelect';
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -20,6 +33,7 @@ import {
 import { useEffect, useState } from 'react';
 import { canInstall, promptInstall } from '@/app/pwa';
 import { FamilyCode } from '@/components/family/FamilyCode';
+import { FamilyRequests, InviteParent, MyControls } from '@/components/family/Linking';
 import { browserPushState, disableBrowserPush, enableBrowserPush, type BrowserPushState } from '@/lib/push';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -63,7 +77,10 @@ function ProfileTab({ me }: { me: Me }) {
     avatarUrl: me.avatarUrl,
     coverUrl: me.coverUrl,
     birthYear: me.birthYear ? String(me.birthYear) : '',
+    gradeLevel: (me.gradeLevel ?? '') as GradeLevel | '',
   });
+  // With a linked parent, the parent sets the school year (Family page).
+  const gradeLocked = me.accountType === 'student' && me.guardianCount > 0;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const save = async () => {
@@ -81,6 +98,7 @@ function ProfileTab({ me }: { me: Me }) {
         avatarUrl: f.avatarUrl,
         coverUrl: f.coverUrl,
         ...(f.birthYear && !me.birthYear ? { birthYear: Number(f.birthYear) } : {}),
+        ...(f.accountType === 'student' && !gradeLocked && f.gradeLevel !== (me.gradeLevel ?? '') ? { gradeLevel: f.gradeLevel || null } : {}),
       });
       useSession.getState().setMe(next);
       toast(tr.t('settings.saved'));
@@ -178,6 +196,14 @@ function ProfileTab({ me }: { me: Me }) {
           onChange={(e) => setF({ ...f, birthYear: e.target.value })}
           options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
         />
+        {f.accountType === 'student' && (
+          <GradeLevelSelect
+            value={f.gradeLevel}
+            disabled={gradeLocked}
+            hint={gradeLocked ? tr.t('errors.ask_parent') : undefined}
+            onChange={(v) => setF({ ...f, gradeLevel: v })}
+          />
+        )}
       </div>
       <Button loading={busy} disabled={f.displayName.trim().length < LIMITS.displayName.min} onClick={() => void save()}>
         {tr.t('common.save')}
@@ -600,7 +626,15 @@ function DevicePush() {
 
 function FamilyTab({ me }: { me: Me }) {
   const tr = useT();
-  if (me.accountType === 'student') return <FamilyCode />;
+  if (me.accountType === 'student')
+    return (
+      <div className="space-y-5">
+        <FamilyRequests />
+        <MyControls />
+        <FamilyCode />
+        <InviteParent />
+      </div>
+    );
   return (
     <Section>
       <p className="muted">{tr.t('family.parentsHint')}</p>

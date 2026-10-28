@@ -40,6 +40,7 @@ import { groupRole, loadGroup } from '../lib/access';
 import { decodeCursor, pageOf } from '../lib/cursor';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
+import { requireControl } from '../lib/minors';
 import { ms, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { removeHashtags, syncHashtags } from '../lib/hashtags';
@@ -275,7 +276,7 @@ export const postRoutes = new Hono<AppEnv>()
       await loadGroup(deps.db, input.groupId);
       const role = await groupRole(deps.db, input.groupId, viewer.id);
       if (!role) throw forbidden('not_a_member');
-    }
+    } else await requireControl(deps.db, viewer.id, 'publicPosts');
     if (input.materialId) {
       const [m] = await deps.db.select({ id: eduMaterials.id }).from(eduMaterials).where(eq(eduMaterials.id, input.materialId));
       if (!m) throw badRequest('unknown_subject');

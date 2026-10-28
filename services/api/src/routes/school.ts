@@ -441,6 +441,8 @@ export const schoolRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'course-join', limit: 20, windowSec: 600, by: 'user' });
     const deps = c.get('deps');
     const { code } = await body(c, joinCourseSchema);
+    // Parents follow classes through their child (Family page), not as class members.
+    if (user.accountType === 'parent') throw forbidden('parents_cannot_join');
     const [course] = await deps.db
       .select()
       .from(courses)

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { birthYearChoices } from '@qubedu/shared';
+import { birthYearChoices, type GradeLevel } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, View } from 'react-native';
 import { FamilyCodeCard } from '@/components/Family';
+import { FamilyRequestsCard, GradeLevelField, InviteParentCard, MyControlsCard } from '@/components/Linking';
 import { Badge, Segmented, SelectField, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Input, Loading, SectionTitle, Text } from '@/components/ui';
 import { api, uploadFile } from '@/lib/api';
@@ -34,7 +35,9 @@ function Profile() {
     educationLevel: me.educationLevel ?? '',
     gender: (me.gender ?? '') as 'male' | 'female' | '',
     birthYear: me.birthYear ? String(me.birthYear) : '',
+    gradeLevel: (me.gradeLevel ?? '') as GradeLevel | '',
   });
+  const gradeLocked = me.accountType === 'student' && me.guardianCount > 0;
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
@@ -47,6 +50,7 @@ function Profile() {
         educationLevel: form.educationLevel.trim() || null,
         gender: form.gender || null,
         ...(form.birthYear && !me.birthYear ? { birthYear: Number(form.birthYear) } : {}),
+        ...(me.accountType === 'student' && !gradeLocked && form.gradeLevel !== (me.gradeLevel ?? '') ? { gradeLevel: form.gradeLevel || null } : {}),
       });
       patchMe(next);
       toast(tr.t('settings.saved'));
@@ -103,6 +107,18 @@ function Profile() {
       <Text muted size={12}>
         {me.birthYear ? tr.t('settings.profile.birthYearLocked') : tr.t('auth.birthYearHint')}
       </Text>
+      {me.accountType === 'student' ? (
+        gradeLocked ? (
+          <>
+            <Input label={tr.t('stages.label')} value={me.gradeLevel ? tr.t(`stages.grades.${me.gradeLevel}`) : '—'} editable={false} />
+            <Text muted size={12}>
+              {tr.t('errors.ask_parent')}
+            </Text>
+          </>
+        ) : (
+          <GradeLevelField value={form.gradeLevel} onChange={(v) => setForm({ ...form, gradeLevel: v })} />
+        )
+      ) : null}
       <SelectField
         label={tr.t('settings.profile.gender')}
         value={form.gender}
@@ -521,7 +537,15 @@ function FamilyTab() {
   const tr = useT();
   const router = useRouter();
   const me = useSession((s) => s.me)!;
-  if (me.accountType === 'student') return <FamilyCodeCard />;
+  if (me.accountType === 'student')
+    return (
+      <View style={{ gap: 12 }}>
+        <FamilyRequestsCard />
+        <MyControlsCard />
+        <FamilyCodeCard />
+        <InviteParentCard />
+      </View>
+    );
   return (
     <Card style={{ gap: 8 }}>
       <Text muted>{tr.t('family.parentsHint')}</Text>

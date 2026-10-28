@@ -1,4 +1,5 @@
-import { LIMITS, birthYearChoices } from '@qubedu/shared';
+import { LIMITS, ageTier, birthYearChoices, type GradeLevel } from '@qubedu/shared';
+import { GradeLevelSelect } from '@/components/common/GradeLevelSelect';
 import { GraduationCap, HeartHandshake, School } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -19,7 +20,17 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const open = useSession((s) => s.config?.registrationOpen ?? true);
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher' | 'parent', birthYear: '' });
+  const [form, setForm] = useState({
+    displayName: '',
+    email: '',
+    password: '',
+    accountType: 'student' as 'student' | 'teacher' | 'parent',
+    birthYear: '',
+    gradeLevel: '' as GradeLevel | '',
+    parentEmail: '',
+  });
+  const tier = ageTier({ birthYear: form.birthYear ? Number(form.birthYear) : null, gradeLevel: form.gradeLevel || null, accountType: form.accountType });
+  const student = form.accountType === 'student';
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -33,8 +44,11 @@ export default function RegisterPage() {
     setError(null);
     try {
       const me = await api.auth.register({
-        ...form,
+        password: form.password,
+        accountType: form.accountType,
         birthYear: form.birthYear ? Number(form.birthYear) : undefined,
+        gradeLevel: student && form.gradeLevel ? form.gradeLevel : undefined,
+        parentEmail: student && form.parentEmail.trim() ? form.parentEmail.trim() : undefined,
         displayName: form.displayName.trim(),
         email: form.email.trim(),
         language: useAppearance.getState().appearance.language,
@@ -117,6 +131,19 @@ export default function RegisterPage() {
             onChange={(e) => set('birthYear')(e.target.value)}
             options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
           />
+          {student && <GradeLevelSelect value={form.gradeLevel} onChange={(v) => setForm((f) => ({ ...f, gradeLevel: v }))} />}
+          {student && tier !== 'adult' && (
+            <Input
+              type="email"
+              label={tr.t('auth.parentEmail')}
+              hint={tr.t('auth.parentEmailHint')}
+              value={form.parentEmail}
+              autoComplete="off"
+              dir="ltr"
+              onChange={(e) => set('parentEmail')(e.target.value)}
+            />
+          )}
+          {student && tier === 'child' && <p className="rounded-[var(--radius-control)] bg-soft p-3 text-sm">{tr.t('auth.childNotice')}</p>}
           <p className="muted text-xs">
             {tr.t('auth.agree')}{' '}
             <Link to="/terms" className="link">

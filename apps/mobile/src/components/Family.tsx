@@ -10,6 +10,7 @@ import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
 import { ReportCard } from './Gradebook';
+import { ControlsEditorCard } from './Linking';
 import { Badge, Sheet } from './kit';
 import { Avatar, Button, Card, Empty, Input, Loading, Text } from './ui';
 
@@ -111,6 +112,27 @@ function Bars({ days }: { days: ChildReportDto['days'] }) {
   );
 }
 
+function MessageTeacherButton({ teacherId }: { teacherId: string }) {
+  const tr = useT();
+  const router = useRouter();
+  return (
+    <Button
+      small
+      variant="ghost"
+      icon="chatbubble-outline"
+      title={tr.t('family.messageTeacher')}
+      onPress={async () => {
+        try {
+          const conv = await api.chat.direct(teacherId);
+          router.push(`/chat/${conv.id}` as never);
+        } catch (e) {
+          toastError(e);
+        }
+      }}
+    />
+  );
+}
+
 export function ChildReport({ report }: { report: ChildReportDto }) {
   const tr = useT();
   const t = useTheme();
@@ -150,6 +172,7 @@ export function ChildReport({ report }: { report: ChildReportDto }) {
           </View>
         ))}
       </Card>
+      <ControlsEditorCard key={report.child.id} report={report} />
       <Text weight="black">{tr.t('gradebook.reportCard')}</Text>
       <ReportCard studentId={report.child.id} />
       <Text weight="black">{tr.t('family.courses')}</Text>
@@ -160,6 +183,7 @@ export function ChildReport({ report }: { report: ChildReportDto }) {
             {c.teacher ? `${tr.t('family.teacher', { name: c.teacher })} · ` : ''}
             {tr.t('family.attendance', c.attendance)}
           </Text>
+          {c.teacherId ? <MessageTeacherButton teacherId={c.teacherId} /> : null}
           {c.assignments.map((a) => (
             <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: t.border, paddingTop: 6 }}>
               <View style={{ flex: 1 }}>

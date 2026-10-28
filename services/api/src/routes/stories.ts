@@ -6,6 +6,7 @@ import { stories, storyViews, users } from '../db/schema';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { body, param, requireUser } from '../lib/http';
+import { requireControl } from '../lib/minors';
 import { pickSummary, summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { checkRate } from '../middleware';
@@ -99,6 +100,7 @@ export const storyRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'story', limit: 30, windowSec: 24 * 3600, by: 'user' });
     const deps = c.get('deps');
     const input = await body(c, storyInputSchema);
+    await requireControl(deps.db, viewer.id, 'publicPosts');
     if (input.mediaUrl) await assertOwnUpload(deps, viewer, input.mediaUrl, input.mediaKind === 'video' ? 'video/' : 'image/');
     const [row] = await deps.db
       .insert(stories)

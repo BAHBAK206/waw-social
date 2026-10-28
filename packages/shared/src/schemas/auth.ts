@@ -1,3 +1,4 @@
+import { GRADE_LEVELS } from '../stages';
 import { z } from 'zod';
 import { LIMITS } from '../limits';
 import { LANGUAGES } from '../appearance';
@@ -34,6 +35,10 @@ export const registerSchema = z.object({
   displayName: displayNameSchema,
   accountType: z.enum(['student', 'teacher', 'parent']).default('student'),
   birthYear: birthYearSchema.optional(),
+  /** School year for students (p1 … s3, uni, adult). */
+  gradeLevel: z.enum(GRADE_LEVELS as unknown as [string, ...string[]]).optional(),
+  /** Students can invite a parent at sign-up; the parent gets an email link to connect. */
+  parentEmail: z.string().trim().toLowerCase().email().max(254).optional(),
   language: z.enum(LANGUAGES as [string, ...string[]]).optional(),
   timezone: z.string().max(64).optional(),
 });

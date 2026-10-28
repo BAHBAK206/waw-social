@@ -6,6 +6,7 @@ import { events, hashtagUses, posts, users, videos } from '../db/schema';
 import type { AppEnv, Deps } from '../lib/context';
 import { badRequest } from '../lib/errors';
 import { query, requireUser } from '../lib/http';
+import { childFindableSql } from '../lib/minors';
 import { summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { hydrateEvents } from './events';
 import { hydratePosts } from './posts';
@@ -90,6 +91,7 @@ export const exploreRoutes = new Hono<AppEnv>()
             sql`${users.id} <> ${viewer.id}`,
             sql`${users.id} not in (select followee_id from follows where follower_id = ${viewer.id})`,
             sql`${users.id} not in (select blocked_id from blocks where blocker_id = ${viewer.id})`,
+            childFindableSql(viewer),
           ),
         )
         .orderBy(desc(sql`(select count(*) from follows where followee_id = ${users.id})`), desc(users.xp))

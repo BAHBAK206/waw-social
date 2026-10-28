@@ -21,7 +21,8 @@ import { body, param, query, requireUser } from '../lib/http';
 import { ms, pickSummary, summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { stripContactInfo } from '../lib/minors';
-import { minorContactAllowed, privacyOf } from '../lib/profile';
+import { privacyOf } from '../lib/profile';
+import { isParentOfStudentTaughtBy, minorColumns, minorContactAllowed } from '../lib/minors';
 import { claimAttachments } from '../lib/attachments';
 import { ch } from '../lib/realtime';
 import { checkRate } from '../middleware';
@@ -45,14 +46,14 @@ const directKey = (a: string, b: string) => [a, b].sort().join(':');
  */
 async function directMinorGuard(deps: Deps, convId: string, viewerId: string): Promise<{ strip: boolean }> {
   const rows = await deps.db
-    .select({ id: users.id, birthYear: users.birthYear })
+    .select(minorColumns)
     .from(conversationMembers)
     .innerJoin(users, eq(users.id, conversationMembers.userId))
     .where(eq(conversationMembers.conversationId, convId));
   const me = rows.find((r) => r.id === viewerId);
   const peer = rows.find((r) => r.id !== viewerId);
   if (!me || !peer) return { strip: false };
-  const allowed = await minorContactAllowed(deps, me, peer);
+  const allowed = await minorContactAllowed(deps.db, me, peer);
   if (allowed === false) throw forbidden('minor_protected');
   return { strip: allowed === true };
 }
@@ -320,11 +321,12 @@ export const chatRoutes = new Hono<AppEnv>()
       .from(blocks)
       .where(and(eq(blocks.blockerId, userId), eq(blocks.blockedId, viewer.id)));
     if (blocked) throw forbidden('blocked');
-    const [me] = await deps.db.select({ id: users.id, birthYear: users.birthYear }).from(users).where(eq(users.id, viewer.id));
-    if (me && (await minorContactAllowed(deps, me, peer)) === false) throw forbidden('minor_protected');
+    const [me] = await deps.db.select(minorColumns).from(users).where(eq(users.id, viewer.id));
+    if (me && (await minorContactAllowed(deps.db, me, peer)) === false) throw forbidden('minor_protected');
     const privacy = privacyOf(peer);
     if (privacy.allowMessages === 'none') throw forbidden('messages_disabled');
-    if (privacy.allowMessages === 'following') {
+    // Parents can always reach the teachers of their child's classes.
+    if (privacy.allowMessages === 'following' && !(await isParentOfStudentTaughtBy(deps.db, viewer.id, peer.id))) {
       const [f] = await deps.db
         .select()
         .from(follows)

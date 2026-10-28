@@ -1,6 +1,7 @@
 import type { CourseGradingDto, GradeComponentDto, GradeRating, SubjectResult } from './gradebook';
 import type { RiskLevel, RiskReason, StudentSignals } from './insights';
 import type { LeagueTier } from './leagues';
+import type { AgeTier, GradeLevel, ParentalControls } from './stages';
 import type { AccountType, AdminPermission, Role } from './roles';
 import type { Appearance } from './appearance';
 import type { FeatureControlMap } from './features';
@@ -40,6 +41,7 @@ export interface PublicProfile extends UserSummary {
   coverUrl: string | null;
   institution: string | null;
   educationLevel: string | null;
+  gradeLevel: GradeLevel | null;
   streak: number;
   quizCount: number;
   studyMinutes: number;
@@ -66,6 +68,11 @@ export interface Me extends PublicProfile {
   birthYear: number | null;
   /** Under 18: stricter messaging and profile rules apply automatically. */
   isMinor: boolean;
+  /** child (under 13), teen (13–17) or adult, from birth year and school year. */
+  ageTier: AgeTier;
+  /** What applies to this student now (set by a linked parent, or the defaults for their age). */
+  parentalControls: ParentalControls;
+  guardianCount: number;
   notificationPrefs: NotificationPrefs;
   timezone: string;
   dailyGoalMinutes: number;
@@ -814,6 +821,8 @@ export interface AdminUserDto extends UserSummary {
   lastSeenAt: number | null;
   birthYear: number | null;
   isMinor: boolean;
+  gradeLevel: string | null;
+  ageTier: AgeTier;
 }
 
 export interface ReportDto {
@@ -1111,6 +1120,10 @@ export interface CourseInsightsDto {
 
 export interface ChildReportDto {
   child: UserSummary;
+  gradeLevel: GradeLevel | null;
+  ageTier: AgeTier;
+  /** What the child can do now (the parent can change these while the child is under 18). */
+  controls: ParentalControls;
   streak: number;
   xp: number;
   level: number;
@@ -1121,6 +1134,8 @@ export interface ChildReportDto {
     id: string;
     title: string;
     teacher: string;
+    /** Teacher account to message (parents can always contact their child's teachers). */
+    teacherId: string | null;
     assignments: {
       id: string;
       title: string;
@@ -1139,6 +1154,8 @@ export interface ChildReportDto {
 export interface FamilyDto {
   children: (UserSummary & { risk: RiskLevel; minutesThisWeek: number })[];
   guardians: UserSummary[];
+  /** Pending links: invitations by email, a parent's request to a student, waiting for the other side. */
+  requests: { id: string; direction: 'incoming' | 'outgoing'; person: UserSummary | null; email: string | null; createdAt: number }[];
 }
 
 export interface LeagueDto {

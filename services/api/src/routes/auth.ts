@@ -1,3 +1,4 @@
+import { inviteGuardian } from './family';
 import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ import {
   resetPasswordSchema,
   verifyEmailSchema,
   type AuthResult,
+  ageTier,
 } from '@qubedu/shared';
 import { emailTokens, sessions, users } from '../db/schema';
 import type { AppEnv, Deps } from '../lib/context';
@@ -122,6 +124,8 @@ export const authRoutes = new Hono<AppEnv>()
     const [existing] = await deps.db.select({ id: users.id }).from(users).where(eq(users.email, input.email));
     if (existing) throw new AppError(409, 'email_taken');
     const isRoot = !!deps.env.ROOT_ADMIN_EMAIL && deps.env.ROOT_ADMIN_EMAIL.toLowerCase() === input.email;
+    // Teacher and parent accounts are for adults.
+    if (input.accountType !== 'student' && ageTier({ birthYear: input.birthYear }) !== 'adult') throw badRequest('adult_account_required');
     const language = input.language ?? 'ar';
     const [user] = await deps.db
       .insert(users)
@@ -132,12 +136,17 @@ export const authRoutes = new Hono<AppEnv>()
         searchName: normalizeSearch(input.displayName),
         accountType: input.accountType,
         birthYear: input.birthYear ?? null,
+        gradeLevel: input.accountType === 'student' ? (input.gradeLevel ?? null) : null,
         role: isRoot ? 'root' : 'user',
         timezone: input.timezone && isValidTimeZone(input.timezone) ? input.timezone : 'UTC',
         appearance: { language },
       })
       .returning({ id: users.id });
     await sendEmailToken(deps, { id: user!.id, email: input.email, language }, 'verify');
+    if (input.parentEmail && input.accountType === 'student' && input.parentEmail !== input.email)
+      await inviteGuardian(deps, { id: user!.id, displayName: input.displayName }, input.parentEmail).catch((err) =>
+        deps.log.warn({ err }, 'guardian invite failed'),
+      );
     return c.json(await issueSession(c, user!.id), 201);
   })
   .post('/login', async (c) => {

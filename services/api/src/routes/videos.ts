@@ -41,6 +41,7 @@ import { awardXp, creditStudy, xpEarnedToday } from '../lib/progress';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { removeHashtags, syncHashtags } from '../lib/hashtags';
 import { body, clientIp, param, query, requireUser } from '../lib/http';
+import { requireControl } from '../lib/minors';
 import { pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { refreshVideoSearchText, videoSearchFilter } from '../lib/videoSearch';
@@ -364,6 +365,7 @@ export const videoRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const input = await body(c, videoInputSchema);
     if (deps.env.REQUIRE_EMAIL_VERIFICATION && !viewer.emailVerified) throw forbidden('email_not_verified');
+    if (input.visibility !== 'private') await requireControl(deps.db, viewer.id, 'publicPosts');
     await assertOwnUpload(deps, viewer, input.videoUrl, 'video/');
     if (input.thumbnailUrl) await assertOwnUpload(deps, viewer, input.thumbnailUrl, 'image/');
     if (input.kind === 'short' && input.durationSec > 90) throw badRequest('short_too_long');
