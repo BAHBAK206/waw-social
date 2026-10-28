@@ -282,6 +282,8 @@ export const en = {
     'workspace-export': 'Export files',
   },
   auth: {
+    birthYearHint: 'Only used to keep students under 18 safe. Never shown to anyone.',
+    birthYear: 'Birth year',
     resetCode: 'Link or code from the email',
     loginTitle: 'Welcome back',
     loginSubtitle: 'Sign in to continue your learning journey.',
@@ -323,6 +325,10 @@ export const en = {
     bannedHelp: 'If you think this is a mistake, contact the administrators.',
   },
   errors: {
+    invalid_birth_year: 'Enter a valid birth year.',
+    birth_year_locked: 'Your birth year is already set. Contact the administrators to correct it.',
+    minor_protected: 'To protect students under 18, you can message them only after they follow you or share a group or course with you.',
+    content_blocked: 'This can’t be published: it contains a threat, self-harm encouragement or other harmful words.',
     quiz_not_found: 'That quiz is not available.',
     cannot_vote_own: 'You cannot vote for your own answer.',
     not_a_question: 'Only questions can have a best answer.',
@@ -1160,6 +1166,8 @@ export const en = {
       preview: 'Preview',
     },
     profile: {
+      birthYearLocked: 'Set once. Ask the administrators to correct it.',
+      birthYear: 'Birth year',
       avatar: 'Profile photo',
       cover: 'Cover image',
       username: 'Username',
@@ -1185,6 +1193,8 @@ export const en = {
       dailyGoal: 'Daily study goal (minutes)',
     },
     privacy: {
+      minorNotice:
+        'Your account is protected because you are under 18: only people you follow, or who share a group or course with you, can message you; your school and online status are hidden from strangers; phone numbers and other-app handles are removed from private chats with adults.',
       profileVisibility: 'Who can see my profile',
       visibility: { public: 'Everyone', members: 'Signed-in members' },
       allowMessages: 'Who can message me',
@@ -1250,6 +1260,8 @@ export const en = {
       activity: 'Activity (14 days)',
     },
     users: {
+      minor: 'Under 18',
+      birthYear: 'Birth year',
       search: 'Search name or email…',
       ban: 'Ban',
       unban: 'Unban',
@@ -1267,6 +1279,9 @@ export const en = {
       banned: 'Banned',
     },
     reports: {
+      restoreHint: 'Dismissing puts the hidden content back.',
+      count: '{count, plural, one {# report} other {# reports}}',
+      autoHidden: 'Hidden automatically',
       open: 'Open',
       resolved: 'Resolved',
       dismissed: 'Dismissed',
@@ -1314,6 +1329,13 @@ export const en = {
       resetAll: 'Enable everything',
     },
     site: {
+      autoHide: 'Hide an item automatically after this many reports (0 = never)',
+      blockWords: 'Words and phrases to reject',
+      maskWords: 'Words to hide with stars',
+      moderationOn: 'Filter published text',
+      moderationIntro:
+        'Insults are replaced with stars in every language; threats, self-harm encouragement and solicitation are rejected. Add your own words below (one per line).',
+      moderation: 'Automatic content filter',
       maintenance: 'Maintenance mode',
       maintenanceMessage: 'Maintenance message',
       registration: 'Allow new registrations',
@@ -1580,6 +1602,7 @@ export const en = {
     needTwo: 'Add at least two options.',
   },
   report: {
+    hidden: 'Thanks. Several members reported this, so it is hidden until a moderator reviews it.',
     sent: 'Report sent. Thank you.',
     reasons: {
       spam: 'Spam',

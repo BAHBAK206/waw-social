@@ -6,6 +6,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, View, useWindowDimensions, type ListViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { reportContent } from '@/components/Report';
 import { ReadAloud } from '@/components/ReadAloud';
 import { FeatureGate } from '@/components/kit';
 import { Avatar, Empty, Loading, Text } from '@/components/ui';
@@ -100,6 +101,14 @@ function Short({ v, active, height }: { v: VideoDto; active: boolean; height: nu
         <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 6 }}>
           <ReadAloud text={`${v.title}. ${v.description}`} size={24} />
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={tr.t('common.report')}
+          onPress={() => reportContent({ targetType: 'video', targetId: v.id })}
+          hitSlop={8}
+        >
+          <Ionicons name="flag-outline" size={26} color="#fff" />
+        </Pressable>
         {v.quiz ? (
           <Pressable
             accessibilityRole="button"

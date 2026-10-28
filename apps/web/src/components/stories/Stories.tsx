@@ -1,6 +1,7 @@
 import { LIMITS, type StoryDto, type StoryGroupDto, type StoryViewerDto, STORY_REACTIONS } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Image as ImageIcon, Plus, Trash2, Type, Video, X } from 'lucide-react';
+import { Eye, Flag, Image as ImageIcon, Plus, Trash2, Type, Video, X } from 'lucide-react';
+import { reportContent } from '@/components/common/ReportDialog';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Avatar } from '@/components/ui/Avatar';
@@ -427,6 +428,19 @@ export function StoryViewer({ groups, start, onClose }: { groups: StoryGroupDto[
                 onClick={() => void remove()}
               >
                 <Trash2 className="size-4" />
+              </button>
+            )}
+            {!group.isMine && (
+              <button
+                type="button"
+                className="icon-btn icon-btn-sm text-white hover:bg-white/20 hover:text-white"
+                aria-label={tr.t('common.report')}
+                onClick={() => {
+                  onClose();
+                  reportContent({ targetType: 'story', targetId: story.id });
+                }}
+              >
+                <Flag className="size-4" />
               </button>
             )}
             <button

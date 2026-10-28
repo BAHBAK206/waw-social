@@ -1,6 +1,7 @@
 import { MESSAGE_EMOJI, type Attachment, type MessageDto } from '@qubedu/shared';
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { CheckCheck, FileText, Mic, Paperclip, Pencil, Reply, Send, Smile, Square, Trash2, X } from 'lucide-react';
+import { CheckCheck, FileText, Flag, Mic, Paperclip, Pencil, Reply, Send, Smile, Square, Trash2, X } from 'lucide-react';
+import { reportContent } from '@/components/common/ReportDialog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -145,6 +146,16 @@ function Bubble({
           <button type="button" className="icon-btn icon-btn-sm" aria-label={tr.t('common.reply')} onClick={onReply}>
             <Reply className="size-4 flip-rtl" />
           </button>
+          {!mine && (
+            <button
+              type="button"
+              className="icon-btn icon-btn-sm"
+              aria-label={tr.t('common.report')}
+              onClick={() => reportContent({ targetType: 'message', targetId: m.id })}
+            >
+              <Flag className="size-4" />
+            </button>
+          )}
           {mine && (
             <>
               {!m.attachment && (

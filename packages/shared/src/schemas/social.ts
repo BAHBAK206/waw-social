@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LIMITS, POST_KINDS, REACTIONS } from '../limits';
-import { attachmentSchema, idSchema, optionalUrl, trimmed } from './common';
+import { attachmentSchema, idSchema, optionalUrl, trimmed, urlSchema } from './common';
 
 export const pollInputSchema = z.object({
   options: z.array(trimmed(100, 1)).min(LIMITS.pollOptions.min).max(LIMITS.pollOptions.max),
@@ -74,7 +74,7 @@ export const joinRequestSchema = z.object({ message: trimmed(300).optional() });
 export const memberRoleSchema = z.object({ role: z.enum(['admin', 'teacher', 'member']) });
 export const groupResourceSchema = z.object({
   title: trimmed(200, 1),
-  url: z.string().trim().max(2048).min(1),
+  url: urlSchema,
   kind: z.enum(['file', 'link']),
   mime: trimmed(120).optional().nullable(),
   size: z.number().int().min(0).optional().nullable(),

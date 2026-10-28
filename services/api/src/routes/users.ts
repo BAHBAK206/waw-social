@@ -17,12 +17,14 @@ import { blocks, exams, flashcards, follows, notes, posts, quizBest, reports, st
 import type { AppEnv } from '../lib/context';
 import { verifyPassword } from '../lib/crypto';
 import { decodeCursor, pageOf } from '../lib/cursor';
-import { badRequest, conflict, notFound } from '../lib/errors';
+import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser, type Ctx } from '../lib/http';
 import { summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { appearanceOf, buildMe, buildProfile } from '../lib/profile';
 import { checkAchievements, touchStreak } from '../lib/progress';
+import { maybeAutoHide } from '../lib/moderation';
+import { getSettings } from '../lib/settings';
 import { checkRate } from '../middleware';
 
 const leaderboardQuery = z.object({
@@ -54,6 +56,12 @@ export const meRoutes = new Hono<AppEnv>()
         if (taken) throw conflict('username_taken');
       }
       patch.username = input.username || null;
+    }
+    if (input.birthYear !== undefined) {
+      // Set once by the person (so a student can't lift the under-18 rules by editing it); admins can correct it.
+      const [cur] = await deps.db.select({ y: users.birthYear }).from(users).where(eq(users.id, user.id));
+      if (cur?.y != null && cur.y !== input.birthYear) throw forbidden('birth_year_locked');
+      patch.birthYear = input.birthYear;
     }
     for (const key of ['bio', 'avatarUrl', 'coverUrl', 'gender', 'educationLevel', 'institution', 'accountType'] as const) {
       if (input[key] !== undefined) (patch as Record<string, unknown>)[key] = input[key];
@@ -335,9 +343,23 @@ export const reportRoutes = new Hono<AppEnv>().post('/', async (c) => {
   await checkRate(c, { bucket: 'report', limit: 20, windowSec: 3600, by: 'user' });
   const { db } = c.get('deps');
   const input = await body(c, reportSchema);
+  // One open report per person and item: reporting again just updates it (and can't count twice toward auto-hiding).
+  const [existing] = await db
+    .select({ id: reports.id })
+    .from(reports)
+    .where(and(eq(reports.reporterId, user.id), eq(reports.targetType, input.targetType), eq(reports.targetId, input.targetId), eq(reports.status, 'open')));
+  if (existing) {
+    await db
+      .update(reports)
+      .set({ reason: input.reason, details: input.details ?? '' })
+      .where(eq(reports.id, existing.id));
+    return c.json({ id: existing.id, hidden: false }, 200);
+  }
   const [row] = await db
     .insert(reports)
     .values({ reporterId: user.id, targetType: input.targetType, targetId: input.targetId, reason: input.reason, details: input.details ?? '' })
     .returning({ id: reports.id });
-  return c.json({ id: row!.id }, 201);
+  const settings = await getSettings(db, c.get('deps').env.AI_DAILY_QUOTA);
+  const hidden = await maybeAutoHide(db, input.targetType, input.targetId, settings.moderation.autoHideReports);
+  return c.json({ id: row!.id, hidden }, 201);
 });

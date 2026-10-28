@@ -10,6 +10,8 @@ export interface SiteSettings {
   contact: Record<string, string>;
   ai: { enabled: boolean; dailyQuota: number };
   uploads: { enabled: boolean };
+  /** Automatic text filter and report handling. */
+  moderation: { enabled: boolean; mask: string[]; block: string[]; autoHideReports: number };
 }
 
 export const DEFAULT_SETTINGS = (aiQuota: number): SiteSettings => ({
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS = (aiQuota: number): SiteSettings => ({
   contact: { email: '', phone: '', whatsapp: '', address: '', facebook: '', instagram: '', telegram: '' },
   ai: { enabled: true, dailyQuota: aiQuota },
   uploads: { enabled: true },
+  moderation: { enabled: true, mask: [], block: [], autoHideReports: 3 },
 });
 
 let cache: { value: SiteSettings; at: number } | null = null;
@@ -44,6 +47,7 @@ export async function getSettings(db: Db, aiQuota: number): Promise<SiteSettings
     contact: obj('contact', d.contact),
     ai: obj('ai', d.ai),
     uploads: obj('uploads', d.uploads),
+    moderation: obj('moderation', d.moderation),
   };
   cache = { value, at: Date.now() };
   return value;

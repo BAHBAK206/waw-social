@@ -284,6 +284,8 @@ export const ar: Dictionary = {
     'workspace-export': 'تصدير الملفات',
   },
   auth: {
+    birthYearHint: 'تُستخدم فقط لحماية الطلاب دون 18 سنة، ولا تظهر لأي أحد.',
+    birthYear: 'سنة الميلاد',
     resetCode: 'الرابط أو الكود من البريد',
     loginTitle: 'مرحبًا بعودتك',
     loginSubtitle: 'سجّل الدخول لمتابعة رحلتك التعليمية.',
@@ -325,6 +327,10 @@ export const ar: Dictionary = {
     bannedHelp: 'إذا كنت ترى أن هذا خطأ فتواصل مع الإدارة.',
   },
   errors: {
+    invalid_birth_year: 'أدخل سنة ميلاد صحيحة.',
+    birth_year_locked: 'سنة ميلادك مسجّلة بالفعل. تواصل مع الإدارة لتصحيحها.',
+    minor_protected: 'لحماية الطلاب دون 18 سنة، لا يمكنك مراسلتهم إلا إذا كانوا يتابعونك أو يشاركونك مجموعة أو مقررًا.',
+    content_blocked: 'لا يمكن نشر هذا: يحتوي على تهديد أو تشجيع على إيذاء النفس أو كلمات مؤذية.',
     quiz_not_found: 'هذا الاختبار غير متاح.',
     cannot_vote_own: 'لا يمكنك التصويت لإجابتك.',
     not_a_question: 'الأسئلة فقط يمكن أن يكون لها أفضل إجابة.',
@@ -1155,6 +1161,8 @@ export const ar: Dictionary = {
       preview: 'معاينة',
     },
     profile: {
+      birthYearLocked: 'تُسجَّل مرة واحدة. اطلب من الإدارة تصحيحها عند الحاجة.',
+      birthYear: 'سنة الميلاد',
       avatar: 'الصورة الشخصية',
       cover: 'صورة الغلاف',
       username: 'اسم المستخدم',
@@ -1180,6 +1188,8 @@ export const ar: Dictionary = {
       dailyGoal: 'هدف المذاكرة اليومي (دقائق)',
     },
     privacy: {
+      minorNotice:
+        'حسابك محمي لأن عمرك أقل من 18 سنة: لا يراسلك إلا من تتابعهم أو من يشاركونك مجموعة أو مقررًا، وتُخفى مدرستك وحالة اتصالك عن الغرباء، وتُحذف أرقام الهواتف وحسابات التطبيقات الأخرى من الرسائل الخاصة مع البالغين.',
       profileVisibility: 'من يرى ملفي الشخصي',
       visibility: { public: 'الجميع', members: 'الأعضاء المسجلون' },
       allowMessages: 'من يمكنه مراسلتي',
@@ -1245,6 +1255,8 @@ export const ar: Dictionary = {
       activity: 'النشاط (14 يومًا)',
     },
     users: {
+      minor: 'دون 18',
+      birthYear: 'سنة الميلاد',
       search: 'ابحث بالاسم أو البريد…',
       ban: 'إيقاف',
       unban: 'رفع الإيقاف',
@@ -1262,6 +1274,9 @@ export const ar: Dictionary = {
       banned: 'موقوف',
     },
     reports: {
+      restoreHint: 'الرفض يعيد المحتوى المخفي.',
+      count: '{count, plural, zero {لا بلاغات} one {بلاغ واحد} two {بلاغان} few {# بلاغات} many {# بلاغًا} other {# بلاغ}}',
+      autoHidden: 'أُخفي تلقائيًا',
       open: 'مفتوحة',
       resolved: 'تم حلها',
       dismissed: 'مرفوضة',
@@ -1309,6 +1324,12 @@ export const ar: Dictionary = {
       resetAll: 'تفعيل الكل',
     },
     site: {
+      autoHide: 'إخفاء العنصر تلقائيًا بعد هذا العدد من البلاغات (0 = أبدًا)',
+      blockWords: 'كلمات وعبارات تُرفض',
+      maskWords: 'كلمات تُستبدل بنجوم',
+      moderationOn: 'فلترة النصوص المنشورة',
+      moderationIntro: 'تُستبدل الشتائم بنجوم في كل اللغات، ويُرفض التهديد والتشجيع على إيذاء النفس والتحرش. أضف كلماتك أدناه (كلمة في كل سطر).',
+      moderation: 'الفلترة التلقائية للمحتوى',
       maintenance: 'وضع الصيانة',
       maintenanceMessage: 'رسالة الصيانة',
       registration: 'السماح بالتسجيل الجديد',
@@ -1576,6 +1597,7 @@ export const ar: Dictionary = {
     needTwo: 'أضف خيارين على الأقل.',
   },
   report: {
+    hidden: 'شكرًا. أبلغ عدة أعضاء عن هذا المحتوى، لذا أُخفي حتى يراجعه مشرف.',
     sent: 'تم إرسال البلاغ. شكرًا لك.',
     reasons: {
       spam: 'محتوى مزعج',

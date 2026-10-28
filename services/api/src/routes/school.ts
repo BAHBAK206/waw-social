@@ -50,7 +50,7 @@ import { body, param, query, requireUser } from '../lib/http';
 import { ms, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
-import { ownAttachment, readableAttachment, type StoredAttachment } from '../lib/attachments';
+import { claimAttachments, ownAttachment, readableAttachment, type StoredAttachment } from '../lib/attachments';
 import { checkRate } from '../middleware';
 
 const ownerCols = {
@@ -145,13 +145,6 @@ async function submissionDtos(deps: Deps, rows: (typeof submissions.$inferSelect
       gradedAt: ms(r.gradedAt),
     })),
   );
-}
-
-function attachKeys<T extends { url: string }>(list: T[]) {
-  return list.map((a) => {
-    const m = a.url.match(/\/files\/((?:public|private)\/[^?]+)/);
-    return { ...a, url: a.url.split('?')[0]!, ...(m ? { key: m[1] } : {}) };
-  });
 }
 
 async function assignmentDto(deps: Deps, user: AuthUser, role: CourseRole, a: typeof assignments.$inferSelect): Promise<AssignmentDto> {
@@ -419,7 +412,7 @@ export const schoolRoutes = new Hono<AppEnv>()
     const input = await body(c, courseAnnouncementSchema);
     const [row] = await deps.db
       .insert(courseAnnouncements)
-      .values({ courseId: id, authorId: user.id, text: input.text, attachments: attachKeys(input.attachments) })
+      .values({ courseId: id, authorId: user.id, text: input.text, attachments: await claimAttachments(deps, user, input.attachments) })
       .returning();
     const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, id));
     const students = await deps.db
@@ -481,7 +474,7 @@ export const schoolRoutes = new Hono<AppEnv>()
       .insert(assignments)
       .values({
         ...input,
-        attachments: attachKeys(input.attachments),
+        attachments: await claimAttachments(deps, user, input.attachments),
         courseId: id,
         dueAt: input.dueAt ? new Date(input.dueAt) : null,
         releaseAt: input.releaseAt ? new Date(input.releaseAt) : null,
@@ -526,7 +519,7 @@ export const schoolRoutes = new Hono<AppEnv>()
       .update(assignments)
       .set({
         ...input,
-        ...(input.attachments ? { attachments: attachKeys(input.attachments) } : {}),
+        ...(input.attachments ? { attachments: await claimAttachments(deps, user, input.attachments, a.attachments as { key?: string }[]) } : {}),
         dueAt: input.dueAt === undefined ? undefined : input.dueAt ? new Date(input.dueAt) : null,
         releaseAt: input.releaseAt === undefined ? undefined : input.releaseAt ? new Date(input.releaseAt) : null,
         updatedAt: new Date(),
@@ -559,7 +552,13 @@ export const schoolRoutes = new Hono<AppEnv>()
       .from(submissions)
       .where(and(eq(submissions.assignmentId, a.id), eq(submissions.studentId, user.id)));
     if (prev && prev.status !== 'submitted') throw conflict('already_graded');
-    const values = { text: input.text, attachments: attachKeys(input.attachments), late, submittedAt: new Date(), status: 'submitted' as const };
+    const values = {
+      text: input.text,
+      attachments: await claimAttachments(deps, user, input.attachments),
+      late,
+      submittedAt: new Date(),
+      status: 'submitted' as const,
+    };
     const [row] = await deps.db
       .insert(submissions)
       .values({ assignmentId: a.id, studentId: user.id, ...values })

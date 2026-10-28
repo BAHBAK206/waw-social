@@ -3,6 +3,7 @@ import { REACTION_EMOJI, type PostDto, type Reaction } from '@qubedu/shared';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
+import { ReportButton } from './Report';
 import { ReadAloud } from '@/components/ReadAloud';
 import { Avatar, Card, Text } from '@/components/ui';
 import { api, fileUrl } from '@/lib/api';
@@ -87,6 +88,7 @@ export function PostCard({
             <Ionicons name="trash-outline" size={20} color={t.text3} />
           </Pressable>
         )}
+        {!post.canDelete && <ReportButton targetType="post" targetId={post.id} />}
       </Pressable>
       {(post.kind !== 'discussion' || post.material) && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>

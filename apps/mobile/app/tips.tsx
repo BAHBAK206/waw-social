@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { reportContent } from '@/components/Report';
 import { FeatureGate, Sheet } from '@/components/kit';
 import { Avatar, Button, Empty, Input, Loading, Text } from '@/components/ui';
 import { api, fileUrl, uploadFile } from '@/lib/api';
@@ -85,6 +86,21 @@ function Viewer({ groups, start, onClose }: { groups: StoryGroupDto[]; start: nu
               }}
             >
               <Ionicons name="trash-outline" size={22} color="#fff" />
+            </Pressable>
+          )}
+          {!group.isMine && (
+            <Pressable
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={tr.t('common.report')}
+              onPress={() => {
+                const target = story.id;
+                onClose();
+                // The viewer is a modal: let it close before the report sheet opens (iOS shows one modal at a time).
+                setTimeout(() => reportContent({ targetType: 'story', targetId: target }), 400);
+              }}
+            >
+              <Ionicons name="flag-outline" size={22} color="#fff" />
             </Pressable>
           )}
           <Pressable hitSlop={10} onPress={onClose} accessibilityRole="button" accessibilityLabel={tr.t('common.close')}>

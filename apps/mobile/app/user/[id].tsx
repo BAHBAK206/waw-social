@@ -2,6 +2,7 @@ import { ACHIEVEMENTS, xpProgress, type PostDto } from '@qubedu/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, View } from 'react-native';
+import { ReportButton } from '@/components/Report';
 import { PostCard } from '@/components/PostCard';
 import { Avatar, Button, Card, ErrorView, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -191,7 +192,12 @@ export default function UserScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: u.displayName }} />
+      <Stack.Screen
+        options={{
+          title: u.displayName,
+          headerRight: () => (u.id !== me.id ? <ReportButton targetType="user" targetId={u.id} size={20} /> : null),
+        }}
+      />
       <FlatList
         style={{ backgroundColor: t.bg }}
         contentContainerStyle={{ padding: 16, gap: 12 }}

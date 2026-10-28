@@ -1,4 +1,4 @@
-import { DESIGNS, LANGUAGES, LIMITS, SKINS, TEXT_SIZES, THEME_MODES, type Me, type NotificationPrefs, type Privacy } from '@qubedu/shared';
+import { DESIGNS, LANGUAGES, LIMITS, SKINS, birthYearChoices, TEXT_SIZES, THEME_MODES, type Me, type NotificationPrefs, type Privacy } from '@qubedu/shared';
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Check, Database, Download, Lock, MonitorSmartphone, Palette, Shield, Trash2, User } from 'lucide-react';
@@ -45,6 +45,7 @@ function ProfileTab({ me }: { me: Me }) {
     accountType: me.accountType === 'teacher' ? 'teacher' : 'student',
     avatarUrl: me.avatarUrl,
     coverUrl: me.coverUrl,
+    birthYear: me.birthYear ? String(me.birthYear) : '',
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,7 @@ function ProfileTab({ me }: { me: Me }) {
         accountType: f.accountType as 'student' | 'teacher',
         avatarUrl: f.avatarUrl,
         coverUrl: f.coverUrl,
+        ...(f.birthYear && !me.birthYear ? { birthYear: Number(f.birthYear) } : {}),
       });
       useSession.getState().setMe(next);
       toast(tr.t('settings.saved'));
@@ -148,6 +150,15 @@ function ProfileTab({ me }: { me: Me }) {
           value={f.institution}
           maxLength={LIMITS.institution}
           onChange={(e) => setF({ ...f, institution: e.target.value })}
+        />
+        <Select
+          label={tr.t('settings.profile.birthYear')}
+          hint={me.birthYear ? tr.t('settings.profile.birthYearLocked') : tr.t('auth.birthYearHint')}
+          value={f.birthYear}
+          disabled={!!me.birthYear}
+          placeholder="—"
+          onChange={(e) => setF({ ...f, birthYear: e.target.value })}
+          options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
         />
       </div>
       <Button loading={busy} disabled={f.displayName.trim().length < LIMITS.displayName.min} onClick={() => void save()}>
@@ -430,6 +441,11 @@ function PrivacyTab({ me }: { me: Me }) {
   };
   return (
     <Section>
+      {me.isMinor && (
+        <p className="flex gap-2 rounded-[var(--radius-control)] bg-soft p-3 text-sm">
+          <Shield className="mt-0.5 size-4 shrink-0" aria-hidden /> {tr.t('settings.privacy.minorNotice')}
+        </p>
+      )}
       <Select
         label={tr.t('settings.privacy.profileVisibility')}
         value={p.profileVisibility}

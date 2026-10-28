@@ -1,10 +1,10 @@
-import { LIMITS } from '@qubedu/shared';
+import { LIMITS, birthYearChoices } from '@qubedu/shared';
 import { GraduationCap, School } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { NoticeCard } from '@/components/layout/Banners';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Field';
+import { Input, Select } from '@/components/ui/Field';
 import { api } from '@/lib/api';
 import { useAppearance } from '@/lib/appearance';
 import { afterSignIn } from '@/lib/auth';
@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const open = useSession((s) => s.config?.registrationOpen ?? true);
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher' });
+  const [form, setForm] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher', birthYear: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -34,6 +34,7 @@ export default function RegisterPage() {
     try {
       const me = await api.auth.register({
         ...form,
+        birthYear: form.birthYear ? Number(form.birthYear) : undefined,
         displayName: form.displayName.trim(),
         email: form.email.trim(),
         language: useAppearance.getState().appearance.language,
@@ -107,6 +108,14 @@ export default function RegisterPage() {
               ))}
             </div>
           </fieldset>
+          <Select
+            label={tr.t('auth.birthYear')}
+            hint={tr.t('auth.birthYearHint')}
+            value={form.birthYear}
+            placeholder="—"
+            onChange={(e) => set('birthYear')(e.target.value)}
+            options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
+          />
           <p className="muted text-xs">
             {tr.t('auth.agree')}{' '}
             <Link to="/terms" className="link">

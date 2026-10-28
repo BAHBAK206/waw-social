@@ -20,7 +20,9 @@ import { badRequest, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
 import { ms, pickSummary, summaryColumns, toSummary, withOnline } from '../lib/mappers';
 import { notify } from '../lib/notify';
-import { privacyOf } from '../lib/profile';
+import { stripContactInfo } from '../lib/minors';
+import { minorContactAllowed, privacyOf } from '../lib/profile';
+import { claimAttachments } from '../lib/attachments';
 import { ch } from '../lib/realtime';
 import { checkRate } from '../middleware';
 
@@ -36,6 +38,24 @@ const senderCols = {
 };
 
 const directKey = (a: string, b: string) => [a, b].sort().join(':');
+
+/**
+ * Under-18 protection for a direct conversation: blocks it when an adult and a student don't know each other, and
+ * tells the caller to strip contact details (phone, email, other-app handles) from the text otherwise.
+ */
+async function directMinorGuard(deps: Deps, convId: string, viewerId: string): Promise<{ strip: boolean }> {
+  const rows = await deps.db
+    .select({ id: users.id, birthYear: users.birthYear })
+    .from(conversationMembers)
+    .innerJoin(users, eq(users.id, conversationMembers.userId))
+    .where(eq(conversationMembers.conversationId, convId));
+  const me = rows.find((r) => r.id === viewerId);
+  const peer = rows.find((r) => r.id !== viewerId);
+  if (!me || !peer) return { strip: false };
+  const allowed = await minorContactAllowed(deps, me, peer);
+  if (allowed === false) throw forbidden('minor_protected');
+  return { strip: allowed === true };
+}
 
 async function signAttachment(deps: Deps, att: Record<string, unknown> | null) {
   if (!att) return null;
@@ -200,6 +220,8 @@ export async function postMessage(deps: Deps, viewer: AuthUser, conversationId: 
       if (blocked) throw forbidden('blocked');
     }
   }
+  let text = input.text;
+  if (conv.kind === 'direct' && (await directMinorGuard(deps, conv.id, viewer.id)).strip) text = stripContactInfo(text).text;
   if (input.replyToId) {
     const [r] = await deps.db.select({ c: messages.conversationId }).from(messages).where(eq(messages.id, input.replyToId));
     if (!r || r.c !== conv.id) throw badRequest('invalid_reply');
@@ -213,21 +235,21 @@ export async function postMessage(deps: Deps, viewer: AuthUser, conversationId: 
   }
   let attachment: Record<string, unknown> | null = null;
   if (input.attachment) {
-    const key = new URL(input.attachment.url, deps.env.API_PUBLIC_URL).pathname.replace(/^\/files\//, '');
-    attachment = { ...input.attachment, key: /^(public|private)\//.test(key) ? key : null, url: input.attachment.url.split('?')[0] };
+    const [claimed] = await claimAttachments(deps, viewer, [input.attachment]);
+    attachment = { ...claimed!, key: claimed!.key ?? null };
   }
   const [row] = await deps.db
     .insert(messages)
     .values({
       conversationId: conv.id,
       senderId: viewer.id,
-      text: input.text,
+      text,
       attachment,
       replyToId: input.replyToId ?? null,
       clientId: input.clientId ?? null,
     })
     .returning({ id: messages.id, createdAt: messages.createdAt });
-  const preview = input.text ? truncate(input.text, 140) : `📎 ${input.attachment?.name ?? ''}`;
+  const preview = text ? truncate(text, 140) : `📎 ${input.attachment?.name ?? ''}`;
   await deps.db
     .update(conversations)
     .set({ lastMessageAt: row!.createdAt, lastMessageText: preview, lastMessageSenderId: viewer.id })
@@ -298,6 +320,8 @@ export const chatRoutes = new Hono<AppEnv>()
       .from(blocks)
       .where(and(eq(blocks.blockerId, userId), eq(blocks.blockedId, viewer.id)));
     if (blocked) throw forbidden('blocked');
+    const [me] = await deps.db.select({ id: users.id, birthYear: users.birthYear }).from(users).where(eq(users.id, viewer.id));
+    if (me && (await minorContactAllowed(deps, me, peer)) === false) throw forbidden('minor_protected');
     const privacy = privacyOf(peer);
     if (privacy.allowMessages === 'none') throw forbidden('messages_disabled');
     if (privacy.allowMessages === 'following') {
@@ -399,7 +423,9 @@ export const chatRoutes = new Hono<AppEnv>()
     const msg = await loadMessage(deps, param(c, 'id'));
     if (msg.senderId !== viewer.id || msg.deletedAt) throw forbidden();
     if (Date.now() - msg.createdAt.getTime() > 24 * 3600_000) throw forbidden('edit_window_passed');
-    const { text } = await body(c, editMessageSchema);
+    let { text } = await body(c, editMessageSchema);
+    const [conv] = await deps.db.select({ kind: conversations.kind }).from(conversations).where(eq(conversations.id, msg.conversationId));
+    if (conv?.kind === 'direct' && (await directMinorGuard(deps, msg.conversationId, viewer.id)).strip) text = stripContactInfo(text).text;
     await deps.db.update(messages).set({ text, editedAt: new Date() }).where(eq(messages.id, msg.id));
     const [dto] = await hydrateMessages(deps, [await loadMessage(deps, msg.id)]);
     await deps.realtime.publish(ch.conv(msg.conversationId), 'message:updated', dto);

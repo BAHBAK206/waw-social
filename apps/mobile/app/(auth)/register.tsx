@@ -1,8 +1,9 @@
-import { LIMITS } from '@qubedu/shared';
+import { LIMITS, birthYearChoices } from '@qubedu/shared';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { AuthShell } from '@/components/AuthShell';
+import { SelectField } from '@/components/kit';
 import { Button, Chip, Input, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAppearance } from '@/lib/appearance';
@@ -14,7 +15,7 @@ export default function RegisterScreen() {
   const tr = useT();
   const t = useTheme();
   const open = useSession((s) => s.config?.registrationOpen ?? true);
-  const [f, setF] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher' });
+  const [f, setF] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher', birthYear: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const valid = f.displayName.trim().length >= LIMITS.displayName.min && /.+@.+\..+/.test(f.email) && f.password.length >= LIMITS.password.min;
@@ -24,6 +25,7 @@ export default function RegisterScreen() {
     try {
       await api.auth.register({
         ...f,
+        birthYear: f.birthYear ? Number(f.birthYear) : undefined,
         displayName: f.displayName.trim(),
         email: f.email.trim(),
         language: useAppearance.getState().appearance.language,
@@ -75,6 +77,16 @@ export default function RegisterScreen() {
               <Chip label={tr.t('auth.teacher')} active={f.accountType === 'teacher'} onPress={() => setF({ ...f, accountType: 'teacher' })} />
             </View>
           </View>
+          <SelectField
+            label={tr.t('auth.birthYear')}
+            value={f.birthYear}
+            placeholder="—"
+            onChange={(v) => setF({ ...f, birthYear: v })}
+            options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
+          />
+          <Text muted size={12}>
+            {tr.t('auth.birthYearHint')}
+          </Text>
           {error ? (
             <Text color={t.err} weight="bold" accessibilityRole="alert">
               {error}

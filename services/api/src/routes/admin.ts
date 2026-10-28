@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -6,6 +6,7 @@ import {
   announcementSchema,
   assistantKnowledgeSchema,
   badgeSchema,
+  birthYearSchema,
   banSchema,
   dailyChallengeSchema,
   dayKey,
@@ -63,6 +64,8 @@ import { body, param, query, requirePerm } from '../lib/http';
 import { ms, onlineKey, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
+import { isMinor } from '../lib/minors';
+import { setHidden } from '../lib/moderation';
 import { getRawSetting, getSettings, putSetting } from '../lib/settings';
 import { toAd, toAnnouncement } from './config';
 
@@ -87,6 +90,8 @@ const toAdminUser = (u: typeof users.$inferSelect): AdminUserDto => ({
   emailVerified: !!u.emailVerifiedAt,
   createdAt: u.createdAt.getTime(),
   lastSeenAt: ms(u.lastSeenAt),
+  birthYear: u.birthYear ?? null,
+  isMinor: isMinor(u.birthYear),
 });
 
 async function targetUser(db: Parameters<typeof audit>[0], id: string) {
@@ -280,6 +285,15 @@ export const adminRoutes = new Hono<AppEnv>()
     await audit(db, actor.id, 'user.badge', 'user', u.id, badge);
     return c.json({ ok: true });
   })
+  .put('/users/:id/birth-year', async (c) => {
+    const actor = requirePerm(c, 'users.manage');
+    const { db } = c.get('deps');
+    const u = await targetUser(db, param(c, 'id'));
+    const { birthYear } = await body(c, z.object({ birthYear: birthYearSchema.nullable() }));
+    await db.update(users).set({ birthYear }).where(eq(users.id, u.id));
+    await audit(db, actor.id, 'user.birth_year', 'user', u.id, { from: u.birthYear, to: birthYear });
+    return c.json({ ok: true });
+  })
   .post('/users/:id/revoke-sessions', async (c) => {
     const actor = requirePerm(c, 'users.manage');
     const { db } = c.get('deps');
@@ -317,6 +331,15 @@ export const adminRoutes = new Hono<AppEnv>()
       .orderBy(desc(reports.createdAt), desc(reports.id))
       .limit(q.limit + 1);
     const page = pageOf(rows, q.limit, (r) => ({ t: r.r.createdAt, id: r.r.id }));
+    const counts = new Map<string, number>();
+    if (page.items.length) {
+      const grouped = await db
+        .select({ type: reports.targetType, target: reports.targetId, n: count() })
+        .from(reports)
+        .where(and(eq(reports.status, 'open'), or(...page.items.map((r) => and(eq(reports.targetType, r.r.targetType), eq(reports.targetId, r.r.targetId))))))
+        .groupBy(reports.targetType, reports.targetId);
+      for (const g of grouped) counts.set(`${g.type}:${g.target}`, g.n);
+    }
     const items: ReportDto[] = [];
     for (const r of page.items) {
       let target: ReportDto['target'] = null;
@@ -385,6 +408,8 @@ export const adminRoutes = new Hono<AppEnv>()
         reporter: toSummary(pickSummary('rep', r as unknown as Record<string, unknown>)),
         target,
         resolution: r.r.resolution,
+        autoHidden: r.r.autoHidden,
+        reportCount: counts.get(`${r.r.targetType}:${r.r.targetId}`) ?? 1,
         createdAt: r.r.createdAt.getTime(),
         resolvedAt: ms(r.r.resolvedAt),
       });
@@ -396,60 +421,34 @@ export const adminRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const input = await body(
       c,
-      z.object({ status: z.enum(['resolved', 'dismissed']), resolution: z.string().trim().max(500).default(''), removeContent: z.boolean().default(false) }),
+      z.object({
+        status: z.enum(['resolved', 'dismissed']),
+        resolution: z.string().trim().max(500).default(''),
+        removeContent: z.boolean().default(false),
+        /** Close every open report on the same item in one go. */
+        closeSimilar: z.boolean().default(true),
+      }),
     );
     const [r] = await deps.db
       .select()
       .from(reports)
       .where(eq(reports.id, param(c, 'id')));
     if (!r) throw notFound();
-    if (input.removeContent) {
-      if (r.targetType === 'post')
-        await deps.db
-          .update(posts)
-          .set({ deletedAt: new Date() })
-          .where(sql`${posts.id}::text = ${r.targetId}`);
-      if (r.targetType === 'comment')
-        await deps.db
-          .update(comments)
-          .set({ deletedAt: new Date() })
-          .where(sql`${comments.id}::text = ${r.targetId}`);
-      if (r.targetType === 'message')
-        await deps.db
-          .update(messages)
-          .set({ deletedAt: new Date() })
-          .where(sql`${messages.id}::text = ${r.targetId}`);
-      if (r.targetType === 'group')
-        await deps.db
-          .update(groups)
-          .set({ deletedAt: new Date() })
-          .where(sql`${groups.id}::text = ${r.targetId}`);
-      const now = new Date();
-      if (r.targetType === 'video')
-        await deps.db
-          .update(videos)
-          .set({ deletedAt: now })
-          .where(sql`${videos.id}::text = ${r.targetId}`);
-      if (r.targetType === 'video_comment')
-        await deps.db
-          .update(videoComments)
-          .set({ deletedAt: now })
-          .where(sql`${videoComments.id}::text = ${r.targetId}`);
-      if (r.targetType === 'event')
-        await deps.db
-          .update(events)
-          .set({ deletedAt: now })
-          .where(sql`${events.id}::text = ${r.targetId}`);
-      if (r.targetType === 'story')
-        await deps.db
-          .update(stories)
-          .set({ deletedAt: now })
-          .where(sql`${stories.id}::text = ${r.targetId}`);
+    if (input.removeContent) await setHidden(deps.db, r.targetType, r.targetId, true);
+    // Dismissing a report on an item that was hidden automatically puts it back (unless other reports remain open).
+    else if (input.status === 'dismissed' && r.autoHidden) {
+      const [others] = await deps.db
+        .select({ n: count() })
+        .from(reports)
+        .where(and(eq(reports.targetType, r.targetType), eq(reports.targetId, r.targetId), eq(reports.status, 'open'), ne(reports.id, r.id)));
+      if (!others?.n || input.closeSimilar) await setHidden(deps.db, r.targetType, r.targetId, false);
     }
     await deps.db
       .update(reports)
       .set({ status: input.status, resolution: input.resolution, resolvedBy: actor.id, resolvedAt: new Date() })
-      .where(eq(reports.id, r.id));
+      .where(
+        input.closeSimilar ? and(eq(reports.targetType, r.targetType), eq(reports.targetId, r.targetId), eq(reports.status, 'open')) : eq(reports.id, r.id),
+      );
     await audit(deps.db, actor.id, 'report.resolve', 'report', r.id, input);
     await notify(deps, { userId: r.reporterId, type: 'report_resolved', icon: 'shield-check', data: { status: input.status }, pref: 'system' });
     return c.json({ ok: true });

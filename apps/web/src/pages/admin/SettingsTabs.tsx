@@ -104,6 +104,11 @@ export function FeaturesTab() {
   );
 }
 
+// One word or phrase per line. Empty lines are kept while typing and dropped on save.
+const wordsText = (list: string[]) => list.join('\n');
+const parseWords = (text: string) => text.split('\n').slice(0, 500);
+const cleanWords = (list: string[]) => [...new Set(list.map((w) => w.trim().slice(0, 60)).filter(Boolean))];
+
 export function SiteTab() {
   const tr = useT();
   const qc = useQueryClient();
@@ -151,6 +156,39 @@ export function SiteTab() {
         />
       </section>
       <section className="card space-y-4 p-5">
+        <h2 className="text-lg font-black">{tr.t('admin.site.moderation')}</h2>
+        <p className="muted text-sm">{tr.t('admin.site.moderationIntro')}</p>
+        <Switch
+          checked={s.moderation.enabled}
+          onChange={(v) => setS({ ...s, moderation: { ...s.moderation, enabled: v } })}
+          label={tr.t('admin.site.moderationOn')}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Textarea
+            label={tr.t('admin.site.maskWords')}
+            rows={5}
+            dir="auto"
+            value={wordsText(s.moderation.mask)}
+            onChange={(e) => setS({ ...s, moderation: { ...s.moderation, mask: parseWords(e.target.value) } })}
+          />
+          <Textarea
+            label={tr.t('admin.site.blockWords')}
+            rows={5}
+            dir="auto"
+            value={wordsText(s.moderation.block)}
+            onChange={(e) => setS({ ...s, moderation: { ...s.moderation, block: parseWords(e.target.value) } })}
+          />
+        </div>
+        <Input
+          type="number"
+          min={0}
+          max={50}
+          label={tr.t('admin.site.autoHide')}
+          value={s.moderation.autoHideReports}
+          onChange={(e) => setS({ ...s, moderation: { ...s.moderation, autoHideReports: Math.max(0, Math.min(50, Number(e.target.value) || 0)) } })}
+        />
+      </section>
+      <section className="card space-y-4 p-5">
         <h2 className="text-lg font-black">{tr.t('admin.site.contact')}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {['email', 'phone', 'whatsapp', 'address', 'facebook', 'instagram', 'telegram'].map((k) => (
@@ -169,6 +207,7 @@ export function SiteTab() {
               contact: s.contact,
               ai: s.ai,
               uploads: s.uploads,
+              moderation: { ...s.moderation, mask: cleanWords(s.moderation.mask), block: cleanWords(s.moderation.block) },
             });
             await Promise.all([qc.invalidateQueries({ queryKey: ['admin', 'settings'] }), qc.invalidateQueries({ queryKey: qk.config })]);
             toast(tr.t('common.saved'));

@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, View, type ScrollViewInstance } from 'react-native';
+import { ReportButton } from '@/components/Report';
 import { Checkpoint, LessonNotes, LessonOutline } from '@/components/LessonTools';
 import { Avatar, Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { VideoItem } from '../(tabs)/watch';
@@ -14,7 +15,7 @@ import { compactNumber, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { useSession } from '@/lib/session';
-import { toast, toastError } from '@/lib/ui';
+import { confirm, toast, toastError } from '@/lib/ui';
 
 type Controller = { seek: (sec: number) => void };
 
@@ -93,6 +94,7 @@ function Player({
 export default function VideoScreen() {
   const { id, checkpoint } = useLocalSearchParams<{ id: string; checkpoint?: string }>();
   const authed = useSession((s) => s.status === 'authed');
+  const myId = useSession((s) => s.me?.id);
   const controller = useRef<Controller | null>(null);
   const scroller = useRef<ScrollViewInstance>(null);
   const [time, setTime] = useState(0);
@@ -185,7 +187,12 @@ export default function VideoScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-      <Stack.Screen options={{ title: v.title }} />
+      <Stack.Screen
+        options={{
+          title: v.title,
+          headerRight: () => (v.owner.id !== myId ? <ReportButton targetType="video" targetId={v.id} size={20} /> : null),
+        }}
+      />
       <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
         <Player key={v.id} video={v} autoPlay={checkpoint !== '1'} controller={controller} onTime={setTime} onEnd={onEnd} />
         <View style={{ padding: 16, gap: 12 }}>
@@ -290,6 +297,26 @@ export default function VideoScreen() {
                     </Text>
                     <Text>{c.text}</Text>
                   </View>
+                  {c.canDelete ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={tr.t('common.delete')}
+                      hitSlop={8}
+                      onPress={async () => {
+                        if (!(await confirm(tr.t('common.confirmDelete'), { danger: true }))) return;
+                        try {
+                          await api.videos.deleteComment(v.id, c.id);
+                          await comments.refetch();
+                        } catch (e) {
+                          toastError(e);
+                        }
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={t.text3} />
+                    </Pressable>
+                  ) : (
+                    <ReportButton targetType="video_comment" targetId={c.id} />
+                  )}
                 </View>
               ))}
             </>

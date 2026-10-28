@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
+import { ReportButton } from '@/components/Report';
 import { Composer } from '@/components/Composer';
 import { PostCard } from '@/components/PostCard';
 import { Files } from '@/components/Files';
@@ -140,7 +141,12 @@ export default function GroupScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: group.name }} />
+      <Stack.Screen
+        options={{
+          title: group.name,
+          headerRight: () => (group.myRole !== 'owner' ? <ReportButton targetType="group" targetId={group.id} size={20} /> : null),
+        }}
+      />
       <FlatList
         style={{ backgroundColor: t.bg }}
         contentContainerStyle={{ padding: 16, gap: 12 }}

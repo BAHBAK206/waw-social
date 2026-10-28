@@ -284,6 +284,8 @@ export const es: Dictionary = {
     'workspace-export': 'Exportar archivos',
   },
   auth: {
+    birthYearHint: 'Solo se usa para proteger a los menores de 18 años. Nunca se muestra.',
+    birthYear: 'Año de nacimiento',
     resetCode: 'Enlace o código del correo',
     loginTitle: 'Bienvenido de nuevo',
     loginSubtitle: 'Inicia sesión para continuar aprendiendo.',
@@ -325,6 +327,10 @@ export const es: Dictionary = {
     bannedHelp: 'Si crees que es un error, contacta con los administradores.',
   },
   errors: {
+    invalid_birth_year: 'Escribe un año de nacimiento válido.',
+    birth_year_locked: 'Tu año de nacimiento ya está registrado. Contacta a los administradores para corregirlo.',
+    minor_protected: 'Para proteger a los estudiantes menores de 18 años, solo puedes escribirles si te siguen o comparten un grupo o curso contigo.',
+    content_blocked: 'No se puede publicar: contiene una amenaza, incitación a autolesionarse u otras palabras dañinas.',
     quiz_not_found: 'Ese cuestionario no está disponible.',
     cannot_vote_own: 'No puedes votar tu propia respuesta.',
     not_a_question: 'Solo las preguntas tienen mejor respuesta.',
@@ -1180,6 +1186,8 @@ export const es: Dictionary = {
       preview: 'Vista previa',
     },
     profile: {
+      birthYearLocked: 'Se define una sola vez. Pide a los administradores que la corrijan.',
+      birthYear: 'Año de nacimiento',
       avatar: 'Foto de perfil',
       cover: 'Imagen de portada',
       username: 'Nombre de usuario',
@@ -1205,6 +1213,8 @@ export const es: Dictionary = {
       dailyGoal: 'Meta diaria de estudio (minutos)',
     },
     privacy: {
+      minorNotice:
+        'Tu cuenta está protegida porque tienes menos de 18 años: solo pueden escribirte las personas que sigues o que comparten un grupo o curso contigo; tu escuela y tu estado en línea se ocultan a desconocidos; los números y usuarios de otras apps se quitan de los chats privados con adultos.',
       profileVisibility: 'Quién puede ver mi perfil',
       visibility: { public: 'Todos', members: 'Miembros con sesión iniciada' },
       allowMessages: 'Quién puede escribirme',
@@ -1270,6 +1280,8 @@ export const es: Dictionary = {
       activity: 'Actividad (14 días)',
     },
     users: {
+      minor: 'Menor de 18',
+      birthYear: 'Año de nacimiento',
       search: 'Buscar nombre o correo…',
       ban: 'Suspender',
       unban: 'Reactivar',
@@ -1287,6 +1299,9 @@ export const es: Dictionary = {
       banned: 'Suspendido',
     },
     reports: {
+      restoreHint: 'Descartar restaura el contenido oculto.',
+      count: '{count, plural, one {# reporte} other {# reportes}}',
+      autoHidden: 'Oculto automáticamente',
       open: 'Abiertas',
       resolved: 'Resueltas',
       dismissed: 'Descartadas',
@@ -1334,6 +1349,13 @@ export const es: Dictionary = {
       resetAll: 'Activar todo',
     },
     site: {
+      autoHide: 'Ocultar automáticamente tras este número de reportes (0 = nunca)',
+      blockWords: 'Palabras y frases a rechazar',
+      maskWords: 'Palabras a ocultar con estrellas',
+      moderationOn: 'Filtrar textos publicados',
+      moderationIntro:
+        'Los insultos se reemplazan por estrellas en todos los idiomas; amenazas, incitación a autolesionarse y acoso se rechazan. Agrega tus palabras abajo (una por línea).',
+      moderation: 'Filtro automático de contenido',
       maintenance: 'Modo mantenimiento',
       maintenanceMessage: 'Mensaje de mantenimiento',
       registration: 'Permitir nuevos registros',
@@ -1607,6 +1629,7 @@ export const es: Dictionary = {
     needTwo: 'Añade al menos dos opciones.',
   },
   report: {
+    hidden: 'Gracias. Varios miembros lo reportaron, así que queda oculto hasta que un moderador lo revise.',
     sent: 'Denuncia enviada. Gracias.',
     reasons: {
       spam: 'Spam',

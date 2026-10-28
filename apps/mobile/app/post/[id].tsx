@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { PostCard } from '@/components/PostCard';
 import { ReadAloud } from '@/components/ReadAloud';
+import { ReportButton } from '@/components/Report';
 import { VoiceAttach, VoiceCard } from '@/components/Voice';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -13,7 +14,7 @@ import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { useSession } from '@/lib/session';
-import { toast, toastError } from '@/lib/ui';
+import { confirm, toast, toastError } from '@/lib/ui';
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -139,6 +140,25 @@ export default function PostScreen() {
                   )}
                   <View style={{ flex: 1 }} />
                   <ReadAloud text={c.text} size={19} />
+                  {me && c.author.id !== me.id && <ReportButton targetType="comment" targetId={c.id} />}
+                  {c.canDelete && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={tr.t('common.delete')}
+                      hitSlop={8}
+                      onPress={async () => {
+                        if (!(await confirm(tr.t('common.confirmDelete'), { danger: true }))) return;
+                        try {
+                          await api.posts.deleteComment(id!, c.id);
+                          await Promise.all([comments.refetch(), post.refetch()]);
+                        } catch (e) {
+                          toastError(e);
+                        }
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={t.text3} />
+                    </Pressable>
+                  )}
                 </View>
               </Card>
             );

@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastHost } from '@/components/Toast';
+import { ReportHost } from '@/components/Report';
 import { useAppearance } from '@/lib/appearance';
 import { boot } from '@/lib/boot';
 import { useT } from '@/lib/i18n';
@@ -91,6 +92,7 @@ function Shell() {
         <Stack.Screen name="info/[page]" options={{ title: tr.t('nav.help') }} />
         <Stack.Screen name="collection/[slug]" options={{ title: tr.t('saved.collections') }} />
       </Stack>
+      <ReportHost />
       <ToastHost />
     </View>
   );

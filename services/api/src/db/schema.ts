@@ -51,6 +51,8 @@ export const users = pgTable(
     gender: text('gender'),
     educationLevel: text('education_level'),
     institution: text('institution'),
+    /** Used only to apply under-18 protections; never shown to other people. */
+    birthYear: integer('birth_year'),
     xp: integer('xp').notNull().default(0),
     level: integer('level').notNull().default(1),
     streak: integer('streak').notNull().default(0),
@@ -406,11 +408,13 @@ export const reports = pgTable(
     details: text('details').notNull().default(''),
     status: text('status').$type<'open' | 'resolved' | 'dismissed'>().notNull().default('open'),
     resolution: text('resolution'),
+    /** Hidden automatically after reports from several members; restored if a moderator dismisses. */
+    autoHidden: boolean('auto_hidden').notNull().default(false),
     resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
     resolvedAt: ts('resolved_at'),
     createdAt: createdAt(),
   },
-  (t) => [index('reports_status_idx').on(t.status, t.createdAt)],
+  (t) => [index('reports_status_idx').on(t.status, t.createdAt), index('reports_target_idx').on(t.targetType, t.targetId)],
 );
 
 /* ───────────────────────── Chat ───────────────────────── */

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LIMITS } from '../limits';
-import { idSchema, optionalUrl, trimmed } from './common';
+import { idSchema, optionalUrl, trimmed, urlSchema } from './common';
 
 export const formQuestionTypes = [
   'short',
@@ -71,7 +71,7 @@ export const libraryItemSchema = z.object({
   category: z.enum(['book', 'summary', 'exam', 'notes', 'video', 'other']).default('other'),
   sectionId: idSchema.optional().nullable(),
   materialId: idSchema.optional().nullable(),
-  fileUrl: z.string().trim().min(1).max(2048),
+  fileUrl: urlSchema,
   mime: trimmed(120).default('application/octet-stream'),
   size: z.number().int().min(0).default(0),
   coverUrl: optionalUrl,
@@ -102,7 +102,7 @@ export const savedItemSchema = z.object({
   itemType: z.enum(['post', 'quiz', 'library', 'group', 'user', 'link', 'form', 'course']),
   refId: z.string().max(64).optional().nullable(),
   title: trimmed(200, 1),
-  url: z.string().trim().max(2048).optional().nullable(),
+  url: urlSchema.optional().nullable(),
   note: trimmed(1000).default(''),
   collectionId: idSchema.optional().nullable(),
 });

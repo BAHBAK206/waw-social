@@ -1,4 +1,4 @@
-import { ADMIN_PERMISSIONS, ROOT_ONLY, hasPermission, type AdminUserDto, type ReportDto } from '@qubedu/shared';
+import { ADMIN_PERMISSIONS, ROOT_ONLY, birthYearChoices, hasPermission, type AdminUserDto, type ReportDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Search, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -113,6 +113,7 @@ function UserDialog({ id, onClose }: { id: string; onClose: () => void }) {
                 {tr.t(`admin.users.roles.${u.role}`)} · {relativeTime(u.createdAt, tr)}
               </p>
             </div>
+            {u.isMinor && <span className="badge badge-warn">{tr.t('admin.users.minor')}</span>}
             {u.banned && <span className="badge badge-err">{tr.t('admin.users.banned')}</span>}
           </div>
           <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
@@ -197,6 +198,15 @@ function UserDialog({ id, onClose }: { id: string; onClose: () => void }) {
                 <Button size="sm" onClick={() => void run(() => api.admin.setBadge(u.id, badge))}>
                   {tr.t('common.save')}
                 </Button>
+              </section>
+              <section className="space-y-3 border-t border-line pt-4">
+                <Select
+                  label={tr.t('admin.users.birthYear')}
+                  value={u.birthYear ? String(u.birthYear) : ''}
+                  placeholder="—"
+                  onChange={(e) => void run(() => api.admin.setBirthYear(u.id, e.target.value ? Number(e.target.value) : null))}
+                  options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
+                />
               </section>
               {isRoot && (
                 <section className="space-y-3 border-t border-line pt-4">
@@ -315,6 +325,8 @@ export function ReportsTab() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="badge badge-warn">{tr.tDyn(`report.reasons.${r.reason}`, undefined, r.reason)}</span>
               <span className="badge">{r.targetType}</span>
+              {r.reportCount > 1 && <span className="badge">{tr.t('admin.reports.count', { count: r.reportCount })}</span>}
+              {r.autoHidden && r.status === 'open' && <span className="badge badge-err">{tr.t('admin.reports.autoHidden')}</span>}
               <span className="muted ms-auto text-xs">{relativeTime(r.createdAt, tr)}</span>
             </div>
             {r.target && (
@@ -345,9 +357,15 @@ export function ReportsTab() {
                 <Button size="sm" variant="danger" onClick={() => void resolve(r, 'resolved', true)}>
                   {tr.t('admin.reports.removeContent')}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => void resolve(r, 'dismissed')}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void resolve(r, 'dismissed')}
+                  title={r.autoHidden ? tr.t('admin.reports.restoreHint') : undefined}
+                >
                   {tr.t('admin.reports.dismiss')}
                 </Button>
+                {r.autoHidden && <p className="muted w-full text-xs">{tr.t('admin.reports.restoreHint')}</p>}
               </div>
             ) : (
               r.resolution && <p className="muted text-sm">{r.resolution}</p>

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
+import { ReportButton } from '@/components/Report';
 import { Screen } from '@/components/Screen';
 import { FeatureGate } from '@/components/kit';
 import { Avatar, Button, Card, ErrorView, Loading, Text } from '@/components/ui';
@@ -32,7 +33,12 @@ export default function EventScreen() {
   };
   return (
     <FeatureGate id="events">
-      <Stack.Screen options={{ title: e.title }} />
+      <Stack.Screen
+        options={{
+          title: e.title,
+          headerRight: () => (!e.canEdit ? <ReportButton targetType="event" targetId={e.id} size={20} /> : null),
+        }}
+      />
       <Screen>
         <Card style={{ gap: 8 }}>
           <Text weight="black" size={21}>

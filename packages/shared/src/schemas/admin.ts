@@ -72,6 +72,14 @@ export const siteSettingsSchema = z.object({
     .optional(),
   ai: z.object({ enabled: z.boolean(), dailyQuota: z.number().int().min(0).max(10000) }).optional(),
   uploads: z.object({ enabled: z.boolean() }).optional(),
+  moderation: z
+    .object({
+      enabled: z.boolean(),
+      mask: z.array(z.string().trim().min(1).max(60)).max(500).default([]),
+      block: z.array(z.string().trim().min(1).max(60)).max(500).default([]),
+      autoHideReports: z.number().int().min(0).max(50).default(3),
+    })
+    .optional(),
 });
 export type SiteSettingsInput = z.infer<typeof siteSettingsSchema>;
 

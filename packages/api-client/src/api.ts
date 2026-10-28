@@ -120,6 +120,7 @@ export function createApi(options: ClientOptions) {
         password: string;
         displayName: string;
         accountType: 'student' | 'teacher';
+        birthYear?: number;
         language?: string;
         timezone?: string;
       }) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/register', { body, anonymous: true })),
@@ -157,7 +158,9 @@ export function createApi(options: ClientOptions) {
     me: {
       get: () => http.get<Me>('/me'),
       update: (
-        body: Partial<Pick<Me, 'displayName' | 'username' | 'bio' | 'avatarUrl' | 'coverUrl' | 'gender' | 'educationLevel' | 'institution' | 'accountType'>>,
+        body: Partial<
+          Pick<Me, 'displayName' | 'username' | 'bio' | 'avatarUrl' | 'coverUrl' | 'gender' | 'educationLevel' | 'institution' | 'accountType' | 'birthYear'>
+        >,
       ) => http.patch<Me>('/me', body),
       prefs: (body: {
         appearance?: Partial<Me['appearance']>;
@@ -191,7 +194,7 @@ export function createApi(options: ClientOptions) {
         http.get<{ items: { quizId: string; title: string; pct: number; correct: number; total: number; at: number }[] }>(`/users/${id}/quiz-results`),
     },
 
-    report: (body: { targetType: string; targetId: string; reason: string; details?: string }) => http.post<{ id: string }>('/reports', body),
+    report: (body: { targetType: string; targetId: string; reason: string; details?: string }) => http.post<{ id: string; hidden: boolean }>('/reports', body),
 
     posts: {
       feed: (
@@ -730,12 +733,13 @@ export function createApi(options: ClientOptions) {
       unban: (id: string) => http.post<Ok>(`/admin/users/${id}/unban`),
       setRole: (id: string, role: 'user' | 'moderator' | 'admin') => http.put<Ok>(`/admin/users/${id}/role`, { role }),
       setPermissions: (id: string, permissions: string[]) => http.put<Ok>(`/admin/users/${id}/permissions`, { permissions }),
+      setBirthYear: (id: string, birthYear: number | null) => http.put<Ok>(`/admin/users/${id}/birth-year`, { birthYear }),
       setBadge: (id: string, badge: { enabled: boolean; label: string; color: string; icon?: string; shape?: string }) =>
         http.put<Ok>(`/admin/users/${id}/badge`, badge),
       revokeSessions: (id: string) => http.post<Ok>(`/admin/users/${id}/revoke-sessions`),
       deleteUser: (id: string) => http.del<Ok>(`/admin/users/${id}`),
       reports: (q: Q = {}) => http.get<Page<ReportDto>>('/admin/reports', q),
-      resolveReport: (id: string, body: { status: 'resolved' | 'dismissed'; resolution?: string; removeContent?: boolean }) =>
+      resolveReport: (id: string, body: { status: 'resolved' | 'dismissed'; resolution?: string; removeContent?: boolean; closeSimilar?: boolean }) =>
         http.post<Ok>(`/admin/reports/${id}/resolve`, body),
       announcements: () => http.get<{ items: AnnouncementDto[] }>('/admin/announcements'),
       createAnnouncement: (body: Omit<AnnouncementDto, 'id' | 'createdAt'>) => http.post<AnnouncementDto>('/admin/announcements', body),
@@ -788,6 +792,7 @@ export function createApi(options: ClientOptions) {
           contact: Record<string, string>;
           ai: { enabled: boolean; dailyQuota: number };
           uploads: { enabled: boolean };
+          moderation: { enabled: boolean; mask: string[]; block: string[]; autoHideReports: number };
         }>('/admin/settings'),
       saveSettings: (body: Record<string, unknown>) => http.put<unknown>('/admin/settings', body),
       errors: () => http.get<{ items: ClientErrorDto[] }>('/admin/errors'),

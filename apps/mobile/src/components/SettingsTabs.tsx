@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { birthYearChoices } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
@@ -11,6 +13,7 @@ import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { queryClient } from '@/lib/query';
 import { useSession } from '@/lib/session';
+import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
 
 type Tab = 'profile' | 'appearance' | 'account' | 'privacy' | 'notifications' | 'data';
@@ -26,6 +29,7 @@ function Profile() {
     institution: me.institution ?? '',
     educationLevel: me.educationLevel ?? '',
     gender: (me.gender ?? '') as 'male' | 'female' | '',
+    birthYear: me.birthYear ? String(me.birthYear) : '',
   });
   const [busy, setBusy] = useState(false);
   const save = async () => {
@@ -38,6 +42,7 @@ function Profile() {
         institution: form.institution.trim() || null,
         educationLevel: form.educationLevel.trim() || null,
         gender: form.gender || null,
+        ...(form.birthYear && !me.birthYear ? { birthYear: Number(form.birthYear) } : {}),
       });
       patchMe(next);
       toast(tr.t('settings.saved'));
@@ -80,6 +85,20 @@ function Profile() {
       <Input label={tr.t('settings.profile.bio')} value={form.bio} onChangeText={(v) => setForm({ ...form, bio: v })} multiline />
       <Input label={tr.t('settings.profile.institution')} value={form.institution} onChangeText={(v) => setForm({ ...form, institution: v })} />
       <Input label={tr.t('settings.profile.education')} value={form.educationLevel} onChangeText={(v) => setForm({ ...form, educationLevel: v })} />
+      {me.birthYear ? (
+        <Input label={tr.t('settings.profile.birthYear')} value={String(me.birthYear)} editable={false} />
+      ) : (
+        <SelectField
+          label={tr.t('settings.profile.birthYear')}
+          value={form.birthYear}
+          placeholder="—"
+          onChange={(v) => setForm({ ...form, birthYear: v })}
+          options={birthYearChoices().map((y) => ({ value: String(y), label: String(y) }))}
+        />
+      )}
+      <Text muted size={12}>
+        {me.birthYear ? tr.t('settings.profile.birthYearLocked') : tr.t('auth.birthYearHint')}
+      </Text>
       <SelectField
         label={tr.t('settings.profile.gender')}
         value={form.gender}
@@ -225,6 +244,7 @@ function Account() {
 
 function Privacy() {
   const tr = useT();
+  const t = useTheme();
   const me = useSession((s) => s.me)!;
   const patchMe = useSession((s) => s.patchMe);
   const set = async (privacy: Partial<typeof me.privacy>) => {
@@ -236,6 +256,14 @@ function Privacy() {
   };
   return (
     <View style={{ gap: 12 }}>
+      {me.isMinor ? (
+        <Card style={{ flexDirection: 'row', gap: 8 }}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={t.primary} />
+          <Text size={13} style={{ flex: 1 }}>
+            {tr.t('settings.privacy.minorNotice')}
+          </Text>
+        </Card>
+      ) : null}
       <SelectField
         label={tr.t('settings.privacy.profileVisibility')}
         value={me.privacy.profileVisibility}

@@ -1,6 +1,7 @@
 import type { Attachment, CommentDto, PostDto } from '@qubedu/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Award, CheckCircle2, GraduationCap, Send, ThumbsUp, Trash2 } from 'lucide-react';
+import { Award, CheckCircle2, Flag, GraduationCap, Send, ThumbsUp, Trash2 } from 'lucide-react';
+import { reportContent } from '@/components/common/ReportDialog';
 import { useState } from 'react';
 import { ReadAloud } from '@/components/common/ReadAloud';
 import { Avatar, UserName } from '@/components/ui/Avatar';
@@ -151,6 +152,16 @@ export function CommentsSection({
                       </button>
                     )}
                     <ReadAloud text={c.text} compact />
+                    {me && c.author.id !== me.id && (
+                      <IconButton
+                        label={tr.t('common.report')}
+                        size="sm"
+                        className="!size-6"
+                        onClick={() => reportContent({ targetType: 'comment', targetId: c.id })}
+                      >
+                        <Flag className="size-3.5" />
+                      </IconButton>
+                    )}
                     {c.canDelete && (
                       <IconButton
                         label={tr.t('common.delete')}

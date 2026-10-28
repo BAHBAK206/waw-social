@@ -1,8 +1,9 @@
 import type { Context } from 'hono';
 import type { z } from 'zod';
-import { hasPermission, type AdminPermission } from '@qubedu/shared';
+import { hasPermission, moderateBody, type AdminPermission } from '@qubedu/shared';
 import type { AppEnv, AuthUser } from './context';
-import { badRequest, forbidden, unauthorized } from './errors';
+import { AppError, badRequest, forbidden, unauthorized } from './errors';
+import { getSettings } from './settings';
 
 export type Ctx = Context<AppEnv>;
 
@@ -13,7 +14,23 @@ export async function body<T extends z.ZodType>(c: Ctx, schema: T): Promise<z.in
   } catch {
     throw badRequest('invalid_json');
   }
-  return schema.parse(raw);
+  const parsed = schema.parse(raw) as z.infer<T>;
+  return screen(c, parsed);
+}
+
+/**
+ * Every published text goes through the automatic filter: insults are masked, threats / self-harm encouragement /
+ * solicitation are rejected. Admin console writes are exempt so moderators can quote what they act on.
+ */
+async function screen<V>(c: Ctx, value: V): Promise<V> {
+  if (c.req.path.includes('/admin/') || c.req.path.includes('/internal/')) return value;
+  const deps = c.get('deps');
+  if (!deps) return value;
+  const settings = await getSettings(deps.db, deps.env.AI_DAILY_QUOTA);
+  if (!settings.moderation.enabled) return value;
+  const r = moderateBody(value, { mask: settings.moderation.mask, block: settings.moderation.block });
+  if (r.blocked) throw new AppError(422, 'content_blocked');
+  return r.value;
 }
 
 export function query<T extends z.ZodType>(c: Ctx, schema: T): z.infer<T> {

@@ -131,6 +131,7 @@ export const authRoutes = new Hono<AppEnv>()
         displayName: input.displayName,
         searchName: normalizeSearch(input.displayName),
         accountType: input.accountType,
+        birthYear: input.birthYear ?? null,
         role: isRoot ? 'root' : 'user',
         timezone: input.timezone && isValidTimeZone(input.timezone) ? input.timezone : 'UTC',
         appearance: { language },

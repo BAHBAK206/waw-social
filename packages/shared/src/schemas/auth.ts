@@ -13,11 +13,27 @@ export const usernameSchema = z
   .max(LIMITS.username.max)
   .regex(/^[a-z0-9_.]+$/, 'invalid_username');
 
+/** Birth year: only used to apply under-18 protections. Ages 5–120. */
+export const birthYearSchema = z
+  .number()
+  .int()
+  .refine((y) => {
+    const now = new Date().getUTCFullYear();
+    return y <= now - 5 && y >= now - 120;
+  }, 'invalid_birth_year');
+
+/** Years to offer in a birth-year picker, newest first (ages 5 to 100). */
+export function birthYearChoices(now = new Date()): number[] {
+  const y = now.getUTCFullYear();
+  return Array.from({ length: 96 }, (_, i) => y - 5 - i);
+}
+
 export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   displayName: displayNameSchema,
   accountType: z.enum(['student', 'teacher']).default('student'),
+  birthYear: birthYearSchema.optional(),
   language: z.enum(LANGUAGES as [string, ...string[]]).optional(),
   timezone: z.string().max(64).optional(),
 });

@@ -8,13 +8,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, TextInput, View } from 'react-native';
 import { VoicePlayer, VoiceRecorder } from '@/components/Voice';
 import { pickDocument } from '@/components/kit';
+import { reportContent } from '@/components/Report';
 import { Avatar, Loading, Text } from '@/components/ui';
 import { api, fileUrl, realtime, uploadFile } from '@/lib/api';
 import { formatTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { FONT, useTheme } from '@/lib/theme';
-import { toastError } from '@/lib/ui';
+import { confirm, toastError } from '@/lib/ui';
 import { channels, useRealtimeChannel } from '@/lib/useRealtime';
 
 type Page = { items: MessageDto[]; nextCursor: string | null; peerLastReadAt: number | null };
@@ -95,6 +96,22 @@ export default function ChatScreen() {
     }
   };
 
+  // Long press on a message: delete your own, report someone else's.
+  const messageActions = async (m: MessageDto, mine: boolean) => {
+    if (m.id.startsWith('tmp-')) return;
+    if (!mine) {
+      reportContent({ targetType: 'message', targetId: m.id });
+      return;
+    }
+    if (!(await confirm(tr.t('chat.deleteConfirm'), { danger: true, confirmLabel: tr.t('common.delete') }))) return;
+    try {
+      await api.chat.remove(m.id);
+      upsert({ ...m, deleted: true, text: '', attachment: null });
+    } catch (e) {
+      toastError(e);
+    }
+  };
+
   const attach = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
     if (res.canceled || !res.assets[0]) return;
@@ -151,7 +168,10 @@ export default function ChatScreen() {
             return (
               <View style={{ flexDirection: mine ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8 }}>
                 {!mine && !direct ? <Avatar name={m.sender.displayName} url={m.sender.avatarUrl} size={28} /> : null}
-                <View
+                <Pressable
+                  onLongPress={m.deleted ? undefined : () => messageActions(m, mine)}
+                  delayLongPress={350}
+                  accessibilityHint={m.deleted ? undefined : tr.t(mine ? 'common.delete' : 'common.report')}
                   style={{ maxWidth: '78%', backgroundColor: mine ? t.primary : t.bg3, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, gap: 4 }}
                 >
                   {showName ? (
@@ -212,7 +232,7 @@ export default function ChatScreen() {
                       />
                     ) : null}
                   </View>
-                </View>
+                </Pressable>
               </View>
             );
           }}

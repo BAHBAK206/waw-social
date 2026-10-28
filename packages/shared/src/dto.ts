@@ -59,6 +59,10 @@ export interface Me extends PublicProfile {
   gender: 'male' | 'female' | null;
   appearance: Appearance;
   privacy: Privacy;
+  /** Only ever returned to the person themselves. */
+  birthYear: number | null;
+  /** Under 18: stricter messaging and profile rules apply automatically. */
+  isMinor: boolean;
   notificationPrefs: NotificationPrefs;
   timezone: string;
   dailyGoalMinutes: number;
@@ -749,6 +753,8 @@ export interface AdminUserDto extends UserSummary {
   emailVerified: boolean;
   createdAt: number;
   lastSeenAt: number | null;
+  birthYear: number | null;
+  isMinor: boolean;
 }
 
 export interface ReportDto {
@@ -761,6 +767,10 @@ export interface ReportDto {
   reporter: UserSummary;
   target: { label: string; link: string | null } | null;
   resolution: string | null;
+  /** Hidden automatically because several members reported it. */
+  autoHidden: boolean;
+  /** Open reports on the same item (this one included). */
+  reportCount: number;
   createdAt: number;
   resolvedAt: number | null;
 }

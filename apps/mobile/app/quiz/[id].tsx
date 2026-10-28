@@ -291,7 +291,7 @@ export default function QuizScreen() {
       setFailed(true);
       toastError(e);
     }
-  }, [id, review]);
+  }, [id, review, topic]);
   useEffect(() => {
     if (started.current) return;
     started.current = true;

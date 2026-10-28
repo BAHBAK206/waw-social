@@ -47,8 +47,8 @@ export function ReportHost() {
             onClick={async () => {
               setBusy(true);
               try {
-                await api.report({ ...target, reason, details: details.trim() || undefined });
-                toast(tr.t('report.sent'));
+                const res = await api.report({ ...target, reason, details: details.trim() || undefined });
+                toast(tr.t(res.hidden ? 'report.hidden' : 'report.sent'));
                 close();
               } catch (e) {
                 toastError(e);

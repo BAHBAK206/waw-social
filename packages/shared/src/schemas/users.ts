@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { LIMITS } from '../limits';
 import { DESIGNS, LANGUAGES, SKINS, TEXT_SIZES, THEME_MODES } from '../appearance';
-import { displayNameSchema, usernameSchema } from './auth';
+import { birthYearSchema, displayNameSchema, usernameSchema } from './auth';
 import { optionalUrl, trimmed } from './common';
 
 const tuple = <T extends string>(v: readonly T[]) => v as unknown as [T, ...T[]];
@@ -16,6 +16,7 @@ export const updateProfileSchema = z.object({
   educationLevel: trimmed(80).optional().nullable(),
   institution: trimmed(LIMITS.institution).optional().nullable(),
   accountType: z.enum(['student', 'teacher']).optional(),
+  birthYear: birthYearSchema.optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 

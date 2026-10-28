@@ -13,6 +13,7 @@ import { conversationMembers, conversations, follows, messages, notifications, s
 import type { Deps } from './context';
 import { notFound } from './errors';
 import { ms, onlineKey, toSummary } from './mappers';
+import { isMinor, knowsMinor } from './minors';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -24,8 +25,21 @@ export function privacyOf(row: UserRow) {
   return privacySchema.parse(row.privacy ?? {});
 }
 
-async function canMessage(deps: Deps, target: UserRow, viewerId: string | null): Promise<boolean> {
+/**
+ * Under-18 rule, applied on top of everyone's own message setting: an adult and a student under 18 can only message
+ * each other when the student already knows them (follows them, same study group or course). Returns null when the
+ * rule doesn't apply (both adults, or both under 18).
+ */
+export async function minorContactAllowed(deps: Deps, a: Pick<UserRow, 'id' | 'birthYear'>, b: Pick<UserRow, 'id' | 'birthYear'>): Promise<boolean | null> {
+  const am = isMinor(a.birthYear);
+  const bm = isMinor(b.birthYear);
+  if (am === bm) return null;
+  return am ? knowsMinor(deps.db, a.id, b.id) : knowsMinor(deps.db, b.id, a.id);
+}
+
+async function canMessage(deps: Deps, target: UserRow, viewerId: string | null, viewerBirthYear: number | null): Promise<boolean> {
   if (!viewerId || viewerId === target.id) return false;
+  if ((await minorContactAllowed(deps, target, { id: viewerId, birthYear: viewerBirthYear })) === false) return false;
   const p = privacyOf(target);
   if (p.allowMessages === 'everyone') return true;
   if (p.allowMessages === 'none') return false;
@@ -59,13 +73,16 @@ export async function buildProfile(deps: Deps, row: UserRow, viewerId: string | 
   const privacy = privacyOf(row);
   const self = viewerId === row.id;
   const statsHidden = !self && !privacy.showStats;
+  const [viewerRow] = viewerId && !self ? await db.select({ birthYear: users.birthYear }).from(users).where(eq(users.id, viewerId)) : [];
+  // A student under 18 shows school and activity details only to people they already know.
+  const guarded = !self && isMinor(row.birthYear) && !(viewerId && (await knowsMinor(db, row.id, viewerId)));
   return {
     ...toSummary(row),
-    online: self || privacy.showOnline ? !!online : false,
+    online: !guarded && (self || privacy.showOnline) ? !!online : false,
     bio: row.bio,
     coverUrl: row.coverUrl,
-    institution: row.institution,
-    educationLevel: row.educationLevel,
+    institution: guarded ? null : row.institution,
+    educationLevel: guarded ? null : row.educationLevel,
     streak: statsHidden ? 0 : row.streak,
     quizCount: statsHidden ? 0 : row.quizCount,
     studyMinutes: statsHidden ? 0 : row.studyMinutes,
@@ -75,8 +92,8 @@ export async function buildProfile(deps: Deps, row: UserRow, viewerId: string | 
     followsYou: (followsYou[0]?.n ?? 0) > 0,
     achievements: achievements.map((a) => ({ id: a.achievementId, unlockedAt: a.unlockedAt.getTime() })),
     createdAt: row.createdAt.getTime(),
-    lastSeenAt: self || privacy.showOnline ? ms(row.lastSeenAt) : null,
-    canMessage: await canMessage(deps, row, viewerId),
+    lastSeenAt: !guarded && (self || privacy.showOnline) ? ms(row.lastSeenAt) : null,
+    canMessage: await canMessage(deps, row, viewerId, viewerRow?.birthYear ?? null),
     statsHidden,
   };
 }
@@ -129,6 +146,8 @@ export async function buildMe(deps: Deps, userId: string): Promise<Me> {
     gender: (row.gender as 'male' | 'female' | null) ?? null,
     appearance: appearanceOf(row),
     privacy: privacyOf(row),
+    birthYear: row.birthYear ?? null,
+    isMinor: isMinor(row.birthYear),
     notificationPrefs: notificationPrefsSchema.parse(row.notificationPrefs ?? {}),
     timezone: row.timezone,
     dailyGoalMinutes: row.dailyGoalMinutes,

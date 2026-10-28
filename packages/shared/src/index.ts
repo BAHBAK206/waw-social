@@ -14,3 +14,4 @@ export type * from './dto';
 export * from './pronunciation';
 export * from './quizEditor';
 export * from './formEditor';
+export * from './moderation';
