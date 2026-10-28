@@ -1436,6 +1436,10 @@ export const ar: Dictionary = {
       family: 'العائلة',
     },
     appearance: {
+      accessibilityHint:
+        'التباين العالي يستخدم خلفيات بيضاء وسوداء مع نص وحدود أوضح. القراءة الأسهل تستخدم خط OpenDyslexic للحروف اللاتينية وتزيد المسافة بين الكلمات والأسطر.',
+      dyslexiaFont: 'قراءة أسهل (خط ومسافات مناسبة لعُسر القراءة)',
+      highContrast: 'تباين عالٍ',
       theme: 'الوضع',
       themes: { light: 'فاتح', dark: 'داكن', system: 'حسب الجهاز' },
       design: 'التصميم',

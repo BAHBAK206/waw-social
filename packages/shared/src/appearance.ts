@@ -13,6 +13,10 @@ export const LANGUAGES: readonly Language[] = ['ar', 'en', 'fr', 'es'];
 export type TextSize = 'sm' | 'md' | 'lg' | 'xl';
 export const TEXT_SIZES: readonly TextSize[] = ['sm', 'md', 'lg', 'xl'];
 
+/** `dyslexic`: OpenDyslexic for Latin letters plus wider letter, word and line spacing in every language. */
+export type ReadingFont = 'default' | 'dyslexic';
+export const READING_FONTS: readonly ReadingFont[] = ['default', 'dyslexic'];
+
 export interface Appearance {
   theme: ThemeMode;
   design: DesignName;
@@ -20,6 +24,8 @@ export interface Appearance {
   language: Language;
   textSize: TextSize;
   reduceMotion: boolean;
+  highContrast: boolean;
+  readingFont: ReadingFont;
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -29,4 +35,6 @@ export const DEFAULT_APPEARANCE: Appearance = {
   language: 'ar',
   textSize: 'md',
   reduceMotion: false,
+  highContrast: false,
+  readingFont: 'default',
 };

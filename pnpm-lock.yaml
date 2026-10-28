@@ -168,6 +168,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@fontsource/opendyslexic':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/tajawal':
         specifier: 5.3.0
         version: 5.3.0
@@ -1885,6 +1888,9 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@fontsource/opendyslexic@5.3.0':
+    resolution: {integrity: sha512-BVYIW/ghc1U2iAghhYTN+GFWiZ3lnCy8Jf2KkZC23aHQHBNcMqKT718zckfqVxRx4qsXJmIMPWvczirRuhmtsg==}
 
   '@fontsource/tajawal@5.3.0':
     resolution: {integrity: sha512-R2GUdHHAebeZ+CyYvulaSECfZe3BWbNjEWX3TXG0Csnx4RADO/zyqk6Y//NYdSx5n74zRJh9HTvd61mpX/UzZQ==}
@@ -8580,6 +8586,8 @@ snapshots:
 
   '@floating-ui/utils@0.2.12':
     optional: true
+
+  '@fontsource/opendyslexic@5.3.0': {}
 
   '@fontsource/tajawal@5.3.0': {}
 

@@ -1443,6 +1443,10 @@ export const fr: Dictionary = {
       family: 'Famille',
     },
     appearance: {
+      accessibilityHint:
+        'Le contraste élevé utilise des fonds noirs et blancs, avec un texte et des bordures plus marqués. La lecture facilitée utilise la police OpenDyslexic pour l’alphabet latin et espace davantage les mots et les lignes.',
+      dyslexiaFont: 'Lecture facilitée (police et espacement adaptés à la dyslexie)',
+      highContrast: 'Contraste élevé',
       theme: 'Mode',
       themes: { light: 'Clair', dark: 'Sombre', system: 'Système' },
       design: 'Design',

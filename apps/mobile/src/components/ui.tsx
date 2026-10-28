@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { fileUrl } from '@/lib/api';
 import { useT } from '@/lib/i18n';
-import { FONT, useTheme } from '@/lib/theme';
+import { type FONT, useTheme } from '@/lib/theme';
 
 type Weight = keyof typeof FONT;
 
@@ -30,10 +30,20 @@ export function Text({
   ...rest
 }: TextProps & { weight?: Weight; size?: number; color?: string; muted?: boolean }) {
   const t = useTheme();
+  const px = size * t.textScale;
   return (
     <RNText
       {...rest}
-      style={[{ fontFamily: FONT[weight], fontSize: size * t.textScale, color: color ?? (muted ? t.text3 : t.text), writingDirection: 'auto' }, style]}
+      style={[
+        {
+          fontFamily: t.fonts[weight],
+          fontSize: px,
+          color: color ?? (muted ? (t.highContrast ? t.text2 : t.text3) : t.text),
+          writingDirection: 'auto',
+        },
+        t.dyslexic ? { lineHeight: Math.round(px * 1.65), letterSpacing: t.latin ? px * 0.04 : 0 } : null,
+        style,
+      ]}
     />
   );
 }
@@ -43,7 +53,7 @@ export function Card({ children, style, onPress }: { children: ReactNode; style?
   const base: ViewStyle = {
     backgroundColor: t.cardSolid,
     borderRadius: t.radiusCard,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: t.highContrast ? 2 : StyleSheet.hairlineWidth,
     borderColor: t.border,
     padding: 14,
   };
@@ -127,13 +137,13 @@ export function Input({ label, error, style, ...rest }: TextInputProps & { label
           {
             minHeight: 48,
             borderRadius: t.radiusControl,
-            borderWidth: 1.5,
+            borderWidth: t.highContrast ? 2 : 1.5,
             borderColor: error ? t.err : t.border,
             backgroundColor: t.bg2,
             paddingHorizontal: 14,
             paddingVertical: 10,
             color: t.text,
-            fontFamily: FONT.regular,
+            fontFamily: t.fonts.regular,
             fontSize: 15 * t.textScale,
             textAlign: 'auto',
           },

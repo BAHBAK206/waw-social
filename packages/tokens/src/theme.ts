@@ -1,5 +1,5 @@
 import type { DesignName, SkinName, TextSize } from '@qubedu/shared';
-import { mix, over, withAlpha } from './color';
+import { contrast, mix, over, withAlpha } from './color';
 import { DESIGN_TOKENS, SKIN_TOKENS, STATUS_TOKENS, TEXT_SCALE, type StatusTokens, type SurfaceTokens } from './palette';
 
 export type ResolvedMode = 'light' | 'dark';
@@ -27,7 +27,44 @@ export interface ResolvedTheme extends SurfaceTokens, StatusTokens {
   cardSolid: string;
 }
 
-export function resolveTheme(design: DesignName, skin: SkinName, mode: ResolvedMode, textSize: TextSize = 'md'): ResolvedTheme {
+/** Darkens (light) or lightens (dark) a brand color until it reaches `target` contrast on `bg`. */
+function inkFor(color: string, bg: string, toward: string, target: number): string {
+  for (let w = 0; w <= 1; w += 0.05) {
+    const c = mix(color, toward, w);
+    if (contrast(c, bg) >= target) return c;
+  }
+  return toward;
+}
+
+/** Plain black/white surfaces, strong borders and AAA (7:1) text and status colors. */
+function withHighContrast(t: ResolvedTheme): ResolvedTheme {
+  const light = t.mode === 'light';
+  const bg = light ? '#ffffff' : '#000000';
+  return {
+    ...t,
+    bg,
+    bg2: light ? '#f2f2f2' : '#0f0f0f',
+    bg3: light ? '#e3e3e3' : '#1f1f1f',
+    card: bg,
+    card2: light ? '#f2f2f2' : '#141414',
+    cardSolid: bg,
+    text: light ? '#000000' : '#ffffff',
+    text2: light ? '#111111' : '#f2f2f2',
+    text3: light ? '#2b2b2b' : '#d9d9d9',
+    border: light ? '#3d3d3d' : '#c2c2c2',
+    primaryInk: light ? inkFor(t.primary, bg, '#000000', 7.5) : inkFor(t.primary2, bg, '#ffffff', 7.5),
+    primarySoft: withAlpha(t.primary, light ? 0.16 : 0.28),
+    ok: light ? '#005524' : '#5cf08f',
+    warn: light ? '#6b3f00' : '#ffc94d',
+    err: light ? '#9c0000' : '#ff8a8a',
+    info: light ? '#003f80' : '#7cc0ff',
+    overlay: 'rgba(0,0,0,0.82)',
+    glass: false,
+  };
+}
+
+export function resolveTheme(design: DesignName, skin: SkinName, mode: ResolvedMode, textSize: TextSize = 'md', highContrast = false): ResolvedTheme {
+  if (highContrast) return withHighContrast(resolveTheme(design, skin, mode, textSize));
   const d = DESIGN_TOKENS[design] ?? DESIGN_TOKENS.classic;
   const s = SKIN_TOKENS[skin] ?? SKIN_TOKENS.violet;
   const surface = d[mode];
@@ -135,6 +172,18 @@ export function buildThemeCss(): string {
       const vars = Object.fromEntries(Object.entries(themeVariables(t)).filter(([k]) => accentKeys.has(k)));
       const sel = skin === 'violet' && mode === 'light' ? `:root,[data-skin="violet"][data-theme="light"]` : `[data-skin="${skin}"][data-theme="${mode}"]`;
       lines.push(block(sel, vars));
+    }
+  }
+  // High contrast comes last so it wins over any design or skin.
+  for (const mode of modes) {
+    const t = resolveTheme('classic', 'violet', mode, 'md', true);
+    const vars = Object.fromEntries(Object.entries(themeVariables(t)).filter(([k]) => !accentKeys.has(k) && !k.startsWith('--radius')));
+    lines.push(block(`[data-contrast="high"][data-theme="${mode}"]`, vars));
+    for (const skin of skins) {
+      const s = resolveTheme('classic', skin, mode, 'md', true);
+      lines.push(
+        block(`[data-contrast="high"][data-skin="${skin}"][data-theme="${mode}"]`, { '--primary-ink': s.primaryInk, '--primary-soft': s.primarySoft }),
+      );
     }
   }
   return lines.join('\n');

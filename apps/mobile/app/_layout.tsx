@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastHost } from '@/components/Toast';
+import openDyslexicBold from '../assets/fonts/OpenDyslexic-Bold.otf';
+import openDyslexicRegular from '../assets/fonts/OpenDyslexic-Regular.otf';
 import { ReportHost } from '@/components/Report';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useAppearance } from '@/lib/appearance';
@@ -107,7 +109,14 @@ function Shell() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Tajawal_400Regular, Tajawal_500Medium, Tajawal_700Bold, Tajawal_800ExtraBold });
+  const [fontsLoaded] = useFonts({
+    Tajawal_400Regular,
+    Tajawal_500Medium,
+    Tajawal_700Bold,
+    Tajawal_800ExtraBold,
+    OpenDyslexic_Regular: openDyslexicRegular,
+    OpenDyslexic_Bold: openDyslexicBold,
+  });
   const ready = useAppearance((s) => s.ready);
   const status = useSession((s) => s.status);
   useEffect(() => {

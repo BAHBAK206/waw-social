@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_APPEARANCE, DESIGNS, LANGUAGES, SKINS, TEXT_SIZES, THEME_MODES, type Appearance } from '@qubedu/shared';
+import { DEFAULT_APPEARANCE, DESIGNS, LANGUAGES, READING_FONTS, SKINS, TEXT_SIZES, THEME_MODES, type Appearance } from '@qubedu/shared';
 import { detectLocale } from '@qubedu/i18n';
 import { getLocales } from 'expo-localization';
 import { I18nManager } from 'react-native';
@@ -17,6 +17,8 @@ function sanitize(raw: unknown): Partial<Appearance> {
   if (LANGUAGES.includes(r.language as never)) out.language = r.language as Appearance['language'];
   if (TEXT_SIZES.includes(r.textSize as never)) out.textSize = r.textSize as Appearance['textSize'];
   if (typeof r.reduceMotion === 'boolean') out.reduceMotion = r.reduceMotion;
+  if (typeof r.highContrast === 'boolean') out.highContrast = r.highContrast;
+  if (READING_FONTS.includes(r.readingFont as never)) out.readingFont = r.readingFont as Appearance['readingFont'];
   return out;
 }
 

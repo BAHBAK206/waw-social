@@ -283,6 +283,13 @@ function AppearanceTab() {
           ))}
         </div>
         <Switch checked={a.reduceMotion} onChange={(v) => update({ reduceMotion: v })} label={tr.t('settings.appearance.reduceMotion')} />
+        <Switch checked={a.highContrast} onChange={(v) => update({ highContrast: v })} label={tr.t('settings.appearance.highContrast')} />
+        <Switch
+          checked={a.readingFont === 'dyslexic'}
+          onChange={(v) => update({ readingFont: v ? 'dyslexic' : 'default' })}
+          label={tr.t('settings.appearance.dyslexiaFont')}
+        />
+        <p className="muted text-xs">{tr.t('settings.appearance.accessibilityHint')}</p>
       </Section>
       {canInstall() && (
         <Section title={tr.t('settings.install')}>

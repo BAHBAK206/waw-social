@@ -83,6 +83,15 @@ function Appearance() {
       </View>
 
       <SwitchRow label={tr.t('settings.appearance.reduceMotion')} value={a.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
+      <SwitchRow label={tr.t('settings.appearance.highContrast')} value={a.highContrast} onChange={(v) => update({ highContrast: v })} />
+      <SwitchRow
+        label={tr.t('settings.appearance.dyslexiaFont')}
+        value={a.readingFont === 'dyslexic'}
+        onChange={(v) => update({ readingFont: v ? 'dyslexic' : 'default' })}
+      />
+      <Text muted size={12}>
+        {tr.t('settings.appearance.accessibilityHint')}
+      </Text>
     </View>
   );
 }

@@ -1454,6 +1454,10 @@ export const es: Dictionary = {
       family: 'Familia',
     },
     appearance: {
+      accessibilityHint:
+        'El alto contraste usa fondos blancos y negros con texto y bordes más marcados. La lectura más fácil usa la fuente OpenDyslexic para letras latinas y añade espacio entre palabras y líneas.',
+      dyslexiaFont: 'Lectura más fácil (letra y espaciado para dislexia)',
+      highContrast: 'Alto contraste',
       theme: 'Modo',
       themes: { light: 'Claro', dark: 'Oscuro', system: 'Sistema' },
       design: 'Diseño',

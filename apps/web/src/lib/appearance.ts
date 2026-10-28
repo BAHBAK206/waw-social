@@ -1,4 +1,4 @@
-import { DEFAULT_APPEARANCE, DESIGNS, LANGUAGES, SKINS, TEXT_SIZES, THEME_MODES, type Appearance } from '@qubedu/shared';
+import { DEFAULT_APPEARANCE, DESIGNS, LANGUAGES, READING_FONTS, SKINS, TEXT_SIZES, THEME_MODES, type Appearance } from '@qubedu/shared';
 import { detectLocale } from '@qubedu/i18n';
 import { buildThemeCss, resolveTheme, TEXT_SCALE } from '@qubedu/tokens';
 import { create } from 'zustand';
@@ -16,6 +16,8 @@ function sanitize(raw: unknown): Partial<Appearance> {
   if (LANGUAGES.includes(r.language as never)) out.language = r.language as Appearance['language'];
   if (TEXT_SIZES.includes(r.textSize as never)) out.textSize = r.textSize as Appearance['textSize'];
   if (typeof r.reduceMotion === 'boolean') out.reduceMotion = r.reduceMotion;
+  if (typeof r.highContrast === 'boolean') out.highContrast = r.highContrast;
+  if (READING_FONTS.includes(r.readingFont as never)) out.readingFont = r.readingFont as Appearance['readingFont'];
   return out;
 }
 
@@ -61,10 +63,12 @@ export function applyAppearance(a: Appearance) {
   root.dataset.skin = a.skin;
   root.dataset.theme = mode;
   root.dataset.reduceMotion = String(a.reduceMotion);
+  root.dataset.contrast = a.highContrast ? 'high' : 'normal';
+  root.dataset.font = a.readingFont;
   root.lang = a.language;
   root.dir = a.language === 'ar' ? 'rtl' : 'ltr';
   root.style.setProperty('--text-scale', String(TEXT_SCALE[a.textSize]));
-  const theme = resolveTheme(a.design, a.skin, mode, a.textSize);
+  const theme = resolveTheme(a.design, a.skin, mode, a.textSize, a.highContrast);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', mode === 'dark' ? theme.bg : theme.primary);
 }
 

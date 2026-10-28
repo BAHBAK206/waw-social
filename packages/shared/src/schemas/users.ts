@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { LIMITS } from '../limits';
-import { DESIGNS, LANGUAGES, SKINS, TEXT_SIZES, THEME_MODES } from '../appearance';
+import { DESIGNS, LANGUAGES, READING_FONTS, SKINS, TEXT_SIZES, THEME_MODES } from '../appearance';
 import { birthYearSchema, displayNameSchema, usernameSchema } from './auth';
 import { optionalUrl, trimmed } from './common';
 
@@ -49,6 +49,8 @@ export const appearanceSchema = z.object({
   language: z.enum(tuple(LANGUAGES)),
   textSize: z.enum(tuple(TEXT_SIZES)),
   reduceMotion: z.boolean(),
+  highContrast: z.boolean(),
+  readingFont: z.enum(tuple(READING_FONTS)),
 });
 
 export const updatePrefsSchema = z.object({

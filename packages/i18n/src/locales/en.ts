@@ -1434,6 +1434,10 @@ export const en = {
       family: 'Family',
     },
     appearance: {
+      accessibilityHint:
+        'High contrast uses black and white surfaces with stronger text and borders. Easier reading uses the OpenDyslexic font for Latin letters and adds space between words and lines.',
+      dyslexiaFont: 'Easier reading (dyslexia-friendly font and spacing)',
+      highContrast: 'High contrast',
       theme: 'Mode',
       themes: { light: 'Light', dark: 'Dark', system: 'System' },
       design: 'Design',
