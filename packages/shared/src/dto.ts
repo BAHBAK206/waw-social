@@ -444,7 +444,59 @@ export interface CourseDto {
   memberCount: number;
   myRole: 'teacher' | 'assistant' | 'student' | null;
   archived: boolean;
+  listed: boolean;
+  priceCents: number;
+  currency: string;
   createdAt: number;
+}
+
+/** A course in the public catalog (no class code, no members list). */
+export interface CatalogCourseDto {
+  id: string;
+  title: string;
+  description: string;
+  subject: string | null;
+  coverUrl: string | null;
+  color: string | null;
+  owner: UserSummary;
+  memberCount: number;
+  priceCents: number;
+  currency: string;
+  enrolled: boolean;
+  /** Card payment available (else vouchers only). */
+  cardPayments: boolean;
+  outline: { assignments: number; materials: number; lessons: number };
+}
+
+export interface VoucherDto {
+  code: string;
+  usedBy: UserSummary | null;
+  usedAt: number | null;
+  createdAt: number;
+}
+
+export interface CertificateDto {
+  id: string;
+  code: string;
+  title: string;
+  holder: UserSummary;
+  courseId: string | null;
+  courseTitle: string | null;
+  issuerName: string;
+  grade: number | null;
+  issuedAt: number;
+  revoked: boolean;
+}
+
+export interface CertificateVerifyDto {
+  valid: boolean;
+  revoked: boolean;
+  holderName: string;
+  title: string;
+  courseTitle: string | null;
+  issuerName: string;
+  grade: number | null;
+  issuedAt: number;
 }
 
 export interface CourseAnnouncementDto {

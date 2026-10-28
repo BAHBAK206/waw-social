@@ -28,6 +28,10 @@ import type {
   VideoCommentDto,
   VideoDto,
   CaptionTrackDto,
+  CatalogCourseDto,
+  CertificateDto,
+  CertificateVerifyDto,
+  VoucherDto,
   ChildReportDto,
   CourseInsightsDto,
   FamilyDto,
@@ -551,6 +555,22 @@ export function createApi(options: ClientOptions) {
       studyLog: (days = 90) => http.get<{ items: { day: string; minutes: number; quizzes: number; cards: number }[] }>('/academic/study-log', { days }),
     },
 
+    catalog: {
+      list: (q: { q?: string; limit?: number } = {}) => http.get<{ items: CatalogCourseDto[] }>('/catalog', q),
+      get: (id: string) => http.get<CatalogCourseDto>(`/catalog/${id}`),
+      enroll: (id: string) => http.post<CourseDto>(`/catalog/${id}/enroll`),
+      checkout: (id: string) => http.post<{ url: string }>(`/catalog/${id}/checkout`),
+    },
+
+    certificates: {
+      mine: () => http.get<{ items: CertificateDto[] }>('/certificates/mine'),
+      course: (courseId: string) => http.get<{ items: CertificateDto[] }>(`/certificates/course/${courseId}`),
+      issue: (courseId: string, body: { studentIds?: string[]; minGrade?: number; title?: string }) =>
+        http.post<{ issued: number }>(`/certificates/course/${courseId}`, body),
+      revoke: (id: string) => http.del<Ok>(`/certificates/${id}`),
+      verify: (code: string) => http.get<CertificateVerifyDto>(`/certificates/verify/${encodeURIComponent(code)}`),
+    },
+
     family: {
       get: () => http.get<FamilyDto>('/family'),
       code: () => http.post<{ code: string; expiresAt: number }>('/family/code'),
@@ -560,6 +580,9 @@ export function createApi(options: ClientOptions) {
     },
 
     school: {
+      redeem: (code: string) => http.post<CourseDto>('/school/redeem', { code }),
+      vouchers: (courseId: string) => http.get<{ items: VoucherDto[] }>(`/school/courses/${courseId}/vouchers`),
+      makeVouchers: (courseId: string, count: number) => http.post<{ codes: string[] }>(`/school/courses/${courseId}/vouchers`, { count }),
       insights: (courseId: string) => http.get<CourseInsightsDto>(`/school/courses/${courseId}/insights`),
       atRisk: () => http.get<{ items: (StudentInsightDto & { courses: string[] })[] }>('/school/at-risk'),
       nudge: (courseId: string, studentId: string, message: string) => http.post<Ok>(`/school/courses/${courseId}/nudge`, { studentId, message }),
@@ -577,6 +600,9 @@ export function createApi(options: ClientOptions) {
           coverUrl: string | null;
           color: string | null;
           archived: boolean;
+          listed: boolean;
+          priceCents: number;
+          currency: string;
           regenerateCode: boolean;
         }>,
       ) => http.patch<CourseDto>(`/school/courses/${id}`, body),

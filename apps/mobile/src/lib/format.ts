@@ -52,3 +52,12 @@ export function formatDay(
     return typeof day === 'string' ? day : d.toISOString().slice(0, 10);
   }
 }
+
+/** A course price, e.g. "$15.00"; 0 is shown by the caller as "Free". */
+export function formatPrice(cents: number, currency: string, tr: Translator): string {
+  try {
+    return new Intl.NumberFormat(tr.intl, { style: 'currency', currency }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${currency}`;
+  }
+}

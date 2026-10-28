@@ -25,6 +25,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
     items: [
       { id: 'academic', icon: 'school-outline', href: '/study' },
       { id: 'school', icon: 'easel-outline', href: '/school' },
+      { id: 'catalog', icon: 'storefront-outline', href: '/courses' },
       { id: 'lab', icon: 'mic-outline', href: '/lab' },
       { id: 'ai', icon: 'sparkles-outline', href: '/tutor' },
       { id: 'assistant', icon: 'chatbubble-ellipses-outline', href: '/assistant' },
@@ -49,6 +50,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
     items: [
       { id: 'organizer', icon: 'checkbox-outline', href: '/organizer' },
       { id: 'family', icon: 'people-circle-outline', href: '/family' },
+      { id: 'certificates', icon: 'ribbon-outline', href: '/certificates' },
       { id: 'saved', icon: 'bookmark-outline', href: '/saved' },
       { id: 'studio', icon: 'cloud-upload-outline', href: '/studio' },
     ],

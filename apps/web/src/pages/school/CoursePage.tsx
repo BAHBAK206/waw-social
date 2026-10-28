@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { CourseInsights } from '@/components/family/Insights';
+import { CatalogSettings, CourseCertificates, Vouchers } from '@/components/school/CourseCommerce';
 import { UploadButton } from '@/components/ui/Upload';
 import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
 import { api, fileUrl } from '@/lib/api';
@@ -849,6 +850,9 @@ function Settings({ course }: { course: CourseDto }) {
           {tr.t('common.save')}
         </Button>
       </section>
+      <CatalogSettings course={course} />
+      <Vouchers course={course} />
+      <CourseCertificates course={course} />
       <section className="card flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-0 flex-1">
           <p className="muted text-sm">{tr.t('school.code')}</p>

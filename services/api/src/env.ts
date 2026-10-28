@@ -39,6 +39,10 @@ const schema = z.object({
   FFPROBE_PATH: z.string().default('ffprobe'),
   /** CDN in front of public files (e.g. https://cdn.example.com). Public file links use it instead of the API address. */
   PUBLIC_FILES_URL: z.string().optional(),
+  /** Card payments for paid courses (Stripe Checkout). Without a key, paid courses are joined with vouchers only. */
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_API_URL: z.string().default('https://api.stripe.com'),
   /** Web Push (browser notifications). Generated and stored automatically when not set. */
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),

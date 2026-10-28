@@ -37,6 +37,9 @@ export function appPath(link: string | null | undefined): string | null {
   }
   if (path === '/school') return '/school';
   if (path === '/family') return `/family${qs}`;
+  if (path === '/courses') return '/courses';
+  if ((r = m(/^\/courses\/([\w-]+)$/))) return `/catalog/${r[1]}`;
+  if (path === '/certificates') return '/certificates';
   if (path === '/organizer') return '/organizer';
   if ((r = m(/^\/events\/([\w-]+)$/))) return `/event/${r[1]}`;
   if (path === '/events') return '/events';

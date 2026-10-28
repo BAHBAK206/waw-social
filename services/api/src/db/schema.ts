@@ -395,6 +395,65 @@ export const notifications = pgTable(
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
 );
 
+/** Single-use enrollment codes a teacher sells or gives out (cash, school fees, scholarships). */
+export const courseVouchers = pgTable(
+  'course_vouchers',
+  {
+    code: text('code').primaryKey(),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    usedBy: uuid('used_by').references(() => users.id, { onDelete: 'set null' }),
+    usedAt: ts('used_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('course_vouchers_course_idx').on(t.courseId)],
+);
+
+/** Card payments for paid courses (Stripe Checkout). */
+export const payments = pgTable(
+  'payments',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull().default('stripe'),
+    sessionId: text('session_id').notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').notNull(),
+    status: text('status').$type<'pending' | 'paid' | 'failed'>().notNull().default('pending'),
+    createdAt: createdAt(),
+    paidAt: ts('paid_at'),
+  },
+  (t) => [uniqueIndex('payments_session_uq').on(t.sessionId), index('payments_user_idx').on(t.userId)],
+);
+
+/** Certificates of completion, verifiable by anyone with the code. */
+export const certificates = pgTable(
+  'certificates',
+  {
+    id: id(),
+    code: text('code').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id').references(() => courses.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
+    issuerId: uuid('issuer_id').references(() => users.id, { onDelete: 'set null' }),
+    issuerName: text('issuer_name').notNull().default(''),
+    /** Average grade in percent at the time of issue. */
+    grade: integer('grade'),
+    issuedAt: ts('issued_at').notNull().defaultNow(),
+    revokedAt: ts('revoked_at'),
+  },
+  (t) => [uniqueIndex('certificates_code_uq').on(t.code), index('certificates_user_idx').on(t.userId), index('certificates_course_idx').on(t.courseId)],
+);
+
 /** A parent (or guardian) who follows a student's progress. Created with a one-time code from the student. */
 export const guardianLinks = pgTable(
   'guardian_links',
@@ -839,6 +898,11 @@ export const courses = pgTable(
     joinCode: text('join_code').notNull(),
     memberCount: integer('member_count').notNull().default(0),
     archived: boolean('archived').notNull().default(false),
+    /** Shown in the public course catalog (otherwise joined only with the class code). */
+    listed: boolean('listed').notNull().default(false),
+    /** 0 = free. Paid courses are joined by card payment (Stripe) or a single-use voucher. */
+    priceCents: integer('price_cents').notNull().default(0),
+    currency: text('currency').notNull().default('USD'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

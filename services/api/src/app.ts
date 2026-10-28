@@ -17,6 +17,8 @@ import { videoRoutes } from './routes/videos';
 import { captionRoutes } from './routes/captions';
 import { teacherRoutes } from './routes/teacher';
 import { familyRoutes } from './routes/family';
+import { catalogRoutes, stripeWebhook, voucherRoutes } from './routes/catalog';
+import { certificateRoutes } from './routes/certificates';
 import { chatRoutes } from './routes/chat';
 import { groupRoutes } from './routes/groups';
 import { academicRoutes, dailyRoutes, examRoutes, flashcardRoutes, noteRoutes, pomodoroRoutes, studySessionRoutes, taskRoutes } from './routes/learning';
@@ -73,6 +75,8 @@ export function createApp(deps: Deps) {
   });
   app.route('/files', fileRoutes);
   app.route('/internal', internalRoutes);
+  // Payment provider → us (signed; outside /api so no session or CORS rules apply).
+  app.route('/webhooks/stripe', stripeWebhook);
 
   const api = new Hono<AppEnv>();
   api.route('/', configRoutes);
@@ -109,6 +113,9 @@ export function createApp(deps: Deps) {
   api.route('/videos', videoRoutes);
   api.route('/teacher', teacherRoutes);
   api.route('/family', familyRoutes);
+  api.route('/catalog', catalogRoutes);
+  api.route('/school', voucherRoutes);
+  api.route('/certificates', certificateRoutes);
   api.route('/playlists', playlistRoutes);
   api.route('/channels', channelRoutes);
   api.route('/studio', studioRoutes);

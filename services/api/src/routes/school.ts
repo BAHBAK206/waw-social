@@ -67,7 +67,7 @@ const ownerCols = {
   ownerBadge: users.badge,
 };
 
-const STAFF: CourseRole[] = ['teacher', 'assistant'];
+export const STAFF: CourseRole[] = ['teacher', 'assistant'];
 
 async function roleOrStaff(deps: Deps, courseId: string, user: AuthUser): Promise<CourseRole | null> {
   const r = await courseRole(deps.db, courseId, user.id);
@@ -75,7 +75,7 @@ async function roleOrStaff(deps: Deps, courseId: string, user: AuthUser): Promis
   return hasPermission(user.role, user.permissions, 'classes.manage') ? 'teacher' : null;
 }
 
-async function requireRole(deps: Deps, courseId: string, user: AuthUser, allowed: CourseRole[]): Promise<CourseRole> {
+export async function requireRole(deps: Deps, courseId: string, user: AuthUser, allowed: CourseRole[]): Promise<CourseRole> {
   const [course] = await deps.db.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId));
   if (!course) throw notFound('course_not_found');
   const r = await roleOrStaff(deps, courseId, user);
@@ -84,7 +84,7 @@ async function requireRole(deps: Deps, courseId: string, user: AuthUser, allowed
   return r;
 }
 
-async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Promise<CourseDto[]> {
+export async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Promise<CourseDto[]> {
   if (!ids.length) return [];
   const rows = await deps.db
     .select({ c: courses, ...ownerCols })
@@ -114,6 +114,9 @@ async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Promise<Co
         memberCount: r.c.memberCount,
         myRole,
         archived: r.c.archived,
+        listed: r.c.listed,
+        priceCents: r.c.priceCents,
+        currency: r.c.currency,
         createdAt: r.c.createdAt.getTime(),
       };
     });

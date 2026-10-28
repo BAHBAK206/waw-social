@@ -22,6 +22,8 @@ import {
   GraduationCap,
   Hand,
   HeartHandshake,
+  Award,
+  Store,
   House,
   Info,
   Layers,
@@ -112,6 +114,8 @@ export const ICONS: Record<string, LucideIcon> = {
   aperture: Aperture,
   vote: Vote,
   'heart-handshake': HeartHandshake,
+  award: Award,
+  store: Store,
 };
 
 export interface NavItem {

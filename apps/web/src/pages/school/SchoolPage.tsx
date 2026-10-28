@@ -109,7 +109,8 @@ export default function SchoolPage() {
             onClick={async () => {
               setBusy(true);
               try {
-                const c = await api.school.join(code.trim());
+                // A class code, or a voucher for a paid course (QB-XXXX-XXXX).
+                const c = /^QB-/i.test(code.trim()) ? await api.school.redeem(code.trim()) : await api.school.join(code.trim());
                 await qc.invalidateQueries({ queryKey: qk.courses });
                 setJoining(false);
                 navigate(`/school/${c.id}`);

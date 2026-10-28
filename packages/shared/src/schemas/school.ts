@@ -11,6 +11,13 @@ export const courseInputSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional()
     .nullable(),
+  /** Public course catalog. */
+  listed: z.boolean().optional(),
+  priceCents: z.number().int().min(0).max(10_000_000).optional(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
 });
 export const joinCourseSchema = z.object({ code: z.string().trim().min(4).max(16) });
 export const courseAnnouncementSchema = z
@@ -110,3 +117,14 @@ export const scheduledClassSchema = z.object({
   link: urlSchema,
   startsAt: z.number().int().optional().nullable(),
 });
+
+export const voucherBatchSchema = z.object({ count: z.number().int().min(1).max(200) });
+export const redeemVoucherSchema = z.object({ code: z.string().trim().min(6).max(20) });
+export const issueCertificatesSchema = z
+  .object({
+    /** Specific students, or everyone whose average grade is at least `minGrade`. */
+    studentIds: z.array(z.string().uuid()).max(500).optional(),
+    minGrade: z.number().min(0).max(100).optional(),
+    title: trimmed(200).optional(),
+  })
+  .refine((v) => !!v.studentIds?.length || v.minGrade !== undefined, { message: 'students_required' });

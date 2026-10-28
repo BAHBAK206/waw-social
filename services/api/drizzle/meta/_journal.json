@@ -71,6 +71,13 @@
       "when": 1793169705041,
       "tag": "0009_family",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793170643689,
+      "tag": "0010_catalog_certificates",
+      "breakpoints": true
     }
   ]
 }
