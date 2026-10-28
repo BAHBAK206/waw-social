@@ -40,6 +40,7 @@ const authorCols = {
   authorUsername: users.username,
   authorAvatarUrl: users.avatarUrl,
   authorAccountType: users.accountType,
+  authorTeacherVerifiedAt: users.teacherVerifiedAt,
   authorLevel: users.level,
   authorXp: users.xp,
   authorBadge: users.badge,

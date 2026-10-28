@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { apiRegister, dismissOnboarding, newUser, trackErrors, uid } from './helpers';
+import { apiRegister, dismissOnboarding, newUser, trackErrors, uid, verifyTeacher } from './helpers';
 
 test('a teacher sells a course with vouchers; a student redeems one, and earns a verifiable certificate', async ({ page, request, browser }) => {
   const errors = trackErrors(page);
   const teacher = newUser('seller');
   const student = newUser('buyer');
   const tToken = await apiRegister(request, teacher, 'teacher');
+  await verifyTeacher(request, tToken);
   await apiRegister(request, student);
   const title = `Physics Olympiad ${uid()}`;
   const auth = { authorization: `Bearer ${tToken}` };

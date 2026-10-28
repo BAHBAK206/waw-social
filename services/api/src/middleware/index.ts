@@ -46,6 +46,7 @@ export const authenticate: MiddlewareHandler<AppEnv> = async (c, next) => {
           bannedAt: users.bannedAt,
           bannedUntil: users.bannedUntil,
           emailVerifiedAt: users.emailVerifiedAt,
+          teacherVerifiedAt: users.teacherVerifiedAt,
           revokedAt: sessions.revokedAt,
         })
         .from(users)
@@ -65,6 +66,7 @@ export const authenticate: MiddlewareHandler<AppEnv> = async (c, next) => {
           timezone: row.timezone,
           sessionId: claims.sid,
           emailVerified: !!row.emailVerifiedAt,
+          verifiedTeacher: row.accountType === 'teacher' && !!row.teacherVerifiedAt,
         });
       }
     }

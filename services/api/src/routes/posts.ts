@@ -55,6 +55,7 @@ const authorCols = {
   authorUsername: users.username,
   authorAvatarUrl: users.avatarUrl,
   authorAccountType: users.accountType,
+  authorTeacherVerifiedAt: users.teacherVerifiedAt,
   authorLevel: users.level,
   authorXp: users.xp,
   authorBadge: users.badge,
@@ -496,7 +497,7 @@ export const postRoutes = new Hono<AppEnv>()
           .orderBy(
             desc(sql`${comments.id} = ${post.acceptedCommentId ?? '00000000-0000-0000-0000-000000000000'}::uuid`),
             desc(comments.votes),
-            desc(sql`${users.accountType} = 'teacher'`),
+            desc(sql`${users.accountType} = 'teacher' and ${users.teacherVerifiedAt} is not null`),
             comments.createdAt,
           )
           .limit(200)

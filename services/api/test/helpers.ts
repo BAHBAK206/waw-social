@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+import { users } from '../src/db/schema';
 import type { AiClient } from '../src/lib/ai';
 import { createApp } from '../src/app';
 import { createDeps } from '../src/deps';
@@ -115,7 +117,8 @@ export async function call<T = unknown>(method: string, path: string, opts: Req 
 }
 
 let counter = 0;
-export async function newUser(opts: { name?: string; accountType?: 'student' | 'teacher' | 'parent'; email?: string } = {}) {
+/** Teachers are verified by default (most tests need full teacher powers); pass `verified: false` to test the unverified path. */
+export async function newUser(opts: { name?: string; accountType?: 'student' | 'teacher' | 'parent'; email?: string; verified?: boolean } = {}) {
   counter += 1;
   const email = opts.email ?? `user${Date.now()}${counter}@qubedu.test`;
   const res = await call<AuthResult>('POST', '/auth/register', {
@@ -123,6 +126,10 @@ export async function newUser(opts: { name?: string; accountType?: 'student' | '
     headers: { 'x-client': 'mobile' },
   });
   if (res.status !== 201) throw new Error(`register failed ${res.status} ${JSON.stringify(res.body)}`);
+  if (opts.accountType === 'teacher' && opts.verified !== false) {
+    const { deps } = await setupApp();
+    await deps.db.update(users).set({ teacherVerifiedAt: new Date() }).where(eq(users.id, res.body.user.id));
+  }
   return { token: res.body.accessToken, refreshToken: res.body.refreshToken!, user: res.body.user, email };
 }
 

@@ -17,6 +17,7 @@ const hostCols = {
   hostUsername: users.username,
   hostAvatarUrl: users.avatarUrl,
   hostAccountType: users.accountType,
+  hostTeacherVerifiedAt: users.teacherVerifiedAt,
   hostLevel: users.level,
   hostXp: users.xp,
   hostBadge: users.badge,

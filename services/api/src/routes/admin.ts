@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ilike, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -54,6 +54,7 @@ import {
   siteSettings,
   stories,
   users,
+  guardianLinks,
   videoComments,
   videos,
 } from '../db/schema';
@@ -65,8 +66,9 @@ import { body, param, query, requirePerm } from '../lib/http';
 import { ms, onlineKey, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
-import { isMinor, tierOf } from '../lib/minors';
-import { setHidden } from '../lib/moderation';
+import { ADULT_AGE, CHILD_AGE } from '@qubedu/shared';
+import { isMinor, tierOf, youngerThanSql } from '../lib/minors';
+import { reportAuthorSql, setHidden } from '../lib/moderation';
 import { getRawSetting, getSettings, putSetting } from '../lib/settings';
 import { toAd, toAnnouncement } from './config';
 
@@ -76,6 +78,7 @@ const reporterCols = {
   repUsername: users.username,
   repAvatarUrl: users.avatarUrl,
   repAccountType: users.accountType,
+  repTeacherVerifiedAt: users.teacherVerifiedAt,
   repLevel: users.level,
   repXp: users.xp,
   repBadge: users.badge,
@@ -160,6 +163,15 @@ export const adminRoutes = new Hono<AppEnv>()
           .from(clientErrors)
           .where(gte(clientErrors.lastSeenAt, new Date(Date.now() - 86400_000))),
       ]);
+    const [safety] = await db.execute<{ pending: number; minor_reports: number; children: number; teens: number; parents: number; unverified: number }>(sql`
+      select
+        (select count(*)::int from teacher_verifications where status = 'pending') as pending,
+        (select count(*)::int from reports where status = 'open' and exists (
+          select 1 from users mu where mu.id in (reports.reporter_id, ${reportAuthorSql}) and ${youngerThanSql('mu', ADULT_AGE)})) as minor_reports,
+        (select count(*)::int from users mu where mu.deleted_at is null and ${youngerThanSql('mu', CHILD_AGE)}) as children,
+        (select count(*)::int from users mu where mu.deleted_at is null and ${youngerThanSql('mu', ADULT_AGE)} and not ${youngerThanSql('mu', CHILD_AGE)}) as teens,
+        (select count(*)::int from users where deleted_at is null and account_type = 'parent') as parents,
+        (select count(*)::int from users where deleted_at is null and account_type = 'teacher' and teacher_verified_at is null) as unverified`);
     const signups = await db.execute<{ day: string; n: number }>(
       sql`select to_char(created_at at time zone 'UTC', 'YYYY-MM-DD') as day, count(*)::int as n from users where created_at >= ${since14} group by 1 order by 1`,
     );
@@ -183,6 +195,14 @@ export const adminRoutes = new Hono<AppEnv>()
       },
       openReports: openReports?.n ?? 0,
       errors24h: errors?.n ?? 0,
+      safety: {
+        pendingVerifications: Number(safety?.pending ?? 0),
+        minorReports: Number(safety?.minor_reports ?? 0),
+        children: Number(safety?.children ?? 0),
+        teens: Number(safety?.teens ?? 0),
+        parents: Number(safety?.parents ?? 0),
+        unverifiedTeachers: Number(safety?.unverified ?? 0),
+      },
       system: await systemHealth(db, c.get('deps').env.ALERT_WEBHOOK_URL),
       signupsByDay: signups.map((s) => ({ day: s.day, count: Number(s.n) })),
       activityByDay: activity.map((a) => ({ day: a.day, attempts: Number(a.attempts), posts: Number(a.posts), messages: Number(a.messages) })),
@@ -200,6 +220,10 @@ export const adminRoutes = new Hono<AppEnv>()
         role: z.enum(['user', 'moderator', 'admin', 'root']).optional(),
         banned: z.coerce.boolean().optional(),
         accountType: z.enum(['student', 'teacher', 'parent']).optional(),
+        /** child = under 13, minor = under 18. */
+        age: z.enum(['child', 'minor']).optional(),
+        /** Teachers only: verified or not. */
+        verified: z.enum(['yes', 'no']).optional(),
       }),
     );
     const cursor = decodeCursor(q.cursor);
@@ -213,6 +237,11 @@ export const adminRoutes = new Hono<AppEnv>()
           q.role ? eq(users.role, q.role) : undefined,
           q.accountType ? eq(users.accountType, q.accountType) : undefined,
           q.banned ? sql`${users.bannedAt} is not null` : undefined,
+          q.age
+            ? sql`exists (select 1 from users mu where mu.id = ${users.id} and ${youngerThanSql('mu', q.age === 'child' ? CHILD_AGE : ADULT_AGE)})`
+            : undefined,
+          q.verified === 'yes' ? and(eq(users.accountType, 'teacher'), sql`${users.teacherVerifiedAt} is not null`) : undefined,
+          q.verified === 'no' ? and(eq(users.accountType, 'teacher'), sql`${users.teacherVerifiedAt} is null`) : undefined,
           cursor ? sql`(${users.createdAt}, ${users.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
         ),
       )
@@ -225,7 +254,7 @@ export const adminRoutes = new Hono<AppEnv>()
     requirePerm(c, 'users.view');
     const { db } = c.get('deps');
     const u = await targetUser(db, param(c, 'id'));
-    const [[postsN], [attemptsN], [reportsN], sessionRows] = await Promise.all([
+    const [[postsN], [attemptsN], [reportsN], sessionRows, [guardiansN], [childrenN]] = await Promise.all([
       db.select({ n: count() }).from(posts).where(eq(posts.authorId, u.id)),
       db.select({ n: count() }).from(quizAttempts).where(eq(quizAttempts.userId, u.id)),
       db
@@ -238,10 +267,20 @@ export const adminRoutes = new Hono<AppEnv>()
         .where(and(eq(sessions.userId, u.id), isNull(sessions.revokedAt)))
         .orderBy(desc(sessions.lastUsedAt))
         .limit(10),
+      db.select({ n: count() }).from(guardianLinks).where(eq(guardianLinks.studentId, u.id)),
+      db.select({ n: count() }).from(guardianLinks).where(eq(guardianLinks.guardianId, u.id)),
     ]);
     return c.json({
       user: toAdminUser(u),
-      stats: { posts: postsN?.n ?? 0, attempts: attemptsN?.n ?? 0, reports: reportsN?.n ?? 0, xp: u.xp, streak: u.streak },
+      stats: {
+        posts: postsN?.n ?? 0,
+        attempts: attemptsN?.n ?? 0,
+        reports: reportsN?.n ?? 0,
+        xp: u.xp,
+        streak: u.streak,
+        guardians: guardiansN?.n ?? 0,
+        children: childrenN?.n ?? 0,
+      },
       sessions: sessionRows.map((s) => ({ id: s.id, client: s.client, userAgent: s.userAgent, ip: s.ip, lastUsedAt: s.lastUsedAt.getTime() })),
     });
   })
@@ -339,14 +378,28 @@ export const adminRoutes = new Hono<AppEnv>()
   .get('/reports', async (c) => {
     requirePerm(c, 'reports.manage');
     const { db } = c.get('deps');
-    const q = query(c, paginationSchema.extend({ status: z.enum(['open', 'resolved', 'dismissed']).default('open') }));
+    const q = query(
+      c,
+      paginationSchema.extend({
+        status: z.enum(['open', 'resolved', 'dismissed']).default('open'),
+        targetType: z.string().trim().max(32).optional(),
+        /** Only reports where the reporter or the reported person is under 18. */
+        minors: z.enum(['1', 'true']).optional(),
+      }),
+    );
     const cursor = decodeCursor(q.cursor);
+    const minorInvolved = sql<boolean>`exists (select 1 from users mu where mu.id in (${reports.reporterId}, ${reportAuthorSql}) and ${youngerThanSql('mu', ADULT_AGE)})`;
     const rows = await db
-      .select({ r: reports, ...reporterCols })
+      .select({ r: reports, ...reporterCols, minorInvolved, authorId: sql<string | null>`${reportAuthorSql}` })
       .from(reports)
       .innerJoin(users, eq(users.id, reports.reporterId))
       .where(
-        and(eq(reports.status, q.status), cursor ? sql`(${reports.createdAt}, ${reports.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined),
+        and(
+          eq(reports.status, q.status),
+          q.targetType ? eq(reports.targetType, q.targetType) : undefined,
+          q.minors ? minorInvolved : undefined,
+          cursor ? sql`(${reports.createdAt}, ${reports.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
+        ),
       )
       .orderBy(desc(reports.createdAt), desc(reports.id))
       .limit(q.limit + 1);
@@ -360,6 +413,10 @@ export const adminRoutes = new Hono<AppEnv>()
         .groupBy(reports.targetType, reports.targetId);
       for (const g of grouped) counts.set(`${g.type}:${g.target}`, g.n);
     }
+    const authorIds = [...new Set(page.items.map((r) => r.authorId).filter((x): x is string => !!x))];
+    const authors = new Map(
+      (authorIds.length ? await db.select(summaryColumns).from(users).where(inArray(users.id, authorIds)) : []).map((a) => [a.id, toSummary(a)]),
+    );
     const items: ReportDto[] = [];
     for (const r of page.items) {
       let target: ReportDto['target'] = null;
@@ -430,6 +487,8 @@ export const adminRoutes = new Hono<AppEnv>()
         resolution: r.r.resolution,
         autoHidden: r.r.autoHidden,
         reportCount: counts.get(`${r.r.targetType}:${r.r.targetId}`) ?? 1,
+        minorInvolved: !!r.minorInvolved,
+        targetAuthor: r.authorId ? (authors.get(r.authorId) ?? null) : null,
         createdAt: r.r.createdAt.getTime(),
         resolvedAt: ms(r.r.resolvedAt),
       });

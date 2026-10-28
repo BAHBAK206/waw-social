@@ -12,6 +12,7 @@ import {
   type Privacy,
 } from '@qubedu/shared';
 import { GradeLevelSelect } from '@/components/common/GradeLevelSelect';
+import { TeacherVerification } from '@/components/settings/TeacherVerification';
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -340,6 +341,7 @@ function AccountTab({ me }: { me: Me }) {
   const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [me.timezone];
   return (
     <div className="space-y-5">
+      <TeacherVerification me={me} />
       <Section title={tr.t('settings.account.email')}>
         <p className="flex flex-wrap items-center gap-2">
           <span dir="ltr" className="font-bold">

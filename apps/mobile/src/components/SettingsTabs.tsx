@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, View } from 'react-native';
 import { FamilyCodeCard } from '@/components/Family';
+import { TeacherVerificationCard } from '@/components/TeacherVerification';
 import { FamilyRequestsCard, GradeLevelField, InviteParentCard, MyControlsCard } from '@/components/Linking';
 import { Badge, Segmented, SelectField, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Input, Loading, SectionTitle, Text } from '@/components/ui';
@@ -145,6 +146,7 @@ function Account() {
   const [busy, setBusy] = useState(false);
   return (
     <View style={{ gap: 12 }}>
+      <TeacherVerificationCard />
       <Card style={{ gap: 6 }}>
         <Text weight="bold">{me.email}</Text>
         <Badge tone={me.emailVerified ? 'ok' : 'warn'} label={me.emailVerified ? tr.t('settings.account.verified') : tr.t('settings.account.notVerified')} />

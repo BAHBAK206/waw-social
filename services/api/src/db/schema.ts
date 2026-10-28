@@ -56,6 +56,8 @@ export const users = pgTable(
     birthYear: integer('birth_year'),
     /** School stage and year (p1…p6, m1…m3, s1…s3, uni, adult). */
     gradeLevel: text('grade_level'),
+    /** Set when an administrator verifies a teacher account (unlocks public catalog, open live classes…). */
+    teacherVerifiedAt: ts('teacher_verified_at'),
     /** Set by a linked parent for a student under 18 (see ParentalControls). */
     parentalControls: jsonb('parental_controls').$type<Record<string, unknown>>(),
     /** Weekly league tier for the next placement (0 = bronze). */
@@ -482,6 +484,29 @@ export const certificates = pgTable(
 );
 
 /** A parent (or guardian) who follows a student's progress. Created with a one-time code from the student. */
+/** A teacher asks to be verified; moderators approve or reject. */
+export const teacherVerifications = pgTable(
+  'teacher_verifications',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    institution: text('institution').notNull(),
+    subject: text('subject').notNull(),
+    note: text('note').notNull().default(''),
+    /** An uploaded document (private file) or a link to a public staff page. */
+    proof: jsonb('proof').$type<Record<string, unknown> | null>(),
+    proofUrl: text('proof_url'),
+    status: text('status').$type<'pending' | 'approved' | 'rejected'>().notNull().default('pending'),
+    reason: text('reason').notNull().default(''),
+    reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewedAt: ts('reviewed_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('teacher_verifications_status_idx').on(t.status, t.createdAt), index('teacher_verifications_user_idx').on(t.userId)],
+);
+
 /**
  * A pending parent ↔ student link: a student invites a parent by email (token in the email link), or a parent asks a
  * student, who approves it.

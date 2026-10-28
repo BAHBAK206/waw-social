@@ -140,13 +140,28 @@ const CHILD_GRADES = GRADE_LEVELS.filter((g) => (TYPICAL_AGE[g] ?? 99) < CHILD_A
  */
 export function childFindableSql(viewer: { id: string; role: string }) {
   if (viewer.role !== 'user') return undefined;
-  return sql`(not (
+  // coalesce: a NULL birth year / school year must count as "not a child", not make the whole test NULL.
+  return sql`(not coalesce(
       (${users.birthYear} is not null and extract(year from now())::int - ${users.birthYear} < ${CHILD_AGE})
       or (${users.accountType} = 'student' and ${users.gradeLevel} in (${sql.join(
         CHILD_GRADES.map((g) => sql`${g}`),
         sql`, `,
-      )}))
+      )})),
+      false
     )
     or exists (select 1 from course_members a join course_members b on a.course_id = b.course_id where a.user_id = ${users.id} and b.user_id = ${viewer.id})
     or exists (select 1 from guardian_links g where g.student_id = ${users.id} and g.guardian_id = ${viewer.id}))`;
+}
+
+const gradesUnder = (age: number) => GRADE_LEVELS.filter((g) => (TYPICAL_AGE[g] ?? 99) < age);
+
+/** SQL: the user row under `alias` is younger than `age` (birth year or school year, like ageTier). */
+export function youngerThanSql(alias: string, age: number) {
+  const a = sql.raw(alias);
+  const grades = gradesUnder(age);
+  return sql`coalesce((${a}.birth_year is not null and extract(year from now())::int - ${a}.birth_year < ${age})
+    or (${a}.account_type = 'student' and ${a}.grade_level in (${sql.join(
+      grades.map((g) => sql`${g}`),
+      sql`, `,
+    )})), false)`;
 }

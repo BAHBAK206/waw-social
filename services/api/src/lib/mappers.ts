@@ -14,6 +14,7 @@ export const summaryColumns = {
   level: users.level,
   xp: users.xp,
   badge: users.badge,
+  teacherVerifiedAt: users.teacherVerifiedAt,
 };
 
 export type SummaryRow = {
@@ -25,6 +26,7 @@ export type SummaryRow = {
   level: number;
   xp: number;
   badge: Record<string, unknown> | null;
+  teacherVerifiedAt?: Date | null;
 };
 
 export function toSummary(row: SummaryRow): UserSummary {
@@ -38,6 +40,7 @@ export function toSummary(row: SummaryRow): UserSummary {
     level: row.level,
     xp: row.xp,
     badge,
+    verifiedTeacher: row.accountType === 'teacher' && !!row.teacherVerifiedAt,
   };
 }
 
@@ -60,5 +63,6 @@ export function pickSummary(prefix: string, row: Record<string, unknown>): Summa
     level: row[`${prefix}Level`] as number,
     xp: row[`${prefix}Xp`] as number,
     badge: (row[`${prefix}Badge`] as Record<string, unknown> | null) ?? null,
+    teacherVerifiedAt: (row[`${prefix}TeacherVerifiedAt`] as Date | null | undefined) ?? null,
   };
 }

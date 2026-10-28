@@ -19,6 +19,7 @@ import { teacherRoutes } from './routes/teacher';
 import { familyRoutes } from './routes/family';
 import { catalogRoutes, stripeWebhook, voucherRoutes } from './routes/catalog';
 import { gradebookRoutes } from './routes/gradebook';
+import { myVerificationRoutes, verificationAdminRoutes } from './routes/verification';
 import { certificateRoutes } from './routes/certificates';
 import { leagueRoutes } from './routes/leagues';
 import { calendarRoutes, myCalendarRoutes } from './routes/calendar';
@@ -84,6 +85,7 @@ export function createApp(deps: Deps) {
   const api = new Hono<AppEnv>();
   api.route('/', configRoutes);
   api.route('/auth', authRoutes);
+  api.route('/me/teacher-verification', myVerificationRoutes);
   api.route('/me', meRoutes);
   api.route('/users', userRoutes);
   api.route('/reports', reportRoutes);
@@ -130,6 +132,7 @@ export function createApp(deps: Deps) {
   api.route('/events', eventRoutes);
   api.route('/explore', exploreRoutes);
   api.route('/practice', practiceRoutes);
+  api.route('/admin/teacher-verifications', verificationAdminRoutes);
   api.route('/admin', adminRoutes);
   app.route('/api/v1', api);
 

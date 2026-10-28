@@ -88,7 +88,7 @@ export default function PostScreen() {
         ) : (
           comments.data.items.map((c: CommentDto) => {
             const best = p.acceptedCommentId === c.id;
-            const teacher = c.author.accountType === 'teacher';
+            const teacher = c.author.accountType === 'teacher' && c.author.verifiedTeacher;
             return (
               <Card key={c.id} style={{ gap: 8, borderWidth: best ? 2 : 0, borderColor: t.ok }}>
                 {best && (
@@ -104,7 +104,7 @@ export default function PostScreen() {
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text weight="bold">
                       {c.author.displayName}
-                      {teacher ? <Text size={12} weight="bold" color={t.primaryInk}>{`  🎓 ${tr.t('feed.teacher')}`}</Text> : null}{' '}
+                      {teacher ? <Text size={12} weight="bold" color={t.primaryInk}>{`  🎓 ${tr.t('verification.badge')}`}</Text> : null}{' '}
                       <Text muted size={12}>
                         {relativeTime(c.createdAt, tr)}
                       </Text>

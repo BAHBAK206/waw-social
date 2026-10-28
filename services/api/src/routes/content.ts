@@ -48,6 +48,7 @@ const upCols = {
   upUsername: users.username,
   upAvatarUrl: users.avatarUrl,
   upAccountType: users.accountType,
+  upTeacherVerifiedAt: users.teacherVerifiedAt,
   upLevel: users.level,
   upXp: users.xp,
   upBadge: users.badge,
@@ -129,7 +130,8 @@ export const libraryRoutes = new Hono<AppEnv>()
     const { db } = c.get('deps');
     const input = await body(c, libraryItemSchema);
     const staff = hasPermission(viewer.role, viewer.permissions, 'library.manage');
-    const autoApprove = staff || viewer.accountType === 'teacher';
+    // Verified teachers publish without review; everyone else waits for a moderator.
+    const autoApprove = staff || viewer.verifiedTeacher;
     const [row] = await db
       .insert(libraryItems)
       .values({ ...input, searchTitle: normalizeSearch(`${input.title} ${input.description}`), uploaderId: viewer.id, approved: autoApprove })

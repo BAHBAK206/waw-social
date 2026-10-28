@@ -33,6 +33,8 @@ export interface UserSummary {
   level: number;
   xp: number;
   badge: VerificationBadge | null;
+  /** A teacher account checked by the administrators. */
+  verifiedTeacher: boolean;
   online?: boolean;
 }
 
@@ -804,6 +806,8 @@ export interface AdminOverviewDto {
   content: { posts: number; quizzes: number; attempts: number; groups: number; courses: number; forms: number; library: number };
   openReports: number;
   errors24h: number;
+  /** Safety at a glance: teachers waiting for verification, reports involving under-18s, age groups. */
+  safety: { pendingVerifications: number; minorReports: number; children: number; teens: number; parents: number; unverifiedTeachers: number };
   /** Health of the server side: last backup, video processing queue. */
   system: { lastBackupAt: number | null; lastBackupSizeKb: number | null; videosProcessing: number; videosFailed: number; alertsConfigured: boolean };
   signupsByDay: { day: string; count: number }[];
@@ -839,6 +843,10 @@ export interface ReportDto {
   autoHidden: boolean;
   /** Open reports on the same item (this one included). */
   reportCount: number;
+  /** The reporter or the reported person is under 18: look at these first. */
+  minorInvolved: boolean;
+  /** Who wrote the reported item (or the reported person). */
+  targetAuthor: UserSummary | null;
   createdAt: number;
   resolvedAt: number | null;
 }
@@ -1201,4 +1209,17 @@ export interface ReportCardDto {
   terms: string[];
   subjects: ReportSubjectDto[];
   overall: { score: number; max: number; fullMax: number; percent: number | null; rating: GradeRating | null; failed: number };
+}
+
+export interface TeacherVerificationDto {
+  id: string;
+  user: UserSummary & { email?: string };
+  institution: string;
+  subject: string;
+  note: string;
+  proofUrl: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reason: string;
+  createdAt: number;
+  reviewedAt: number | null;
 }

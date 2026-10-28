@@ -90,6 +90,7 @@ import type {
   TaxonomyDto,
   UploadResultDto,
   UserSummary,
+  TeacherVerificationDto,
   AgeTier,
   GradeLevel,
   ParentalControls,
@@ -207,6 +208,9 @@ export function createApi(options: ClientOptions) {
       }) => http.patch<Me>('/me/prefs', body),
       checkin: () => http.post<{ streak: number; changed: boolean; newAchievements: string[] }>('/me/checkin'),
       blocks: () => http.get<{ items: UserSummary[] }>('/me/blocks'),
+      teacherVerification: () => http.get<{ verified: boolean; request: TeacherVerificationDto | null }>('/me/teacher-verification'),
+      requestVerification: (body: { institution: string; subject: string; note?: string; proofUrl?: string | null }) =>
+        http.post<TeacherVerificationDto>('/me/teacher-verification', body),
       calendar: () => http.get<{ url: string }>('/me/calendar'),
       resetCalendar: () => http.post<{ url: string }>('/me/calendar/reset'),
       pushKey: () => http.get<{ enabled: boolean; vapidPublicKey: string | null }>('/me/push/key'),
@@ -832,12 +836,17 @@ export function createApi(options: ClientOptions) {
     },
 
     admin: {
+      verifications: (status: 'pending' | 'approved' | 'rejected' = 'pending') =>
+        http.get<{ items: TeacherVerificationDto[] }>('/admin/teacher-verifications', { status }),
+      approveVerification: (id: string) => http.post<Ok>(`/admin/teacher-verifications/${id}/approve`),
+      rejectVerification: (id: string, reason: string) => http.post<Ok>(`/admin/teacher-verifications/${id}/reject`, { reason }),
+      unverifyTeacher: (userId: string) => http.del<Ok>(`/admin/teacher-verifications/users/${userId}`),
       overview: () => http.get<AdminOverviewDto>('/admin/overview'),
       users: (q: Q = {}) => http.get<Page<AdminUserDto>>('/admin/users', q),
       user: (id: string) =>
         http.get<{
           user: AdminUserDto;
-          stats: { posts: number; attempts: number; reports: number; xp: number; streak: number };
+          stats: { posts: number; attempts: number; reports: number; xp: number; streak: number; guardians: number; children: number };
           sessions: { id: string; client: string; userAgent: string | null; ip: string | null; lastUsedAt: number }[];
         }>(`/admin/users/${id}`),
       ban: (id: string, reason: string, until?: number | null) => http.post<Ok>(`/admin/users/${id}/ban`, { reason, until }),

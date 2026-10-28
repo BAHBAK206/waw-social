@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { apiRegister, dismissOnboarding, newUser, register, uid } from './helpers';
+import { apiRegister, dismissOnboarding, newUser, register, uid, verifyTeacher } from './helpers';
 
 // Chromium synthesises a camera and microphone, so two real browsers can run the full WebRTC handshake
 // through the realtime hub with no hardware.
@@ -16,6 +16,7 @@ test('a teacher and a student see and hear each other in a live class', async ({
   const teacher = newUser('teacher');
   const student = newUser('student');
   const token = await apiRegister(request, teacher, 'teacher');
+  await verifyTeacher(request, token);
   const created = await request.post('/api/v1/live', {
     headers: { authorization: `Bearer ${token}` },
     data: {

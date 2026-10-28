@@ -121,3 +121,19 @@ export const parentalControlsSchema = z.object({
 export const guardianInviteSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
 /** A parent asks to link with a student by the student's email or username. */
 export const guardianRequestSchema = z.object({ who: z.string().trim().toLowerCase().min(3).max(254) });
+
+export const teacherVerificationSchema = z.object({
+  institution: trimmed(160, 2),
+  subject: trimmed(120, 2),
+  note: trimmed(1000).default(''),
+  /** A public page that shows the person teaches there (school staff page, ministry registry…). */
+  proofUrl: z
+    .string()
+    .trim()
+    .url()
+    .max(500)
+    .refine((u) => /^https?:\/\//i.test(u), 'invalid_url')
+    .optional()
+    .nullable(),
+});
+export const verificationDecisionSchema = z.object({ reason: trimmed(500).default('') });

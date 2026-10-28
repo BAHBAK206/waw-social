@@ -1,4 +1,4 @@
-import { and, countDistinct, eq, isNotNull, lt, or } from 'drizzle-orm';
+import { and, countDistinct, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { comments, events, groups, messages, posts, reports, stories, users, videoComments, videos } from '../db/schema';
 
@@ -76,3 +76,16 @@ export async function maybeAutoHide(db: Db, type: string, targetId: string, thre
     .where(and(eq(reports.targetType, type), eq(reports.targetId, targetId), eq(reports.status, 'open')));
   return true;
 }
+
+/** SQL: who wrote the reported item (or the reported person), for the report row in `reports`. */
+export const reportAuthorSql = sql.raw(`(case reports.target_type
+  when 'user' then (select x.id from users x where x.id::text = reports.target_id)
+  when 'post' then (select x.author_id from posts x where x.id::text = reports.target_id)
+  when 'comment' then (select x.author_id from comments x where x.id::text = reports.target_id)
+  when 'message' then (select x.sender_id from messages x where x.id::text = reports.target_id)
+  when 'video_comment' then (select x.author_id from video_comments x where x.id::text = reports.target_id)
+  when 'story' then (select x.author_id from stories x where x.id::text = reports.target_id)
+  when 'video' then (select x.owner_id from videos x where x.id::text = reports.target_id)
+  when 'event' then (select x.host_id from events x where x.id::text = reports.target_id)
+  when 'group' then (select x.owner_id from groups x where x.id::text = reports.target_id)
+  end)`);

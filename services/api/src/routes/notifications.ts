@@ -22,6 +22,7 @@ export const notificationRoutes = new Hono<AppEnv>()
         actorUsername: users.username,
         actorAvatarUrl: users.avatarUrl,
         actorAccountType: users.accountType,
+        actorTeacherVerifiedAt: users.teacherVerifiedAt,
         actorLevel: users.level,
         actorXp: users.xp,
         actorBadge: users.badge,

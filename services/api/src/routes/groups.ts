@@ -38,6 +38,7 @@ const ownerCols = {
   ownerUsername: users.username,
   ownerAvatarUrl: users.avatarUrl,
   ownerAccountType: users.accountType,
+  ownerTeacherVerifiedAt: users.teacherVerifiedAt,
   ownerLevel: users.level,
   ownerXp: users.xp,
   ownerBadge: users.badge,

@@ -64,6 +64,7 @@ const ownerCols = {
   ownerUsername: users.username,
   ownerAvatarUrl: users.avatarUrl,
   ownerAccountType: users.accountType,
+  ownerTeacherVerifiedAt: users.teacherVerifiedAt,
   ownerLevel: users.level,
   ownerXp: users.xp,
   ownerBadge: users.badge,
@@ -470,6 +471,9 @@ export const schoolRoutes = new Hono<AppEnv>()
     await requireRole(deps, id, user, ['teacher']);
     const input = await body(c, courseInputSchema.partial().extend({ archived: z.boolean().optional(), regenerateCode: z.boolean().optional() }));
     const { regenerateCode, ...rest } = input;
+    // The public catalog and paid courses are for verified teachers.
+    if ((rest.listed === true || (rest.priceCents ?? 0) > 0) && !user.verifiedTeacher && !hasPermission(user.role, user.permissions, 'classes.manage'))
+      throw forbidden('verified_teacher_required');
     if (rest.maxMarks !== undefined || rest.passMarks !== undefined) {
       const [cur] = await deps.db.select({ max: courses.maxMarks, pass: courses.passMarks }).from(courses).where(eq(courses.id, id));
       if ((rest.passMarks ?? cur!.pass) > (rest.maxMarks ?? cur!.max)) throw badRequest('pass_above_total');

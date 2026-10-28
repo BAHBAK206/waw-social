@@ -1,3 +1,5 @@
+import { Link } from 'react-router';
+import { useSession } from '@/lib/session';
 import type { CourseDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Award, Download, Ticket, Trash2 } from 'lucide-react';
@@ -22,9 +24,19 @@ export function CatalogSettings({ course }: { course: CourseDto }) {
   const [price, setPrice] = useState(String(course.priceCents / 100));
   const [currency, setCurrency] = useState(course.currency);
   const [busy, setBusy] = useState(false);
+  const me = useSession((s) => s.me);
+  const allowed = !!me && (me.verifiedTeacher || me.role !== 'user');
   return (
     <section className="card space-y-4 p-4">
-      <Switch checked={listed} onChange={setListed} label={tr.t('certificates.listed')} />
+      {!allowed && (
+        <p className="rounded-[var(--radius-control)] bg-soft p-3 text-sm">
+          {tr.t('errors.verified_teacher_required')}{' '}
+          <Link to="/settings?tab=account" className="link">
+            {tr.t('verification.title')}
+          </Link>
+        </p>
+      )}
+      <Switch checked={listed} disabled={!allowed} onChange={setListed} label={tr.t('certificates.listed')} />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input type="number" min={0} step="0.01" label={tr.t('certificates.price')} value={price} onChange={(e) => setPrice(e.target.value)} dir="ltr" />
         <Select

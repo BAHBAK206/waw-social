@@ -44,6 +44,10 @@ describe('school stages and age protection', () => {
       call<Page<UserSummary>>('GET', '/users?q=Little%20Lina', { token: who.token }).then((r) => r.body.items.some((u) => u.id === kid.user.id));
     expect(await hits(stranger)).toBe(false);
     expect(await hits(teacher)).toBe(true);
+    // Someone with no birth year and no school year is not treated as a child: strangers still find them.
+    const plain = await newUser({ name: 'Plain Omar' });
+    const found = await call<Page<UserSummary>>('GET', '/users?q=Plain%20Omar', { token: stranger.token });
+    expect(found.body.items.some((u) => u.id === plain.user.id)).toBe(true);
   });
 
   it('the stricter of birth year and school year applies; minors cannot become teachers or parents', async () => {

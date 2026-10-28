@@ -2,6 +2,7 @@ import { hasPermission, type AdminPermission } from '@qubedu/shared';
 import {
   Activity,
   AlertTriangle,
+  BadgeCheck,
   BookOpen,
   Flag,
   Megaphone,
@@ -23,11 +24,13 @@ import { AssistantTab, AuditTab, ErrorsTab } from './SystemTabs';
 import { ChallengesTab, ContentTab, EducationTab, LibraryTab } from './ContentTabs';
 import { FeaturesTab, SiteTab } from './SettingsTabs';
 import { OverviewTab, ReportsTab, UsersTab } from './PeopleTabs';
+import { VerificationsTab } from './VerificationsTab';
 
 const TABS = [
   { key: 'overview', perm: null, icon: Activity },
   { key: 'users', perm: 'users.view', icon: Users },
   { key: 'reports', perm: 'reports.manage', icon: Flag },
+  { key: 'verifications', perm: 'users.view', icon: BadgeCheck },
   { key: 'content', perm: 'content.manage', icon: Megaphone },
   { key: 'education', perm: 'education.manage', icon: GraduationCap },
   { key: 'challenges', perm: 'challenge.manage', icon: Trophy },
@@ -61,6 +64,7 @@ export default function AdminPage() {
       {active === 'overview' && <OverviewTab />}
       {active === 'users' && <UsersTab />}
       {active === 'reports' && <ReportsTab />}
+      {active === 'verifications' && <VerificationsTab />}
       {active === 'content' && <ContentTab />}
       {active === 'education' && <EducationTab />}
       {active === 'challenges' && <ChallengesTab />}

@@ -18,6 +18,7 @@ const hostCols = {
   hostUsername: users.username,
   hostAvatarUrl: users.avatarUrl,
   hostAccountType: users.accountType,
+  hostTeacherVerifiedAt: users.teacherVerifiedAt,
   hostLevel: users.level,
   hostXp: users.xp,
   hostBadge: users.badge,
@@ -64,7 +65,8 @@ async function loadRoom(deps: Deps, id: string) {
 
 async function canCreateIn(deps: Deps, viewer: AuthUser, scopeType: string, scopeId: string | null | undefined) {
   if (hasPermission(viewer.role, viewer.permissions, 'classes.manage')) return true;
-  if (scopeType === 'open') return viewer.accountType === 'teacher';
+  // Open public classes need a verified teacher (class and group rooms only need a role there).
+  if (scopeType === 'open') return viewer.verifiedTeacher;
   if (!scopeId) return false;
   if (scopeType === 'course') {
     const r = await courseRole(deps.db, scopeId, viewer.id);

@@ -89,3 +89,16 @@ export function trackErrors(page: Page) {
   page.on('console', (m) => m.type() === 'error' && !/Failed to load resource|favicon/.test(m.text()) && errors.push(`${page.url()} → ${m.text()}`));
   return errors;
 }
+
+/** Gets a teacher verified (request + administrator approval), unlocking the public catalog, open classes and the library. */
+export async function verifyTeacher(request: APIRequestContext, teacherToken: string) {
+  const sent = await request.post('/api/v1/me/teacher-verification', {
+    headers: { authorization: `Bearer ${teacherToken}` },
+    data: { institution: 'E2E School', subject: 'Science', note: '', proofUrl: null },
+  });
+  expect(sent.ok(), await sent.text()).toBeTruthy();
+  const req = (await sent.json()) as { id: string };
+  const admin = await adminToken(request);
+  const ok = await request.post(`/api/v1/admin/teacher-verifications/${req.id}/approve`, { headers: { authorization: `Bearer ${admin}` } });
+  expect(ok.ok(), await ok.text()).toBeTruthy();
+}

@@ -2,6 +2,7 @@ import { ACHIEVEMENTS, xpProgress, type PostDto } from '@qubedu/shared';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, View } from 'react-native';
+import { Badge } from '@/components/kit';
 import { ReportButton } from '@/components/Report';
 import { PostCard } from '@/components/PostCard';
 import { Avatar, Button, Card, ErrorView, Loading, Text } from '@/components/ui';
@@ -148,6 +149,7 @@ export default function UserScreen() {
           </View>
         </>
       )}
+      {u.verifiedTeacher ? <Badge tone="ok" icon="school" label={tr.t('verification.badge')} /> : null}
       {u.accountType === 'teacher' && (
         <Button variant="soft" icon="play-circle-outline" title={tr.t('watch.channel.videos')} onPress={() => router.push(`/channel/${u.id}` as never)} />
       )}

@@ -33,6 +33,7 @@ const senderCols = {
   senderUsername: users.username,
   senderAvatarUrl: users.avatarUrl,
   senderAccountType: users.accountType,
+  senderTeacherVerifiedAt: users.teacherVerifiedAt,
   senderLevel: users.level,
   senderXp: users.xp,
   senderBadge: users.badge,

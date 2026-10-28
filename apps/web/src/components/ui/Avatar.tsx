@@ -1,5 +1,5 @@
 import type { UserSummary, VerificationBadge } from '@qubedu/shared';
-import { BadgeCheck, Crown, Diamond, Ribbon, Shield } from 'lucide-react';
+import { BadgeCheck, Crown, Diamond, GraduationCap, Ribbon, Shield } from 'lucide-react';
 import { Link } from 'react-router';
 import { fileUrl } from '@/lib/api';
 import { cx } from '@/lib/cx';
@@ -74,11 +74,31 @@ export function VerifiedBadge({ badge, className }: { badge: VerificationBadge |
   );
 }
 
-export function UserName({ user, link = true, className }: { user: Pick<UserSummary, 'id' | 'displayName' | 'badge'>; link?: boolean; className?: string }) {
+/** Small cap shown next to the names of teachers the administrators verified. */
+export function VerifiedTeacherMark({ show }: { show?: boolean }) {
+  const tr = useT();
+  if (!show) return null;
+  return (
+    <span className="inline-flex shrink-0 text-ok" title={tr.t('verification.badge')} aria-label={tr.t('verification.badge')} role="img">
+      <GraduationCap className="size-4" strokeWidth={2.4} aria-hidden />
+    </span>
+  );
+}
+
+export function UserName({
+  user,
+  link = true,
+  className,
+}: {
+  user: Pick<UserSummary, 'id' | 'displayName' | 'badge'> & { verifiedTeacher?: boolean };
+  link?: boolean;
+  className?: string;
+}) {
   const inner = (
     <>
       <span className="truncate">{user.displayName}</span>
       <VerifiedBadge badge={user.badge} />
+      <VerifiedTeacherMark show={user.verifiedTeacher} />
     </>
   );
   return link ? (

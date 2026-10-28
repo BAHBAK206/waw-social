@@ -95,7 +95,7 @@ export function CommentsSection({
         <ul className="space-y-3">
           {items.map((c) => {
             const best = isQuestion && post.acceptedCommentId === c.id;
-            const teacher = c.author.accountType === 'teacher';
+            const teacher = c.author.accountType === 'teacher' && c.author.verifiedTeacher;
             return (
               <li key={c.id} className="flex gap-2">
                 <Avatar name={c.author.displayName} url={c.author.avatarUrl} size="sm" />

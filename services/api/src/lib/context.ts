@@ -31,6 +31,8 @@ export interface AuthUser {
   timezone: string;
   sessionId: string;
   emailVerified: boolean;
+  /** Teacher account checked by the administrators. */
+  verifiedTeacher: boolean;
 }
 
 export type AppEnv = {

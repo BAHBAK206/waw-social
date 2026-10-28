@@ -51,6 +51,26 @@ export function OverviewTab() {
           </div>
         ))}
       </div>
+      <section className="card space-y-3 p-4">
+        <h2 className="font-black">{tr.t('admin.safety.title')}</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {(
+            [
+              ['pendingVerifications', o.safety.pendingVerifications, '/admin?tab=verifications', o.safety.pendingVerifications > 0],
+              ['minorReports', o.safety.minorReports, '/admin?tab=reports', o.safety.minorReports > 0],
+              ['unverifiedTeachers', o.safety.unverifiedTeachers, '/admin?tab=users', false],
+              ['children', o.safety.children, '/admin?tab=users', false],
+              ['teens', o.safety.teens, '/admin?tab=users', false],
+              ['parents', o.safety.parents, '/admin?tab=users', false],
+            ] as const
+          ).map(([k, v, to, alert]) => (
+            <Link key={k} to={to} className={cx('rounded-xl p-3 hover:bg-soft', alert ? 'bg-[color-mix(in_srgb,var(--warn)_14%,transparent)]' : 'bg-bg-2')}>
+              <p className="text-xl font-black tabular-nums">{formatNumber(v, tr)}</p>
+              <p className="muted text-xs">{tr.t(`admin.safety.${k}`)}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
       <section className="card space-y-2 p-4">
         <h2 className="font-black">{tr.t('admin.system.title')}</h2>
         <p className="text-sm">
@@ -142,9 +162,32 @@ function UserDialog({ id, onClose }: { id: string; onClose: () => void }) {
                 {tr.t(`admin.users.roles.${u.role}`)} · {relativeTime(u.createdAt, tr)}
               </p>
             </div>
-            {u.isMinor && <span className="badge badge-warn">{tr.t('admin.users.minor')}</span>}
+            {u.ageTier !== 'adult' && <span className="badge badge-warn">{tr.t(`stages.tiers.${u.ageTier}`)}</span>}
+            {u.verifiedTeacher && <span className="badge badge-ok">{tr.t('verification.badge')}</span>}
             {u.banned && <span className="badge badge-err">{tr.t('admin.users.banned')}</span>}
           </div>
+          <p className="muted text-sm">
+            {[
+              tr.t(`auth.${u.accountType}`),
+              u.gradeLevel ? tr.tDyn(`stages.grades.${u.gradeLevel}`, undefined, u.gradeLevel) : null,
+              u.accountType === 'student' ? tr.t('admin.users.guardians', { count: q.data.stats.guardians }) : null,
+              u.accountType === 'parent' ? tr.t('admin.users.children', { count: q.data.stats.children }) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+          {canManage && u.verifiedTeacher && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                if (!(await confirmDialog({ title: tr.t('verification.remove'), danger: true }))) return;
+                void run(() => api.admin.unverifyTeacher(u.id));
+              }}
+            >
+              {tr.t('verification.remove')}
+            </Button>
+          )}
           <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
             {(
               [
@@ -273,16 +316,29 @@ function UserDialog({ id, onClose }: { id: string; onClose: () => void }) {
   );
 }
 
+const USER_FILTERS = {
+  all: {},
+  students: { accountType: 'student' },
+  teachers: { accountType: 'teacher' },
+  unverified: { verified: 'no' },
+  parents: { accountType: 'parent' },
+  children: { age: 'child' },
+  minors: { age: 'minor' },
+  banned: { banned: true },
+} as const;
+type UserFilter = keyof typeof USER_FILTERS;
+
 export function UsersTab() {
   const tr = useT();
   const [term, setTerm] = useState('');
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const [filter, setFilter] = useState<UserFilter>('all');
   useEffect(() => {
     const id = setTimeout(() => setQ(term.trim()), 300);
     return () => clearTimeout(id);
   }, [term]);
-  const list = usePaged<AdminUserDto>(['admin', 'users', q], (cursor) => api.admin.users({ q, cursor, limit: 30 }));
+  const list = usePaged<AdminUserDto>(['admin', 'users', q, filter], (cursor) => api.admin.users({ q, cursor, limit: 30, ...USER_FILTERS[filter] }));
   return (
     <div className="space-y-4">
       <div className="relative max-w-md">
@@ -295,6 +351,13 @@ export function UsersTab() {
           value={term}
           onChange={(e) => setTerm(e.target.value)}
         />
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={tr.t('admin.filters.label')}>
+        {(Object.keys(USER_FILTERS) as UserFilter[]).map((k) => (
+          <button key={k} type="button" className="chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>
+            {tr.t(`admin.filters.${k}`)}
+          </button>
+        ))}
       </div>
       {list.isPending ? (
         <CardSkeletons count={5} />
@@ -312,6 +375,8 @@ export function UsersTab() {
                   <ShieldCheck className="size-3" /> {tr.t(`admin.users.roles.${u.role}`)}
                 </span>
               )}
+              {u.ageTier !== 'adult' && <span className="badge badge-warn">{tr.t(`stages.tiers.${u.ageTier}`)}</span>}
+              {u.accountType === 'teacher' && !u.verifiedTeacher && <span className="badge">{tr.t('admin.filters.unverified')}</span>}
               {u.banned && <span className="badge badge-err">{tr.t('admin.users.banned')}</span>}
               <span className="muted hidden text-xs sm:block">{relativeTime(u.createdAt, tr)}</span>
             </button>
@@ -324,11 +389,18 @@ export function UsersTab() {
   );
 }
 
+const REPORT_TYPES = ['post', 'comment', 'message', 'story', 'user', 'video', 'video_comment', 'group', 'event'] as const;
+
 export function ReportsTab() {
   const tr = useT();
   const qc = useQueryClient();
   const [status, setStatus] = useState<'open' | 'resolved' | 'dismissed'>('open');
-  const list = usePaged<ReportDto>(['admin', 'reports', status], (cursor) => api.admin.reports({ status, cursor, limit: 30 }));
+  const [type, setType] = useState('');
+  const [minors, setMinors] = useState(false);
+  const [person, setPerson] = useState<string | null>(null);
+  const list = usePaged<ReportDto>(['admin', 'reports', status, type, minors], (cursor) =>
+    api.admin.reports({ status, cursor, limit: 30, ...(type ? { targetType: type } : {}), ...(minors ? { minors: '1' } : {}) }),
+  );
   const resolve = async (r: ReportDto, s: 'resolved' | 'dismissed', removeContent = false) => {
     try {
       await api.admin.resolveReport(r.id, { status: s, removeContent });
@@ -344,6 +416,18 @@ export function ReportsTab() {
         onChange={setStatus}
         tabs={(['open', 'resolved', 'dismissed'] as const).map((k) => ({ key: k, label: tr.t(`admin.reports.${k}`) }))}
       />
+      <div className="flex flex-wrap items-end gap-3">
+        <Select
+          label={tr.t('admin.filters.type')}
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          options={[
+            { value: '', label: tr.t('admin.filters.all') },
+            ...REPORT_TYPES.map((k) => ({ value: k, label: tr.tDyn(`admin.reports.types.${k}`, undefined, k) })),
+          ]}
+        />
+        <Switch checked={minors} onChange={setMinors} label={tr.t('admin.filters.minorReports')} />
+      </div>
       {list.isPending ? (
         <CardSkeletons count={3} />
       ) : !list.items.length ? (
@@ -353,7 +437,8 @@ export function ReportsTab() {
           <article key={r.id} className="card space-y-2 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="badge badge-warn">{tr.tDyn(`report.reasons.${r.reason}`, undefined, r.reason)}</span>
-              <span className="badge">{r.targetType}</span>
+              <span className="badge">{tr.tDyn(`admin.reports.types.${r.targetType}`, undefined, r.targetType)}</span>
+              {r.minorInvolved && <span className="badge badge-err">{tr.t('admin.reports.minor')}</span>}
               {r.reportCount > 1 && <span className="badge">{tr.t('admin.reports.count', { count: r.reportCount })}</span>}
               {r.autoHidden && r.status === 'open' && <span className="badge badge-err">{tr.t('admin.reports.autoHidden')}</span>}
               <span className="muted ms-auto text-xs">{relativeTime(r.createdAt, tr)}</span>
@@ -375,8 +460,15 @@ export function ReportsTab() {
                 {r.details}
               </p>
             )}
-            <p className="muted text-xs">
-              {tr.t('admin.reports.reporter')}: {r.reporter.displayName}
+            <p className="muted flex flex-wrap items-center gap-2 text-xs">
+              <span>
+                {tr.t('admin.reports.reporter')}: {r.reporter.displayName}
+              </span>
+              {r.targetAuthor && (
+                <button type="button" className="link" onClick={() => setPerson(r.targetAuthor!.id)}>
+                  {tr.t('admin.reports.reported', { name: r.targetAuthor.displayName })}
+                </button>
+              )}
             </p>
             {r.status === 'open' ? (
               <div className="flex flex-wrap gap-2">
@@ -402,6 +494,7 @@ export function ReportsTab() {
           </article>
         ))
       )}
+      {person && <UserDialog id={person} onClose={() => setPerson(null)} />}
       <LoadMore hasMore={!!list.hasNextPage} loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()} />
     </div>
   );
