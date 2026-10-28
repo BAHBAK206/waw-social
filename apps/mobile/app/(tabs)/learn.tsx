@@ -4,7 +4,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, TextInput, View } from 'react-native';
-import { Card, Chip, Empty, ErrorView, Loading, Text } from '@/components/ui';
+import { Button, Card, Chip, Empty, ErrorView, Loading, Text } from '@/components/ui';
+import { useSession } from '@/lib/session';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { FONT, useTheme } from '@/lib/theme';
@@ -18,13 +19,16 @@ export default function LearnScreen() {
   const [term, setTerm] = useState('');
   const [q, setQ] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('');
+  const [mine, setMine] = useState(false);
+  const teacher = useSession((s) => s.me?.accountType === 'teacher');
   useEffect(() => {
     const id = setTimeout(() => setQ(term.trim()), 300);
     return () => clearTimeout(id);
   }, [term]);
   const list = useInfiniteQuery({
-    queryKey: ['quizzes', q, difficulty],
-    queryFn: ({ pageParam }) => api.quizzes.list({ q: q || undefined, difficulty: difficulty || undefined, cursor: pageParam, limit: 20 }),
+    queryKey: ['quizzes', q, difficulty, mine],
+    queryFn: ({ pageParam }) =>
+      api.quizzes.list({ q: q || undefined, difficulty: difficulty || undefined, mine: mine || undefined, cursor: pageParam, limit: 20 }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (l) => l.nextCursor ?? undefined,
   });
@@ -100,7 +104,9 @@ export default function LearnScreen() {
               textAlign: 'auto',
             }}
           />
+          {teacher && <Button icon="add" variant="outline" title={tr.t('quiz.create')} onPress={() => router.push('/quiz-editor' as never)} />}
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Chip label={tr.t('quiz.mine')} active={mine} onPress={() => setMine((m) => !m)} />
             <Chip label={tr.t('common.all')} active={!difficulty} onPress={() => setDifficulty('')} />
             {(['easy', 'medium', 'hard'] as const).map((d) => (
               <Chip key={d} label={tr.t(`quiz.difficulties.${d}`)} active={difficulty === d} onPress={() => setDifficulty(d)} />
@@ -108,7 +114,13 @@ export default function LearnScreen() {
           </View>
         </View>
       }
-      renderItem={({ item }) => <QuizRow quiz={item} onPress={() => router.push(`/quiz/${item.id}` as never)} />}
+      renderItem={({ item }) => (
+        <QuizRow
+          quiz={item}
+          onPress={() => router.push(`/quiz/${item.id}` as never)}
+          onManage={item.canEdit ? () => router.push(`/quiz-stats/${item.id}` as never) : undefined}
+        />
+      )}
       ListEmptyComponent={
         list.isPending ? <Loading /> : list.error ? <ErrorView onRetry={() => void list.refetch()} /> : <Empty title={tr.t('quiz.empty')} icon="list-outline" />
       }
@@ -117,7 +129,7 @@ export default function LearnScreen() {
   );
 }
 
-function QuizRow({ quiz, onPress }: { quiz: QuizSummaryDto; onPress: () => void }) {
+function QuizRow({ quiz, onPress, onManage }: { quiz: QuizSummaryDto; onPress: () => void; onManage?: () => void }) {
   const tr = useT();
   const t = useTheme();
   const color = quiz.difficulty === 'easy' ? t.ok : quiz.difficulty === 'hard' ? t.err : t.warn;
@@ -143,6 +155,16 @@ function QuizRow({ quiz, onPress }: { quiz: QuizSummaryDto; onPress: () => void 
         {tr.t('quiz.questions', { count: quiz.questionCount })} · {tr.t('quiz.duration', { count: Math.round(quiz.durationSec / 60) })}
         {quiz.material ? ` · ${quiz.material.name}` : ''}
       </Text>
+      {onManage ? (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button small variant="soft" icon="stats-chart-outline" title={tr.t('quiz.stats')} onPress={onManage} />
+          {!quiz.published && (
+            <Text muted size={12}>
+              {tr.t('common.draft')}
+            </Text>
+          )}
+        </View>
+      ) : null}
     </Card>
   );
 }

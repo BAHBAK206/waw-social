@@ -76,6 +76,10 @@ function Shell() {
         <Stack.Screen name="form/[slug]" options={{ title: tr.t('nav.forms') }} />
         <Stack.Screen name="organizer" options={{ title: tr.t('nav.organizer') }} />
         <Stack.Screen name="studio" options={{ title: tr.t('nav.studio') }} />
+        <Stack.Screen name="form-editor" options={{ title: tr.t('forms.newForm') }} />
+        <Stack.Screen name="form-responses/[id]" options={{ title: tr.t('forms.analytics') }} />
+        <Stack.Screen name="quiz-editor" options={{ title: tr.t('quiz.create') }} />
+        <Stack.Screen name="quiz-stats/[id]" options={{ title: tr.t('quiz.statsTitle') }} />
         <Stack.Screen name="search" options={{ title: tr.t('nav.search') }} />
         <Stack.Screen name="explore" options={{ title: tr.t('nav.explore') }} />
         <Stack.Screen name="tag/[tag]" options={{ title: tr.t('nav.explore') }} />

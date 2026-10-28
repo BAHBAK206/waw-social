@@ -1,4 +1,4 @@
-import { LIMITS, type FormDto, type FormQuestion, type FormQuestionType, type FormSettings } from '@qubedu/shared';
+import { LIMITS, type FormDto, type FormQuestion, type FormQuestionType, type FormSettings, blankFormQuestion, DEFAULT_FORM_SETTINGS, FORM_TYPES, FORM_TYPES_WITH_OPTIONS, formQuestionsBody, retypeFormQuestion, validForm } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Download, FileSpreadsheet, Link2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -14,33 +14,10 @@ import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { toast, toastError } from '@/lib/ui';
 
-const TYPES: FormQuestionType[] = ['short', 'paragraph', 'single', 'multiple', 'dropdown', 'scale', 'rating', 'date', 'time', 'email', 'number', 'section'];
-const WITH_OPTIONS = new Set<FormQuestionType>(['single', 'multiple', 'dropdown']);
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-const DEFAULT_SETTINGS: FormSettings = {
-  acceptingResponses: true,
-  requireSignIn: false,
-  oneResponsePerUser: false,
-  collectEmail: false,
-  showResults: false,
-  quizMode: false,
-  shuffleQuestions: false,
-  deadline: null,
-  confirmationMessage: '',
-  color: '#6c5ce7',
-};
-
-const blank = (type: FormQuestionType = 'short'): FormQuestion => ({
-  id: uid(),
-  type,
-  title: '',
-  description: '',
-  required: false,
-  options: WITH_OPTIONS.has(type) ? ['', ''] : [],
-  ...(type === 'scale' ? { min: 1, max: 5 } : {}),
-  ...(type === 'rating' ? { max: 5 } : {}),
-});
+const TYPES = FORM_TYPES;
+const WITH_OPTIONS = FORM_TYPES_WITH_OPTIONS;
+const DEFAULT_SETTINGS = DEFAULT_FORM_SETTINGS;
+const blank = blankFormQuestion;
 
 function QuestionCard({
   q,
@@ -70,15 +47,7 @@ function QuestionCard({
           aria-label={tr.t('quiz.editor.type')}
           wrapperClassName="w-48"
           value={q.type}
-          onChange={(e) => {
-            const type = e.target.value as FormQuestionType;
-            set({
-              type,
-              options: WITH_OPTIONS.has(type) ? (q.options.length ? q.options : ['', '']) : [],
-              ...(type === 'scale' ? { min: q.min ?? 1, max: q.max ?? 5 } : {}),
-              ...(type === 'rating' ? { max: q.max ?? 5 } : {}),
-            });
-          }}
+          onChange={(e) => onChange(retypeFormQuestion(q, e.target.value as FormQuestionType))}
           options={TYPES.map((t) => ({ value: t, label: tr.t(`forms.questionTypes.${t}`) }))}
         />
         <span className="flex-1" />
@@ -243,8 +212,7 @@ export default function FormBuilderPage() {
 
   if (id && existing.isPending) return <Spinner className="py-24" />;
   const set = (patch: Partial<FormSettings>) => setSettings((s) => ({ ...s, ...patch }));
-  const valid =
-    title.trim().length > 0 && questions.every((q) => q.title.trim() && (!WITH_OPTIONS.has(q.type) || q.options.filter((o) => o.trim()).length >= 2));
+  const valid = validForm(title, questions);
 
   const save = async (publish?: boolean) => {
     setBusy(true);
@@ -254,11 +222,7 @@ export default function FormBuilderPage() {
         description: description.trim(),
         settings,
         published: publish ?? published,
-        questions: questions.map((q) => ({
-          ...q,
-          title: q.title.trim(),
-          options: WITH_OPTIONS.has(q.type) ? q.options.map((o) => o.trim()).filter(Boolean) : [],
-        })),
+        questions: formQuestionsBody(questions),
       };
       const res = id ? await api.forms.update(id, body) : await api.forms.create(body);
       setSaved(res);

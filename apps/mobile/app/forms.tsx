@@ -6,7 +6,6 @@ import { FeatureGate, Row } from '@/components/kit';
 import { Button, Card, Input, Loading, SectionTitle, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
-import { openWeb } from '@/lib/web';
 
 /** Accepts a full form link (…/f/slug) or just the slug. */
 const slugFrom = (v: string) => v.trim().replace(/\/+$/, '').split('/f/').pop()?.split(/[?#]/)[0]?.split('/').pop() ?? '';
@@ -39,11 +38,11 @@ export default function FormsScreen() {
               icon="clipboard-outline"
               title={f.title}
               subtitle={`${tr.t('forms.responses', { count: f.responseCount })}${f.published ? '' : ` · ${tr.t('common.draft')}`}`}
-              onPress={() => router.push(`/form/${f.slug}` as never)}
+              onPress={() => router.push(`/form-responses/${f.id}` as never)}
             />
           ))
         )}
-        <Button variant="ghost" icon="open-outline" title={tr.t('forms.editOnWeb')} onPress={() => void openWeb('/forms')} />
+        <Button icon="add" title={tr.t('forms.newForm')} onPress={() => router.push('/form-editor' as never)} />
       </Screen>
     </FeatureGate>
   );

@@ -1,4 +1,4 @@
-import { LIMITS, type QuestionType, type QuizEditorDto } from '@qubedu/shared';
+import { blankQuestion, blankQuiz, LIMITS, quizBody, retypeQuestion, validQuizQuestions, type QuestionType, type QuizEditorDto } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Plus, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -15,31 +15,8 @@ import { toast, toastError } from '@/lib/ui';
 
 type Q = QuizEditorDto['questions'][number];
 
-const blank = (type: QuestionType = 'mc'): Q => ({
-  type,
-  prompt: '',
-  imageUrl: null,
-  options: type === 'tf' ? ['', ''] : type === 'short' ? [] : ['', '', '', ''],
-  answer: type === 'multi' ? [0] : type === 'short' ? [''] : 0,
-  explanation: null,
-  topic: null,
-  points: 1,
-});
-
-function validate(questions: Q[]): boolean {
-  return (
-    questions.length > 0 &&
-    questions.every((q) => {
-      if (!q.prompt.trim()) return false;
-      if (q.type === 'short') return Array.isArray(q.answer) && (q.answer as string[]).some((a) => String(a).trim());
-      const opts = q.options.filter((o) => o.trim());
-      if (q.type === 'tf') return q.options.length === 2 && q.options.every((o) => o.trim());
-      if (opts.length < 2 || opts.length !== q.options.length) return false;
-      if (q.type === 'multi') return Array.isArray(q.answer) && q.answer.length > 0;
-      return typeof q.answer === 'number' && q.answer < q.options.length;
-    })
-  );
-}
+const blank = blankQuestion;
+const validate = validQuizQuestions;
 
 function QuestionEditor({
   q,
@@ -58,18 +35,7 @@ function QuestionEditor({
 }) {
   const tr = useT();
   const set = (patch: Partial<Q>) => onChange({ ...q, ...patch });
-  const changeType = (type: QuestionType) => {
-    const fresh = blank(type);
-    onChange({
-      ...fresh,
-      prompt: q.prompt,
-      explanation: q.explanation,
-      topic: q.topic,
-      points: q.points,
-      options:
-        type === 'tf' ? [tr.t('quiz.editor.true'), tr.t('quiz.editor.false')] : type === 'short' ? [] : q.options.length >= 2 ? q.options : fresh.options,
-    });
-  };
+  const changeType = (type: QuestionType) => onChange(retypeQuestion(q, type, tr.t('quiz.editor.true'), tr.t('quiz.editor.false')));
   return (
     <fieldset className="card space-y-4 p-4">
       <legend className="sr-only">{tr.t('quiz.editor.question', { n: index + 1 })}</legend>
@@ -205,20 +171,7 @@ export default function QuizEditorPage() {
   const taxonomy = useQuery({ queryKey: qk.taxonomy, queryFn: () => api.taxonomy(), staleTime: 10 * 60_000 });
   const existing = useQuery({ queryKey: ['quiz-editor', id], queryFn: () => api.quizzes.editor(id!), enabled: !!id, staleTime: 0 });
   const courses = useQuery({ queryKey: qk.courses, queryFn: () => api.school.courses(false) });
-  const [form, setForm] = useState<Omit<QuizEditorDto, 'id'>>({
-    title: '',
-    description: '',
-    sectionId: null,
-    materialId: null,
-    courseId: null,
-    kind: 'quiz',
-    difficulty: 'medium',
-    durationSec: 600,
-    scheduledAt: null,
-    published: true,
-    shuffle: false,
-    questions: [blank()],
-  });
+  const [form, setForm] = useState<Omit<QuizEditorDto, 'id'>>(blankQuiz);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -249,18 +202,7 @@ export default function QuizEditorPage() {
   const save = async () => {
     setBusy(true);
     try {
-      const body = {
-        ...form,
-        title: form.title.trim(),
-        questions: form.questions.map((q) => ({
-          ...q,
-          prompt: q.prompt.trim(),
-          options: q.type === 'short' ? [] : q.options.map((o) => o.trim()),
-          answer: q.type === 'short' ? (q.answer as string[]).map((a) => a.trim()).filter(Boolean) : q.answer,
-          explanation: q.explanation?.trim() || null,
-          topic: q.topic?.trim() || null,
-        })),
-      };
+      const body = quizBody(form);
       if (id) await api.quizzes.update(id, body);
       else await api.quizzes.create(body);
       toast(tr.t('common.saved'));
