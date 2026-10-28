@@ -11,7 +11,7 @@ from urllib.parse import unquote
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from . import engine
+from . import engine, teacher, transcribe
 from .essay import grade_essay
 from .extract import ExtractError, extract
 from .llm import build_provider
@@ -99,6 +99,42 @@ async def essay(body: EssayIn) -> dict:
 async def assistant(body: AssistantIn) -> dict:
     payload = body.model_dump()
     return await engine.assistant(payload, provider)
+
+
+class CueIn(BaseModel):
+    start: float = Field(ge=0)
+    end: float = Field(ge=0)
+    text: str = Field(max_length=1000)
+
+
+class TeacherIn(BaseModel):
+    task: Literal["quiz", "summary", "chapters", "ideas", "translate"]
+    text: str = Field(default="", max_length=120000)
+    cues: list[CueIn] = Field(default_factory=list, max_length=5000)
+    count: int = Field(default=5, ge=1, le=20)
+    types: list[Literal["mc", "tf", "short"]] = Field(default_factory=lambda: ["mc", "tf", "short"])
+    language: str = "en"
+    targetLanguage: str | None = None
+
+
+@app.post("/v1/teacher", dependencies=[Internal])
+async def teacher_task(body: TeacherIn) -> dict:
+    result = await teacher.run(body.model_dump(), provider)
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
+    return result
+
+
+@app.post("/v1/transcribe", dependencies=[Internal])
+async def transcribe_audio(request: Request, x_language: Annotated[str | None, Header()] = None) -> dict:
+    """Speech to timed captions with faster-whisper, when installed (pip install faster-whisper)."""
+    data = await request.body()
+    if len(data) > 200 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="file_too_large")
+    try:
+        return {"cues": await transcribe.run(data, x_language)}
+    except transcribe.Unavailable as e:
+        raise HTTPException(status_code=501, detail="transcription_unavailable") from e
 
 
 @app.post("/v1/extract", dependencies=[Internal])

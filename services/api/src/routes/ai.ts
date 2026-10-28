@@ -37,7 +37,7 @@ import { getSettings } from '../lib/settings';
 import { checkRate } from '../middleware';
 
 /** Enforces the admin kill switch and per-user daily quota. Returns remaining calls after this one. */
-async function consumeQuota(deps: Deps, user: AuthUser): Promise<number> {
+export async function consumeQuota(deps: Deps, user: AuthUser): Promise<number> {
   const settings = await getSettings(deps.db, deps.env.AI_DAILY_QUOTA);
   if (!settings.ai.enabled) throw new AppError(503, 'ai_disabled');
   const day = dayKey(Date.now(), user.timezone);

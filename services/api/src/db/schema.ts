@@ -395,6 +395,24 @@ export const notifications = pgTable(
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
 );
 
+/** Captions / transcript of a lesson, one row per language. */
+export const videoCaptions = pgTable(
+  'video_captions',
+  {
+    id: id(),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    language: text('language').notNull(),
+    /** upload = the teacher's file, auto = speech recognition, translated = from another language. */
+    source: text('source').$type<'upload' | 'auto' | 'translated'>().notNull(),
+    cues: jsonb('cues').$type<{ start: number; end: number; text: string }[]>().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('video_captions_uq').on(t.videoId, t.language)],
+);
+
 /** Phones (Expo push tokens) and browsers (Web Push subscriptions) that receive notifications while the app is closed. */
 export const pushDevices = pgTable(
   'push_devices',

@@ -44,6 +44,30 @@ export const fakeAi: AiClient = {
     const hit = input.knowledge[0];
     return { content: hit ? hit.answer : `echo: ${input.message}`, sources: [], actions: [], provider: 'fake' };
   },
+  async teacher(input) {
+    if (input.task === 'translate') return { provider: 'fake', cues: (input.cues ?? []).map((c) => ({ ...c, text: `[${input.targetLanguage}] ${c.text}` })) };
+    if (input.task === 'quiz')
+      return {
+        provider: 'fake',
+        questions: [
+          { type: 'mc', prompt: 'Plants make _____ from light.', options: ['glucose', 'salt', 'iron', 'oil'], answer: 0, explanation: 'From the lesson.' },
+          { type: 'tf', prompt: 'Oxygen is released.', options: ['true', 'false'], answer: 0, explanation: null },
+          { type: 'short', prompt: 'The green pigment is _____.', options: [], answer: ['chlorophyll'], explanation: null },
+        ].slice(0, input.count ?? 3),
+      };
+    if (input.task === 'summary') return { provider: 'fake', summary: [String(input.text).slice(0, 40)], keyPoints: ['photosynthesis'] };
+    if (input.task === 'chapters')
+      return { provider: 'fake', chapters: (input.cues ?? []).slice(0, 2).map((c, i) => ({ at: i ? Math.floor(c.start) : 0, title: c.text })) };
+    return { provider: 'fake', ideas: ['Explain it in your own words.'] };
+  },
+  async transcribe() {
+    return {
+      cues: [
+        { start: 0, end: 2, text: 'Hello class' },
+        { start: 2, end: 4, text: 'Today: light' },
+      ],
+    };
+  },
   async health() {
     return true;
   },

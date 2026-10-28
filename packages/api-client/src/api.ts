@@ -27,6 +27,9 @@ import type {
   VideoChannelDto,
   VideoCommentDto,
   VideoDto,
+  CaptionTrackDto,
+  TeacherAiResultDto,
+  TeacherAiInput,
   VideoNoteDto,
   WatchHistoryItem,
   ConversationDto,
@@ -180,6 +183,11 @@ export function createApi(options: ClientOptions) {
       delete: (password: string) => http.del<Ok>('/me', { password }),
     },
 
+    teacher: {
+      /** Quiz draft, summary, chapters or assignment ideas from a lesson, pasted text or an uploaded document. */
+      ai: (body: Partial<TeacherAiInput> & Pick<TeacherAiInput, 'task'>) => http.post<TeacherAiResultDto>('/teacher/ai', body),
+    },
+
     users: {
       list: (q: Q = {}) => http.get<Page<UserSummary>>('/users', q),
       suggested: () => http.get<{ items: UserSummary[] }>('/users/suggested'),
@@ -239,6 +247,11 @@ export function createApi(options: ClientOptions) {
     },
 
     videos: {
+      captions: (id: string) => http.get<{ items: CaptionTrackDto[] }>(`/videos/${id}/captions`),
+      saveCaptions: (id: string, language: string, content: string) => http.put<CaptionTrackDto>(`/videos/${id}/captions/${language}`, { content }),
+      deleteCaptions: (id: string, language: string) => http.del<Ok>(`/videos/${id}/captions/${language}`),
+      autoCaptions: (id: string, language: string) => http.post<CaptionTrackDto>(`/videos/${id}/captions-auto`, { language }),
+      translateCaptions: (id: string, from: string, to: string) => http.post<CaptionTrackDto>(`/videos/${id}/captions/${from}/translate`, { to }),
       list: (
         q: {
           feed?: 'home' | 'trending' | 'subscriptions' | 'new' | 'liked';

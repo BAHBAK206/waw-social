@@ -1,8 +1,10 @@
 import { blankQuestion, blankQuiz, LIMITS, quizBody, retypeQuestion, validQuizQuestions, type QuestionType, type QuizEditorDto } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Plus, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { AiGenerateDialog } from '@/components/quiz/AiGenerate';
+import { QUIZ_DRAFT_KEY } from '@/components/video/Captions';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
 import { PageHeader, Spinner } from '@/components/ui/States';
@@ -11,6 +13,7 @@ import { api } from '@/lib/api';
 import { fromLocalInput, toLocalInput } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
+import { useSession } from '@/lib/session';
 import { toast, toastError } from '@/lib/ui';
 
 type Q = QuizEditorDto['questions'][number];
@@ -171,8 +174,33 @@ export default function QuizEditorPage() {
   const taxonomy = useQuery({ queryKey: qk.taxonomy, queryFn: () => api.taxonomy(), staleTime: 10 * 60_000 });
   const existing = useQuery({ queryKey: ['quiz-editor', id], queryFn: () => api.quizzes.editor(id!), enabled: !!id, staleTime: 0 });
   const courses = useQuery({ queryKey: qk.courses, queryFn: () => api.school.courses(false) });
-  const [form, setForm] = useState<Omit<QuizEditorDto, 'id'>>(blankQuiz);
+  const [params] = useSearchParams();
+  // A draft made by the lesson tools ("Make a checkpoint quiz"): questions to review, then link to the lesson.
+  const [draft] = useState(() => {
+    if (id || params.get('draft') !== '1') return null;
+    try {
+      const raw = sessionStorage.getItem(QUIZ_DRAFT_KEY);
+      sessionStorage.removeItem(QUIZ_DRAFT_KEY);
+      return raw ? (JSON.parse(raw) as { title: string; questions: Q[]; videoId?: string }) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [form, setForm] = useState<Omit<QuizEditorDto, 'id'>>(() =>
+    draft
+      ? { ...blankQuiz(), title: draft.title.slice(0, LIMITS.quizTitle), questions: draft.questions.length ? draft.questions : blankQuiz().questions }
+      : blankQuiz(),
+  );
   const [busy, setBusy] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const teacher = useSession((s) => s.me?.accountType === 'teacher' || (s.me?.role ?? 'user') !== 'user');
+  const addQuestions = (list: Q[]) => {
+    setForm((cur) => ({
+      ...cur,
+      questions: [...(cur.questions.length === 1 && !cur.questions[0]!.prompt ? [] : cur.questions), ...list].slice(0, LIMITS.questionsPerQuiz),
+    }));
+    toast(tr.t('quiz.editor.generated', { count: list.length }));
+  };
 
   useEffect(() => {
     if (existing.data) {
@@ -204,7 +232,16 @@ export default function QuizEditorPage() {
     try {
       const body = quizBody(form);
       if (id) await api.quizzes.update(id, body);
-      else await api.quizzes.create(body);
+      else {
+        const created = await api.quizzes.create(body);
+        // Made from a lesson: it becomes that lesson's checkpoint quiz.
+        if (draft?.videoId && body.published) await api.videos.update(draft.videoId, { quizId: created.id }).catch(() => undefined);
+        if (draft?.videoId) {
+          toast(tr.t('common.saved'));
+          navigate(`/watch/${draft.videoId}`);
+          return;
+        }
+      }
       toast(tr.t('common.saved'));
       navigate('/quiz?mine=1');
     } catch (e) {
@@ -216,10 +253,16 @@ export default function QuizEditorPage() {
 
   return (
     <div className="page-narrow space-y-5">
+      <AiGenerateDialog open={aiOpen} onClose={() => setAiOpen(false)} onAdd={addQuestions} />
       <PageHeader
         title={id ? tr.t('quiz.edit') : tr.t('quiz.create')}
         actions={
           <>
+            {teacher && (
+              <Button variant="soft" icon={<Sparkles className="size-4" />} onClick={() => setAiOpen(true)}>
+                {tr.t('quiz.editor.generate')}
+              </Button>
+            )}
             <Button variant="outline" icon={<Upload className="size-4" />} onClick={() => void importJson()}>
               {tr.t('quiz.editor.importJson')}
             </Button>

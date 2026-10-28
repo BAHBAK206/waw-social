@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { RichText } from '@/components/common/RichText';
 import { reportContent } from '@/components/common/ReportDialog';
+import { LessonToolsPanel, LessonTranscript, useCaptions } from '@/components/video/Captions';
 import { LessonChapters, LessonNotes, QuizCheckpoint } from '@/components/video/LessonTools';
 import { SaveToPlaylist } from '@/components/video/SaveToPlaylist';
 import { SubscribeButton } from '@/components/video/SubscribeButton';
@@ -38,6 +39,9 @@ export default function VideoPage() {
   const [autoplay, setAutoplay] = useState(() => localStorage.getItem('qubedu:autoplay') !== 'off');
   const player = useRef<HTMLVideoElement | null>(null);
   const [time, setTime] = useState(0);
+  const captionsQuery = useCaptions(id);
+  const captionTracks = useMemo(() => captionsQuery.data?.items ?? [], [captionsQuery.data]);
+  const [captionLang, setCaptionLang] = useState<string>(tr.locale);
   const [ended, setEnded] = useState(false);
   // Arriving from the study inbox ("take the checkpoint quiz") jumps straight to the quiz card.
   const wantsCheckpoint = params.get('checkpoint') === '1';
@@ -127,6 +131,8 @@ export default function VideoPage() {
           className="md:rounded-[var(--radius-card)] rounded-none"
           playerRef={player}
           onTime={setTime}
+          captions={captionTracks}
+          captionLanguage={captionLang}
           onEnded={() => {
             // A lesson with a checkpoint quiz stops here so the learner can test what they just watched.
             if (video.quiz) {
@@ -256,8 +262,10 @@ export default function VideoPage() {
           </div>
 
           <LessonChapters chapters={chapters} time={time} onSeek={seek} />
+          <LessonTranscript tracks={captionTracks} language={captionLang} onLanguage={setCaptionLang} time={time} onSeek={seek} />
           {video.quiz && <QuizCheckpoint quiz={video.quiz} highlight={ended || wantsCheckpoint} />}
           <LessonNotes videoId={video.id} time={time} onSeek={seek} />
+          {video.canEdit && <LessonToolsPanel video={video} tracks={captionTracks} onVideo={(p) => patch((v) => ({ ...v, ...p }))} />}
 
           <VideoComments video={video} onCount={(d) => patch((v) => ({ ...v, commentCount: v.commentCount + d }))} />
         </div>

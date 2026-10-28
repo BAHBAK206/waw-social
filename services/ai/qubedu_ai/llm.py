@@ -20,6 +20,11 @@ Explain step by step when the student is learning a concept, keep answers concis
 Do not complete graded exams on a student's behalf; guide them to understand instead."""
 
 
+TEACHER_PROMPT = """You help teachers on Qubedu, an education platform, prepare material from their own lessons.
+Use only the lesson content you are given; never invent facts that are not in it.
+Follow the requested output format exactly: reply with the JSON object only, no prose before or after it."""
+
+
 @dataclass
 class LlmReply:
     text: str
@@ -82,6 +87,27 @@ class ClaudeProvider:
         if not text:
             return None
         return LlmReply(text=text, provider=f"anthropic:{response.model}")
+
+    async def task(self, instruction: str, content: str) -> LlmReply | None:
+        """One-shot teacher task (quiz draft, summary, chapters, ideas, translation). Returns None on any failure."""
+        anthropic = self._anthropic
+        try:
+            response = await self.client.beta.messages.create(
+                model=self.model,
+                max_tokens=16000,
+                system=TEACHER_PROMPT + "\n\n" + instruction,
+                messages=[{"role": "user", "content": f"<lesson>\n{content[:60000]}\n</lesson>"}],
+                output_config={"effort": self.effort},
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+            )
+        except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
+            log.warning("Claude teacher task failed: %s", type(e).__name__)
+            return None
+        if response.stop_reason == "refusal":
+            return None
+        text = "".join(block.text for block in response.content if block.type == "text").strip()
+        return LlmReply(text=text, provider=f"anthropic:{response.model}") if text else None
 
 
 def build_provider() -> ClaudeProvider | None:

@@ -1021,3 +1021,20 @@ export interface PronunciationStatsDto {
   /** Words most often missed recently (to practise again). */
   weakWords: { word: string; language: string; misses: number }[];
 }
+
+export interface CaptionTrackDto {
+  language: 'ar' | 'en' | 'fr' | 'es';
+  source: 'upload' | 'auto' | 'translated';
+  cues: { start: number; end: number; text: string }[];
+  updatedAt: number;
+}
+
+export interface TeacherAiResultDto {
+  provider: string;
+  /** quiz: questions in the quiz editor's format, for the teacher to review. */
+  questions?: QuizEditorDto['questions'];
+  summary?: string[];
+  keyPoints?: string[];
+  chapters?: { at: number; title: string }[];
+  ideas?: string[];
+}

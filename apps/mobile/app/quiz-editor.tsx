@@ -14,11 +14,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { takeQuizDraft } from '@/components/Captions';
+import { AiGenerateSheet } from '@/components/AiGenerate';
 import { SubjectPicker } from '@/components/SubjectPicker';
 import { FeatureGate, SelectField, SwitchRow } from '@/components/kit';
 import { Button, Card, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
 
@@ -156,7 +159,7 @@ function QuestionEditor({
 }
 
 export default function QuizEditorScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, draft: fromDraft } = useLocalSearchParams<{ id?: string; draft?: string }>();
   const tr = useT();
   const t = useTheme();
   const router = useRouter();
@@ -164,8 +167,16 @@ export default function QuizEditorScreen() {
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: () => api.taxonomy(), staleTime: 10 * 60_000 });
   const existing = useQuery({ queryKey: ['quiz-editor', id], queryFn: () => api.quizzes.editor(id!), enabled: !!id, staleTime: 0 });
   const courses = useQuery({ queryKey: ['courses'], queryFn: () => api.school.courses() });
-  const [form, setForm] = useState<QuizDraft>(blankQuiz);
+  // A draft from the lesson tools ("Make a checkpoint quiz"), linked to that lesson when saved.
+  const [draft] = useState(() => (!id && fromDraft === '1' ? takeQuizDraft() : null));
+  const [form, setForm] = useState<QuizDraft>(() =>
+    draft
+      ? { ...blankQuiz(), title: draft.title.slice(0, LIMITS.quizTitle), questions: draft.questions.length ? draft.questions : blankQuiz().questions }
+      : blankQuiz(),
+  );
   const [busy, setBusy] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const teacher = useSession((s) => s.me?.accountType === 'teacher' || (s.me?.role ?? 'user') !== 'user');
   useEffect(() => {
     if (existing.data) {
       const { id: _id, ...rest } = existing.data;
@@ -181,7 +192,11 @@ export default function QuizEditorScreen() {
     try {
       const body = quizBody(form);
       if (id) await api.quizzes.update(id, body);
-      else await api.quizzes.create(body);
+      else {
+        const created = await api.quizzes.create(body);
+        if (draft?.videoId && body.published) await api.videos.update(draft.videoId, { quizId: created.id }).catch(() => undefined);
+        if (draft?.videoId) void qc.invalidateQueries({ queryKey: ['video', draft.videoId] });
+      }
       toast(tr.t('common.saved'));
       void qc.invalidateQueries({ queryKey: ['quizzes'] });
       router.back();
@@ -199,6 +214,18 @@ export default function QuizEditorScreen() {
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 60 }}
         keyboardShouldPersistTaps="handled"
       >
+        {teacher && <Button variant="soft" icon="sparkles-outline" title={tr.t('quiz.editor.generate')} onPress={() => setAiOpen(true)} />}
+        <AiGenerateSheet
+          open={aiOpen}
+          onClose={() => setAiOpen(false)}
+          onAdd={(list) => {
+            setForm((f) => ({
+              ...f,
+              questions: [...(f.questions.length === 1 && !f.questions[0]!.prompt ? [] : f.questions), ...list].slice(0, LIMITS.questionsPerQuiz),
+            }));
+            toast(tr.t('quiz.editor.generated', { count: list.length }));
+          }}
+        />
         <Input label={tr.t('quiz.editor.titleLabel')} value={form.title} onChangeText={(v) => setForm({ ...form, title: v })} maxLength={160} />
         <Input label={tr.t('quiz.editor.descriptionLabel')} value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline />
         <SubjectPicker

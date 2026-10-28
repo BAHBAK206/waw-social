@@ -1,7 +1,8 @@
-import type { VideoDto } from '@qubedu/shared';
+import { toVtt, type CaptionTrackDto, type VideoDto } from '@qubedu/shared';
+import { LOCALE_NAMES } from '@qubedu/i18n';
 import type Hls from 'hls.js';
 import { Gauge, Play, RotateCcw, Settings2 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, fileUrl } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { formatClock } from '@/lib/format';
@@ -26,13 +27,29 @@ interface Props {
   playerRef?: { current: HTMLVideoElement | null };
   /** Whole-second playback position, reported when it changes. */
   onTime?: (sec: number) => void;
+  /** Caption tracks (shown with the player's CC button); `captionLanguage` is on by default. */
+  captions?: CaptionTrackDto[];
+  captionLanguage?: string;
 }
 
 /**
  * Video element with: resume prompt, keyboard shortcuts (space/k, j/l ±10s, ←/→ ±5s, f, m, </> speed),
  * a counted view after a few seconds of real playback, and periodic progress sync for watch history.
  */
-export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, muted, onMutedChange, active = true, playerRef, onTime }: Props) {
+export function VideoPlayer({
+  video,
+  autoPlay,
+  onEnded,
+  className,
+  vertical,
+  muted,
+  onMutedChange,
+  active = true,
+  playerRef,
+  onTime,
+  captions,
+  captionLanguage,
+}: Props) {
   const tr = useT();
   const authed = useSession((s) => s.status === 'authed');
   const ref = useRef<HTMLVideoElement>(null);
@@ -45,6 +62,7 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
   const lastSync = useRef(0);
   const lastWhole = useRef(-1);
   const stream = useAdaptiveStream(ref, video);
+  const trackUrls = useCaptionUrls(captions);
   const [qualityOpen, setQualityOpen] = useState(false);
 
   useEffect(() => {
@@ -205,7 +223,18 @@ export function VideoPlayer({ video, autoPlay, onEnded, className, vertical, mut
           sync(true);
           onEnded?.();
         }}
-      />
+      >
+        {trackUrls.map((t) => (
+          <track
+            key={`${t.language}-${t.url}`}
+            kind="subtitles"
+            srcLang={t.language}
+            label={LOCALE_NAMES[t.language]}
+            src={t.url}
+            default={t.language === captionLanguage}
+          />
+        ))}
+      </video>
       {resumeAt > 0 && (
         <div className="absolute inset-x-3 top-3 flex flex-wrap items-center gap-2 rounded-xl bg-black/75 p-2 text-sm text-white backdrop-blur">
           <button
@@ -354,4 +383,14 @@ function useAdaptiveStream(ref: { current: HTMLVideoElement | null }, video: Vid
     if (hls.current) hls.current.currentLevel = i;
   };
   return { levels, level, setLevel };
+}
+
+/** In-memory WebVTT files for <track> (works for private lessons too: no extra request with credentials). */
+function useCaptionUrls(captions: CaptionTrackDto[] | undefined) {
+  const urls = useMemo(
+    () => (captions ?? []).map((c) => ({ language: c.language, url: URL.createObjectURL(new Blob([toVtt(c.cues)], { type: 'text/vtt' })) })),
+    [captions],
+  );
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u.url)), [urls]);
+  return urls;
 }

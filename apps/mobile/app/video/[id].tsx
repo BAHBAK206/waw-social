@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, View, type ScrollViewInstance } from 'react-native';
+import { CaptionOverlay, LessonToolsSheet, preferredTrack, Transcript, useCaptions } from '@/components/Captions';
 import { ReportButton } from '@/components/Report';
 import { Checkpoint, LessonNotes, LessonOutline } from '@/components/LessonTools';
 import { Avatar, Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
@@ -25,19 +26,22 @@ function Player({
   controller,
   onTime,
   onEnd,
+  children,
 }: {
   video: VideoDto;
   autoPlay: boolean;
   controller: { current: Controller | null };
   onTime: (sec: number) => void;
   onEnd: () => void;
+  /** Drawn over the video (captions). */
+  children?: React.ReactNode;
 }) {
   const tr = useT();
   // The adaptive stream (360p/720p/1080p by connection speed) when ready, else the original file.
   // File links are public or signed: no sign-in token is sent (it would reach the CDN / storage host).
   const uri = fileUrl(video.streamUrl ?? video.videoUrl)!;
   const player = useVideoPlayer({ uri }, (p) => {
-    p.timeUpdateEventInterval = 1;
+    p.timeUpdateEventInterval = 0.5;
     if (video.progressSec > 5 && video.progressSec < video.durationSec - 5) p.currentTime = video.progressSec;
     if (autoPlay) p.play();
   });
@@ -67,7 +71,7 @@ function Player({
         })
         .catch(() => undefined);
     const time = player.addListener('timeUpdate', ({ currentTime }) => {
-      onTime(Math.floor(currentTime));
+      onTime(currentTime);
       if (currentTime > 0 && Math.abs(currentTime - lastSent.current) >= 10) {
         lastSent.current = currentTime;
         void report(currentTime);
@@ -83,13 +87,16 @@ function Player({
     };
   }, [player, video.id, video.durationSec, onTime, onEnd, tr]);
   return (
-    <VideoView
-      player={player}
-      style={{ width: '100%', aspectRatio: video.kind === 'short' ? 9 / 14 : 16 / 9, backgroundColor: '#000' }}
-      nativeControls
-      allowsPictureInPicture
-      contentFit="contain"
-    />
+    <View>
+      <VideoView
+        player={player}
+        style={{ width: '100%', aspectRatio: video.kind === 'short' ? 9 / 14 : 16 / 9, backgroundColor: '#000' }}
+        nativeControls
+        allowsPictureInPicture
+        contentFit="contain"
+      />
+      {children}
+    </View>
   );
 }
 
@@ -112,6 +119,11 @@ export default function VideoScreen() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const chapters = useMemo(() => (q.data ? parseChapters(q.data.description, q.data.durationSec) : []), [q.data]);
+  const captions = useCaptions(id!);
+  const captionTracks = useMemo(() => captions.data?.items ?? [], [captions.data]);
+  const [captionLang, setCaptionLang] = useState<string>(tr.locale);
+  const [captionsOn, setCaptionsOn] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const onEnd = useMemo(
     () => () => {
       setEnded(true);
@@ -196,7 +208,9 @@ export default function VideoScreen() {
         }}
       />
       <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }}>
-        <Player key={v.id} video={v} autoPlay={checkpoint !== '1'} controller={controller} onTime={setTime} onEnd={onEnd} />
+        <Player key={v.id} video={v} autoPlay={checkpoint !== '1'} controller={controller} onTime={setTime} onEnd={onEnd}>
+          {captionsOn ? <CaptionOverlay track={preferredTrack(captionTracks, captionLang)} time={time} /> : null}
+        </Player>
         <View style={{ padding: 16, gap: 12 }}>
           <Text weight="black" size={19}>
             {v.title}
@@ -262,7 +276,17 @@ export default function VideoScreen() {
               <Text>{v.description}</Text>
             </Card>
           ) : null}
+          {v.canEdit && <Button small variant="soft" icon="construct-outline" title={tr.t('lessonTools.title')} onPress={() => setToolsOpen(true)} />}
           <LessonOutline chapters={chapters} time={time} onSeek={(sec) => controller.current?.seek(sec)} />
+          <Transcript
+            tracks={captionTracks}
+            language={captionLang}
+            onLanguage={setCaptionLang}
+            time={time}
+            onSeek={(sec) => controller.current?.seek(sec)}
+            captionsOn={captionsOn}
+            onCaptions={setCaptionsOn}
+          />
           {v.quiz && (
             <View
               onLayout={(e) => {
@@ -273,7 +297,16 @@ export default function VideoScreen() {
               <Checkpoint quiz={v.quiz} highlight={ended || checkpoint === '1'} />
             </View>
           )}
-          {authed && <LessonNotes videoId={v.id} time={time} onSeek={(sec) => controller.current?.seek(sec)} />}
+          {authed && <LessonNotes videoId={v.id} time={Math.floor(time)} onSeek={(sec) => controller.current?.seek(sec)} />}
+          {v.canEdit && (
+            <LessonToolsSheet
+              open={toolsOpen}
+              onClose={() => setToolsOpen(false)}
+              video={v}
+              tracks={captionTracks}
+              onVideo={(p) => patch((x) => ({ ...x, ...p }))}
+            />
+          )}
           <Text weight="black" size={17}>
             {tr.t('watch.comments', { count: v.commentCount })}
           </Text>

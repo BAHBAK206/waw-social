@@ -43,6 +43,7 @@ import { removeHashtags, syncHashtags } from '../lib/hashtags';
 import { body, clientIp, param, query, requireUser } from '../lib/http';
 import { pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
+import { refreshVideoSearchText, videoSearchFilter } from '../lib/videoSearch';
 import { checkRate } from '../middleware';
 
 export const ownerCols = {
@@ -227,7 +228,7 @@ export const videoRoutes = new Hono<AppEnv>()
       q.tag
         ? sql`${videos.id} in (select subject_id from hashtag_uses where subject_type = 'video' and tag = ${q.tag.replace(/^#/, '').toLowerCase()})`
         : undefined,
-      term ? or(sql`${videos.searchText} ilike ${`%${term}%`}`, sql`${videos.searchText} % ${term}`) : undefined,
+      term ? videoSearchFilter(term) : undefined,
       q.feed === 'subscriptions' && viewer ? sql`${videos.ownerId} in (select followee_id from follows where follower_id = ${viewer.id})` : undefined,
       q.feed === 'liked' && viewer ? sql`${videos.id} in (select video_id from video_reactions where user_id = ${viewer.id} and value = 1)` : undefined,
     ];
@@ -442,6 +443,7 @@ export const videoRoutes = new Hono<AppEnv>()
       })
       .where(eq(videos.id, video.id));
     await syncHashtags(deps.db, 'video', video.id, video.ownerId as string, `${title} ${description}`, tags);
+    await refreshVideoSearchText(deps, video.id);
     const [dto] = await hydrateVideos(deps, viewer, [await loadVideo(deps, viewer, video.id)]);
     return c.json(dto);
   })

@@ -14,6 +14,8 @@ import { playlistRoutes } from './routes/playlists';
 import { practiceRoutes } from './routes/practice';
 import { storyRoutes } from './routes/stories';
 import { videoRoutes } from './routes/videos';
+import { captionRoutes } from './routes/captions';
+import { teacherRoutes } from './routes/teacher';
 import { chatRoutes } from './routes/chat';
 import { groupRoutes } from './routes/groups';
 import { academicRoutes, dailyRoutes, examRoutes, flashcardRoutes, noteRoutes, pomodoroRoutes, studySessionRoutes, taskRoutes } from './routes/learning';
@@ -102,7 +104,9 @@ export function createApp(deps: Deps) {
   api.route('/search', searchRoutes);
   api.route('/ai', aiRoutes);
   api.route('/assistant', assistantRoutes);
+  api.route('/videos', captionRoutes);
   api.route('/videos', videoRoutes);
+  api.route('/teacher', teacherRoutes);
   api.route('/playlists', playlistRoutes);
   api.route('/channels', channelRoutes);
   api.route('/studio', studioRoutes);

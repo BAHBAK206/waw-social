@@ -109,3 +109,27 @@ export const videoNoteSchema = z.object({
     .transform((v) => Math.floor(v)),
   text: trimmed(1000, 1),
 });
+
+export const captionLanguageSchema = z.enum(['ar', 'en', 'fr', 'es']);
+/** A WebVTT or SubRip file's text. */
+export const captionsUploadSchema = z.object({ content: z.string().min(10).max(2_000_000) });
+export const captionsTranslateSchema = z.object({ to: captionLanguageSchema });
+export const captionsAutoSchema = z.object({ language: captionLanguageSchema.optional() });
+
+/** Teacher AI tools. The source is one of: a lesson (its captions, description and chapters), pasted text, or an uploaded document. */
+export const teacherAiSchema = z
+  .object({
+    task: z.enum(['quiz', 'summary', 'chapters', 'ideas']),
+    videoId: z.string().uuid().optional(),
+    text: z.string().max(60_000).optional(),
+    fileUrl: z.string().max(2048).optional(),
+    count: z.number().int().min(1).max(20).default(5),
+    types: z
+      .array(z.enum(['mc', 'tf', 'short']))
+      .min(1)
+      .max(3)
+      .default(['mc', 'tf', 'short']),
+    language: z.enum(['ar', 'en', 'fr', 'es']).default('ar'),
+  })
+  .refine((v) => !!(v.videoId || v.text?.trim() || v.fileUrl), { message: 'source_required' });
+export type TeacherAiInput = z.infer<typeof teacherAiSchema>;
