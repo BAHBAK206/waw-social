@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { xpProgress } from '@qubedu/shared';
+import { xpProgress, type DailyChallengeDto } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { Card, Empty, GradientHeader, Loading, SectionTitle, Text } from '@/components/ui';
+import { Button, Card, Empty, GradientHeader, Loading, SectionTitle, Text } from '@/components/ui';
+import { toast, toastError } from '@/lib/ui';
 import { api } from '@/lib/api';
 import { appPath } from '@/lib/links';
 import { useT } from '@/lib/i18n';
@@ -23,12 +25,15 @@ export default function HomeScreen() {
   const goal = me.dailyGoalMinutes;
   const done = dash.data?.studyMinutesToday ?? me.todayMinutes;
   const actions: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; href: string }[] = [
-    { icon: 'flash-outline', label: tr.t('home.practice'), href: '/learn' },
+    { icon: 'school-outline', label: tr.t('nav.academic'), href: '/study' },
+    { icon: 'layers-outline', label: tr.t('home.reviewCards'), href: '/study?tab=cards' },
+    { icon: 'timer-outline', label: tr.t('home.startFocus'), href: '/study?tab=focus' },
+    { icon: 'flash-outline', label: tr.t('home.practice'), href: '/quiz/adaptive' },
+    { icon: 'sparkles-outline', label: tr.t('home.askTutor'), href: '/tutor' },
+    { icon: 'mic-outline', label: tr.t('nav.lab'), href: '/lab' },
+    { icon: 'easel-outline', label: tr.t('nav.school'), href: '/school' },
     { icon: 'videocam-outline', label: tr.t('live.title'), href: '/live' },
-    { icon: 'people-outline', label: tr.t('groups.title'), href: '/groups' },
     { icon: 'trophy-outline', label: tr.t('people.leaderboard'), href: '/people' },
-    { icon: 'bookmark-outline', label: tr.t('saved.title'), href: '/saved' },
-    { icon: 'notifications-outline', label: tr.t('notifications.title'), href: '/notifications' },
   ];
   return (
     <Screen refreshing={dash.isRefetching} onRefresh={() => void Promise.all([dash.refetch(), daily.refetch()])} contentStyle={{ padding: 0 }}>
@@ -87,17 +92,7 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </View>
-        {daily.data?.challenge && (
-          <Card onPress={() => router.push('/learn' as never)}>
-            <Text weight="bold" color={t.primaryInk} size={12}>
-              {tr.t('daily.title')} · +{daily.data.challenge.xp} XP
-            </Text>
-            <Text weight="black" size={17}>
-              {daily.data.challenge.title}
-            </Text>
-            <Text muted>{daily.data.challenge.description}</Text>
-          </Card>
-        )}
+        {daily.data?.challenge && <DailyCard c={daily.data.challenge} onDone={() => void Promise.all([daily.refetch(), dash.refetch()])} />}
         <SectionTitle>{tr.t('home.inbox')}</SectionTitle>
         {dash.isPending ? (
           <Loading />
@@ -121,5 +116,55 @@ export default function HomeScreen() {
         )}
       </View>
     </Screen>
+  );
+}
+
+function DailyCard({ c, onDone }: { c: DailyChallengeDto; onDone: () => void }) {
+  const tr = useT();
+  const t = useTheme();
+  const patchMe = useSession((s) => s.patchMe);
+  const [busy, setBusy] = useState(false);
+  const answer = async (i?: number) => {
+    setBusy(true);
+    try {
+      const r = await api.daily.answer(i);
+      const res = r.challenge.result;
+      if (res)
+        toast(
+          res.correct ? tr.t('daily.correct', { xp: res.xpEarned }) : tr.t('daily.wrong', { answer: c.options[res.answer ?? 0] ?? '' }),
+          res.correct ? 'ok' : 'err',
+        );
+      void api.me
+        .get()
+        .then(patchMe)
+        .catch(() => undefined);
+      onDone();
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card style={{ gap: 8 }}>
+      <Text weight="bold" color={t.primaryInk} size={12}>
+        {tr.t('daily.title')} · {tr.t('daily.reward', { xp: c.xp })}
+      </Text>
+      <Text weight="black" size={17}>
+        {c.title}
+      </Text>
+      {c.description ? <Text muted>{c.description}</Text> : null}
+      {c.question ? <Text weight="bold">{c.question}</Text> : null}
+      {c.claimed || c.result ? (
+        <Text weight="bold" color={c.result?.correct === false ? t.err : t.ok}>
+          ✓ {tr.t('daily.done')}
+          {c.result && c.result.answer !== null && !c.result.correct ? ` · ${c.options[c.result.answer] ?? ''}` : ''}
+        </Text>
+      ) : c.type === 'quiz' && c.options.length ? (
+        c.options.map((o, i) => <Button key={i} variant="outline" title={o} disabled={busy} onPress={() => void answer(i)} />)
+      ) : (
+        <Button title={tr.t('daily.complete')} loading={busy} onPress={() => void answer()} />
+      )}
+    </Card>
   );
 }

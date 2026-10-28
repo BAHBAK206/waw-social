@@ -129,7 +129,8 @@ export function createApi(options: ClientOptions) {
       restore: async () => ((await http.refresh()) ? http.get<Me>('/me') : null),
       /** Mobile → in-app browser: a 60-second, single-use code that signs the web app in as this user. */
       handoff: () => http.post<{ code: string; expiresAt: number }>('/auth/handoff'),
-      redeemHandoff: async (code: string) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/handoff/redeem', { body: { code }, anonymous: true })),
+      redeemHandoff: async (code: string) =>
+        http.acceptAuth(await http.request<AuthResult>('POST', '/auth/handoff/redeem', { body: { code }, anonymous: true })),
       logout: async () => {
         let body: Record<string, string> = {};
         if (options.platform === 'mobile') {

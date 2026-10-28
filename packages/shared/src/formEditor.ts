@@ -1,7 +1,20 @@
 import type { FormQuestion, FormQuestionType, FormSettings } from './schemas';
 
 /** Form builder rules shared by the web and mobile editors. */
-export const FORM_TYPES: FormQuestionType[] = ['short', 'paragraph', 'single', 'multiple', 'dropdown', 'scale', 'rating', 'date', 'time', 'email', 'number', 'section'];
+export const FORM_TYPES: FormQuestionType[] = [
+  'short',
+  'paragraph',
+  'single',
+  'multiple',
+  'dropdown',
+  'scale',
+  'rating',
+  'date',
+  'time',
+  'email',
+  'number',
+  'section',
+];
 export const FORM_TYPES_WITH_OPTIONS = new Set<FormQuestionType>(['single', 'multiple', 'dropdown']);
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
@@ -44,7 +57,9 @@ export function retypeFormQuestion(q: FormQuestion, type: FormQuestionType): For
 }
 
 export function validForm(title: string, questions: FormQuestion[]): boolean {
-  return title.trim().length > 0 && questions.every((q) => q.title.trim() && (!FORM_TYPES_WITH_OPTIONS.has(q.type) || q.options.filter((o) => o.trim()).length >= 2));
+  return (
+    title.trim().length > 0 && questions.every((q) => q.title.trim() && (!FORM_TYPES_WITH_OPTIONS.has(q.type) || q.options.filter((o) => o.trim()).length >= 2))
+  );
 }
 
 export function formQuestionsBody(questions: FormQuestion[]): FormQuestion[] {

@@ -25,6 +25,8 @@ export default function UserScreen() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (l) => l.nextCursor ?? undefined,
   });
+  const results = useQuery({ queryKey: ['profile', id, 'results'], queryFn: () => api.users.quizResults(id!) });
+  const groups = useQuery({ queryKey: ['profile', id, 'groups'], queryFn: () => api.users.groups(id!) });
   if (q.isPending) return <Loading />;
   if (q.error || !q.data) return <ErrorView onRetry={() => void q.refetch()} />;
   const u = q.data;
@@ -145,6 +147,45 @@ export default function UserScreen() {
           </View>
         </>
       )}
+      {u.accountType === 'teacher' && (
+        <Button variant="soft" icon="play-circle-outline" title={tr.t('watch.channel.videos')} onPress={() => router.push(`/channel/${u.id}` as never)} />
+      )}
+      {!!results.data?.items.length && (
+        <>
+          <Text weight="black" size={17}>
+            {tr.t('people.tabs.results')}
+          </Text>
+          {results.data.items.slice(0, 6).map((r) => (
+            <Card
+              key={r.quizId + r.at}
+              onPress={() => router.push(`/quiz/${r.quizId}` as never)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
+              <Text weight="bold" style={{ flex: 1 }} numberOfLines={1}>
+                {r.title}
+              </Text>
+              <Text weight="black" color={r.pct >= 60 ? t.ok : t.err}>
+                {r.pct}%
+              </Text>
+            </Card>
+          ))}
+        </>
+      )}
+      {!!groups.data?.items.length && (
+        <>
+          <Text weight="black" size={17}>
+            {tr.t('people.tabs.groups')}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {groups.data.items.map((g) => (
+              <Button key={g.id} small variant="outline" title={`${g.name} · ${g.memberCount}`} onPress={() => router.push(`/group/${g.id}` as never)} />
+            ))}
+          </View>
+        </>
+      )}
+      <Text weight="black" size={17}>
+        {tr.t('people.tabs.posts')}
+      </Text>
     </View>
   );
 
