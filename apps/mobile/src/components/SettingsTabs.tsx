@@ -284,7 +284,47 @@ function Privacy() {
       />
       <SwitchRow label={tr.t('settings.privacy.showStats')} value={me.privacy.showStats} onChange={(v) => void set({ showStats: v })} />
       <SwitchRow label={tr.t('settings.privacy.showOnline')} value={me.privacy.showOnline} onChange={(v) => void set({ showOnline: v })} />
+      <BlockedPeople />
     </View>
+  );
+}
+
+function BlockedPeople() {
+  const tr = useT();
+  const q = useQuery({ queryKey: ['me', 'blocks'], queryFn: () => api.me.blocks() });
+  return (
+    <Card style={{ gap: 8, marginTop: 8 }}>
+      <Text weight="bold">{tr.t('settings.privacy.blockedTitle')}</Text>
+      <Text muted size={13}>
+        {tr.t('settings.privacy.blockedHint')}
+      </Text>
+      {q.data && !q.data.items.length ? (
+        <Text muted size={13}>
+          {tr.t('settings.privacy.blockedNone')}
+        </Text>
+      ) : null}
+      {q.data?.items.map((u) => (
+        <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Avatar name={u.displayName} url={u.avatarUrl} size={32} />
+          <Text style={{ flex: 1 }} numberOfLines={1}>
+            {u.displayName}
+          </Text>
+          <Button
+            small
+            variant="outline"
+            title={tr.t('common.unblock')}
+            onPress={async () => {
+              try {
+                await api.users.unblock(u.id);
+                await q.refetch();
+              } catch (e) {
+                toastError(e);
+              }
+            }}
+          />
+        </View>
+      ))}
+    </Card>
   );
 }
 

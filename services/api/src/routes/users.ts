@@ -40,6 +40,19 @@ export const meRoutes = new Hono<AppEnv>()
     const user = requireUser(c);
     return c.json(await buildMe(c.get('deps'), user.id));
   })
+  /** People I blocked (Settings → Privacy), newest first, so they can be unblocked. */
+  .get('/blocks', async (c) => {
+    const user = requireUser(c);
+    const rows = await c
+      .get('deps')
+      .db.select(summaryColumns)
+      .from(blocks)
+      .innerJoin(users, eq(users.id, blocks.blockedId))
+      .where(eq(blocks.blockerId, user.id))
+      .orderBy(desc(blocks.createdAt))
+      .limit(500);
+    return c.json({ items: rows.map(toSummary) });
+  })
   .patch('/', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');

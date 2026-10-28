@@ -183,6 +183,7 @@ export function createApi(options: ClientOptions) {
         onboardingDone?: boolean;
       }) => http.patch<Me>('/me/prefs', body),
       checkin: () => http.post<{ streak: number; changed: boolean; newAchievements: string[] }>('/me/checkin'),
+      blocks: () => http.get<{ items: UserSummary[] }>('/me/blocks'),
       calendar: () => http.get<{ url: string }>('/me/calendar'),
       resetCalendar: () => http.post<{ url: string }>('/me/calendar/reset'),
       pushKey: () => http.get<{ enabled: boolean; vapidPublicKey: string | null }>('/me/push/key'),

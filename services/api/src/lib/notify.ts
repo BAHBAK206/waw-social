@@ -1,5 +1,5 @@
-import { eq, inArray } from 'drizzle-orm';
-import { notifications, users } from '../db/schema';
+import { and, inArray } from 'drizzle-orm';
+import { blocks, notifications, users } from '../db/schema';
 import type { Deps } from './context';
 import { deliverPush } from './push';
 import { ch } from './realtime';
@@ -24,11 +24,21 @@ export async function notify(deps: Deps, input: NotifyInput | NotifyInput[]): Pr
   if (!list.length) return;
   const recipients = [...new Set(list.map((n) => n.userId))];
   const prefs = new Map<string, Record<string, unknown>>();
-  for (const id of recipients) {
-    const [u] = await deps.db.select({ p: users.notificationPrefs }).from(users).where(eq(users.id, id));
-    prefs.set(id, u?.p ?? {});
-  }
-  const allowed = list.filter((n) => !n.pref || prefs.get(n.userId)?.[n.pref] !== false);
+  for (const u of await deps.db.select({ id: users.id, p: users.notificationPrefs }).from(users).where(inArray(users.id, recipients)))
+    prefs.set(u.id, u.p ?? {});
+  // Nothing reaches a person from someone they blocked.
+  const actors = [...new Set(list.map((n) => n.actorId).filter((x): x is string => !!x))];
+  const blocked = new Set(
+    actors.length
+      ? (
+          await deps.db
+            .select({ by: blocks.blockerId, who: blocks.blockedId })
+            .from(blocks)
+            .where(and(inArray(blocks.blockerId, recipients), inArray(blocks.blockedId, actors)))
+        ).map((b) => `${b.by}:${b.who}`)
+      : [],
+  );
+  const allowed = list.filter((n) => (!n.pref || prefs.get(n.userId)?.[n.pref] !== false) && !(n.actorId && blocked.has(`${n.userId}:${n.actorId}`)));
   if (!allowed.length) return;
   const rows = await deps.db
     .insert(notifications)

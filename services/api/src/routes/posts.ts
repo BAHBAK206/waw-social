@@ -482,6 +482,7 @@ export const postRoutes = new Hono<AppEnv>()
     const where = and(
       eq(comments.postId, post.id),
       isNull(comments.deletedAt),
+      sql`${comments.authorId} not in (select blocked_id from blocks where blocker_id = ${viewer.id})`,
       cursor ? sql`(${comments.createdAt}, ${comments.id}) > (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
     );
     // Answers to a question: best answer first, then the most helpful, then teachers, then oldest. One ranked page.

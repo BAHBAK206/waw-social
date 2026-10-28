@@ -690,6 +690,7 @@ export const videoRoutes = new Hono<AppEnv>()
           eq(videoComments.videoId, video.id),
           isNull(videoComments.deletedAt),
           q.parentId ? eq(videoComments.parentId, q.parentId) : isNull(videoComments.parentId),
+          viewer ? sql`${videoComments.authorId} not in (select blocked_id from blocks where blocker_id = ${viewer.id})` : undefined,
         ),
       )
       .orderBy(

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Badge, FeatureGate } from '@/components/kit';
 import { Screen } from '@/components/Screen';
 import { Avatar, Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
@@ -77,7 +77,13 @@ export default function CatalogCourseScreen() {
           />
         ) : (
           <Card style={{ gap: 10 }}>
-            {c.cardPayments ? (
+            {/* App Store rules: digital courses can't be sold in the iOS app without in-app purchase. */}
+            {c.cardPayments && Platform.OS === 'ios' ? (
+              <Text muted size={13}>
+                {tr.t('catalog.notInApp')}
+              </Text>
+            ) : null}
+            {c.cardPayments && Platform.OS !== 'ios' ? (
               <Button
                 icon="card-outline"
                 title={tr.t('catalog.pay', { price: formatPrice(c.priceCents, c.currency, tr) })}

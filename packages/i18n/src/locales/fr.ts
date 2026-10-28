@@ -99,6 +99,7 @@ export const fr: Dictionary = {
     unused: 'Non utilisé',
   },
   catalog: {
+    notInApp: 'Ce cours ne peut pas être acheté dans l’app iPhone. Si votre école ou votre enseignant vous a donné un code, saisissez-le ci-dessous.',
     title: 'Cours',
     subtitle: 'Cours gratuits et payants des enseignants de Qubedu.',
     search: 'Rechercher un cours…',
@@ -1505,6 +1506,10 @@ export const fr: Dictionary = {
       dailyGoal: "Objectif d'étude quotidien (minutes)",
     },
     privacy: {
+      blockedNone: 'Vous n’avez bloqué personne.',
+      blockedHint:
+        'Elles ne peuvent ni vous écrire, ni vous suivre, ni vous notifier, et vous ne voyez plus leurs publications ni leurs commentaires. Pour bloquer quelqu’un, ouvrez son profil.',
+      blockedTitle: 'Personnes bloquées',
       minorNotice:
         'Votre compte est protégé car vous avez moins de 18 ans : seules les personnes que vous suivez, ou qui partagent un groupe ou un cours avec vous, peuvent vous écrire ; votre école et votre statut en ligne sont masqués aux inconnus ; les numéros et identifiants d’autres applis sont retirés des messages privés avec des adultes.',
       profileVisibility: 'Qui peut voir mon profil',

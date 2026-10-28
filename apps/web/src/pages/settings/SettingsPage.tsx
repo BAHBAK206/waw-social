@@ -485,7 +485,44 @@ function PrivacyTab({ me }: { me: Me }) {
       />
       <Switch checked={p.showStats} onChange={(v) => void save({ ...p, showStats: v })} label={tr.t('settings.privacy.showStats')} />
       <Switch checked={p.showOnline} onChange={(v) => void save({ ...p, showOnline: v })} label={tr.t('settings.privacy.showOnline')} />
+      <BlockedPeople />
     </Section>
+  );
+}
+
+function BlockedPeople() {
+  const tr = useT();
+  const q = useQuery({ queryKey: ['me', 'blocks'], queryFn: () => api.me.blocks() });
+  return (
+    <div className="space-y-2 border-t border-line pt-4">
+      <h3 className="font-black">{tr.t('settings.privacy.blockedTitle')}</h3>
+      <p className="muted text-sm">{tr.t('settings.privacy.blockedHint')}</p>
+      {q.data && !q.data.items.length && <p className="muted text-sm">{tr.t('settings.privacy.blockedNone')}</p>}
+      <ul className="space-y-2">
+        {q.data?.items.map((u) => (
+          <li key={u.id} className="flex items-center gap-3">
+            <Avatar name={u.displayName} url={u.avatarUrl} size="sm" />
+            <span className="min-w-0 flex-1 truncate font-bold" dir="auto">
+              {u.displayName}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await api.users.unblock(u.id);
+                  await q.refetch();
+                } catch (e) {
+                  toastError(e);
+                }
+              }}
+            >
+              {tr.t('common.unblock')}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

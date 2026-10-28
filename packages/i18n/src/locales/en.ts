@@ -96,6 +96,7 @@ export const en = {
     unused: 'Not used',
   },
   catalog: {
+    notInApp: 'This course can’t be bought in the iPhone app. If you have a code from your school or teacher, enter it below.',
     title: 'Courses',
     subtitle: 'Free and paid courses from teachers on Qubedu.',
     search: 'Search courses…',
@@ -1496,6 +1497,10 @@ export const en = {
       dailyGoal: 'Daily study goal (minutes)',
     },
     privacy: {
+      blockedNone: 'You haven’t blocked anyone.',
+      blockedHint:
+        'They can’t message you, follow you or send you notifications, and you won’t see their posts or comments. To block someone, open their profile.',
+      blockedTitle: 'Blocked people',
       minorNotice:
         'Your account is protected because you are under 18: only people you follow, or who share a group or course with you, can message you; your school and online status are hidden from strangers; phone numbers and other-app handles are removed from private chats with adults.',
       profileVisibility: 'Who can see my profile',
