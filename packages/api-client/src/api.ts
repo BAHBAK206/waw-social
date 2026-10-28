@@ -1,4 +1,5 @@
 import type {
+  PhoneSettingsDto,
   TransferDto,
   TransferInfoDto,
   Attachment,
@@ -191,6 +192,15 @@ export function createApi(options: ClientOptions) {
       resetPassword: (token: string, password: string) => http.request<Ok>('POST', '/auth/reset-password', { body: { token, password }, anonymous: true }),
       changePassword: async (currentPassword: string, newPassword: string) =>
         http.acceptAuth(await http.post<AuthResult>('/auth/change-password', { currentPassword, newPassword })),
+    },
+
+    phone: {
+      get: () => http.get<PhoneSettingsDto>('/me/phone'),
+      start: (body: { phone: string; channel: 'whatsapp' | 'sms' }) => http.post<PhoneSettingsDto>('/me/phone', body),
+      verify: (code: string) => http.post<PhoneSettingsDto>('/me/phone/verify', { code }),
+      update: (body: { channel?: 'whatsapp' | 'sms'; weekly?: boolean; alerts?: boolean }) => http.patch<PhoneSettingsDto>('/me/phone', body),
+      remove: () => http.del<PhoneSettingsDto>('/me/phone'),
+      test: () => http.post<Ok>('/me/phone/test'),
     },
 
     me: {

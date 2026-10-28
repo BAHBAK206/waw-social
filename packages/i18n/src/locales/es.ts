@@ -1,6 +1,41 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  phone: {
+    title: 'WhatsApp y SMS',
+    hint: 'Recibe el informe semanal de tu hijo y alertas inmediatas (ausencia, nota baja) en tu teléfono.',
+    number: 'Número de teléfono',
+    numberHint: 'Con el prefijo del país.',
+    channel: 'Enviar por',
+    channels: {
+      whatsapp: 'WhatsApp',
+      sms: 'SMS',
+    },
+    sendCode: 'Enviar código',
+    codeSent: 'Enviamos un código de 6 dígitos al {{phone}}.',
+    code: 'Código',
+    confirm: 'Confirmar',
+    resend: 'Enviar de nuevo',
+    verified: 'Confirmado: {{phone}}',
+    change: 'Cambiar número',
+    remove: 'Quitar número',
+    weekly: 'Informe semanal',
+    weeklyHint: 'Tiempo de estudio, media de cuestionarios y tareas pendientes, una vez por semana.',
+    alerts: 'Alertas inmediatas',
+    alertsHint: 'Ausencia o una nota por debajo de la mitad. Como máximo 5 al día.',
+    test: 'Enviar mensaje de prueba',
+    testSent: 'Mensaje de prueba enviado.',
+    unavailable: 'Los mensajes por WhatsApp o SMS aún no están configurados en este sitio.',
+    parentsOnly: 'Solo las cuentas de padres reciben mensajes de WhatsApp / SMS.',
+    messages: {
+      code: 'Qubedu: tu código es {{code}}. Caduca en 10 minutos. No lo compartas nunca.',
+      weekly:
+        'Qubedu — la semana de {{name}}: {{minutes}} min de estudio, media de cuestionarios {{quizAvg}}, {{missing}} tareas pendientes. Detalles: {{link}}',
+      child_absent: 'Qubedu: {{name}} fue marcado ausente en {{course}} ({{day}}). {{link}}',
+      child_low_grade: 'Qubedu: {{name}} sacó {{grade}}/{{points}} en «{{title}}» ({{course}}). {{link}}',
+      test: 'Qubedu: los mensajes a este número funcionan. Aquí recibirás informes y alertas.',
+    },
+  },
   math: {
     hint: 'Matemáticas: escribe $x^2$ dentro de una frase, o $$\\frac{a}{b}$$ en una línea aparte.',
     preview: 'Vista previa',
@@ -977,6 +1012,11 @@ export const es: Dictionary = {
     bannedHelp: 'Si crees que es un error, contacta con los administradores.',
   },
   errors: {
+    phone_not_ready: 'Confirma tu número y activa las alertas primero.',
+    code_expired: 'El código caducó. Pide uno nuevo.',
+    message_failed: 'No se pudo enviar el mensaje. Revisa el número e inténtalo de nuevo.',
+    channel_unavailable: 'Este sitio aún no puede enviar mensajes por esta vía.',
+    invalid_phone: 'Revisa el número (por ejemplo +34612345678).',
     already_reviewed: 'Este pago ya fue revisado.',
     reason_required: 'Escribe el motivo para que el estudiante sepa qué corregir.',
     phone_required: 'Escribe el número del monedero.',
@@ -1830,6 +1870,8 @@ export const es: Dictionary = {
     empty: 'No tienes notificaciones.',
     clear: 'Borrar todo',
     types: {
+      child_low_grade: '{{name}} sacó {{grade}}/{{points}} en «{{title}}» ({{course}}).',
+      child_absent: '{{name}} fue marcado ausente en {{course}} ({{day}}).',
       transfer_rejected: 'Tu pago de {{course}} no fue aceptado: {{reason}}',
       transfer_pending: '{{name}} envió un comprobante de pago de {{course}}. Revísalo.',
       guardian_removed: '{{name}} eliminó el vínculo familiar.',

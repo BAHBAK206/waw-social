@@ -50,6 +50,19 @@ const schema = z.object({
   PAYMOB_CARD_INTEGRATION_ID: z.coerce.number().int().optional(),
   PAYMOB_WALLET_INTEGRATION_ID: z.coerce.number().int().optional(),
   PAYMOB_API_URL: z.string().default('https://accept.paymob.com'),
+  /** WhatsApp for parents (WhatsApp Business Cloud API). Business-started messages need approved templates (see docs). */
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_TEMPLATE_CODE: z.string().optional(),
+  WHATSAPP_TEMPLATE_WEEKLY: z.string().optional(),
+  WHATSAPP_TEMPLATE_ALERT: z.string().optional(),
+  WHATSAPP_API_URL: z.string().default('https://graph.facebook.com/v21.0'),
+  /** SMS for parents (Twilio). */
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().optional(),
+  TWILIO_MESSAGING_SERVICE_SID: z.string().optional(),
+  TWILIO_API_URL: z.string().default('https://api.twilio.com'),
   /** Web Push (browser notifications). Generated and stored automatically when not set. */
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),

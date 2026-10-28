@@ -43,6 +43,7 @@ import { notificationRoutes } from './routes/notifications';
 import { postRoutes } from './routes/posts';
 import { uploadRoutes } from './routes/uploads';
 import { meRoutes, reportRoutes, userRoutes } from './routes/users';
+import { phoneRoutes } from './routes/phone';
 
 export function createApp(deps: Deps) {
   const app = new Hono<AppEnv>();
@@ -90,6 +91,7 @@ export function createApp(deps: Deps) {
   api.route('/', configRoutes);
   api.route('/auth', authRoutes);
   api.route('/me/teacher-verification', myVerificationRoutes);
+  api.route('/me/phone', phoneRoutes);
   api.route('/me', meRoutes);
   api.route('/users', userRoutes);
   api.route('/reports', reportRoutes);

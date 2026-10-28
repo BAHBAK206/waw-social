@@ -57,6 +57,7 @@ import { claimAttachments, ownAttachment, readableAttachment, type StoredAttachm
 import { studentRisk } from '../lib/insights';
 import { gradingOf } from '../lib/gradebook';
 import { checkRate } from '../middleware';
+import { alertParents } from '../lib/parentMessages';
 
 const ownerCols = {
   ownerId: users.id,
@@ -807,6 +808,16 @@ export const schoolRoutes = new Hono<AppEnv>()
       })
       .where(eq(submissions.id, s.id))
       .returning();
+    // A low mark tells the parents once, when it is first given (or first drops below half).
+    const low = (g: number | null | undefined) => g !== null && g !== undefined && a.points > 0 && g / a.points < 0.5;
+    if (low(grade) && !low(s.grade)) {
+      const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, a.courseId));
+      await alertParents(deps, s.studentId, {
+        type: 'child_low_grade',
+        data: { title: a.title, grade, points: a.points, course: course?.title ?? '' },
+        link: `/family?child=${s.studentId}`,
+      });
+    }
     if (input.returned)
       await notify(deps, {
         userId: s.studentId,
@@ -911,11 +922,23 @@ export const schoolRoutes = new Hono<AppEnv>()
       ).map((r) => r.id),
     );
     const valid = records.filter((r) => students.has(r.studentId));
+    const before = new Map((await deps.db.select().from(attendanceRecords).where(eq(attendanceRecords.sessionId, s.id))).map((r) => [r.studentId, r.status]));
     for (const r of valid) {
       await deps.db
         .insert(attendanceRecords)
         .values({ sessionId: s.id, studentId: r.studentId, status: r.status })
         .onConflictDoUpdate({ target: [attendanceRecords.sessionId, attendanceRecords.studentId], set: { status: r.status } });
+    }
+    // Parents hear about a new absence once (not again when the teacher saves the register again).
+    const newlyAbsent = valid.filter((r) => r.status === 'absent' && before.get(r.studentId) !== 'absent');
+    if (newlyAbsent.length) {
+      const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, s.courseId));
+      for (const r of newlyAbsent)
+        await alertParents(deps, r.studentId, {
+          type: 'child_absent',
+          data: { course: course?.title ?? '', day: s.day },
+          link: `/family?child=${r.studentId}`,
+        });
     }
     return c.json({ ok: true, saved: valid.length });
   })

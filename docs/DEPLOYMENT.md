@@ -27,6 +27,18 @@ Paid courses use Stripe Checkout. Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SE
 
 **Manual transfers (no payment company needed):** in a paid course's settings the teacher adds an InstaPay address, wallet number and/or bank account. Students send the transfer, then upload the receipt (kept private) with the transaction number; the teacher approves it (the student joins the course) or refuses it with a reason.
 
+## WhatsApp and SMS for parents
+
+Parent accounts can confirm a phone number (6-digit code) and get the weekly report and instant alerts (absence, a grade below half; at most 5 a day) on WhatsApp or by SMS. Students' numbers are never collected.
+
+- **WhatsApp (Meta WhatsApp Business Cloud API):** set `WHATSAPP_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`. WhatsApp only delivers business-started messages through approved templates, so create three templates in WhatsApp Manager and set their names:
+  - `WHATSAPP_TEMPLATE_CODE` — an *Authentication* template (one value: the code, with a copy-code button).
+  - `WHATSAPP_TEMPLATE_WEEKLY` — *Utility*, five values: child's name, study minutes, quiz average, missing assignments, link.
+  - `WHATSAPP_TEMPLATE_ALERT` — *Utility*, one value: the alert text.
+  Create each template in the languages your parents use (ar, en, fr, es); the parent's app language is used.
+- **SMS (Twilio):** set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and either `TWILIO_FROM` (a number or alphanumeric sender) or `TWILIO_MESSAGING_SERVICE_SID`.
+- Without either provider the section tells parents it isn't available. In development, messages are printed to the API log instead.
+
 ## Notifications
 
 Phone notifications go through Expo (set the EAS project id in the app build). Browser notifications use VAPID keys: leave `VAPID_*` empty and the API generates a pair once and stores it, or set your own.

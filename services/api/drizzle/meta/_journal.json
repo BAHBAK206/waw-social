@@ -148,6 +148,13 @@
       "when": 1793212100173,
       "tag": "0020_local_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793223201275,
+      "tag": "0021_parent_messages",
+      "breakpoints": true
     }
   ]
 }

@@ -137,3 +137,35 @@ export const teacherVerificationSchema = z.object({
     .nullable(),
 });
 export const verificationDecisionSchema = z.object({ reason: trimmed(500).default('') });
+
+/** WhatsApp / SMS for parents. */
+export const PHONE_CHANNELS = ['whatsapp', 'sms'] as const;
+export type PhoneChannel = (typeof PHONE_CHANNELS)[number];
+
+/**
+ * International form (+201001234567). Accepts spaces/dashes, a 00 prefix, and Egyptian local numbers (01xxxxxxxxx).
+ * Returns null when it can't be a phone number.
+ */
+export function normalizePhone(raw: string, defaultCountry = '20'): string | null {
+  let s = raw.replace(/[\s\-().]/g, '');
+  if (s.startsWith('00')) s = `+${s.slice(2)}`;
+  else if (/^0\d{9,10}$/.test(s)) s = `+${defaultCountry}${s.slice(1)}`;
+  else if (/^\d{10,15}$/.test(s) && !s.startsWith('0')) s = `+${s}`;
+  return /^\+[1-9]\d{7,14}$/.test(s) ? s : null;
+}
+
+export const phoneStartSchema = z.object({
+  phone: z.string().trim().min(6).max(24),
+  channel: z.enum(PHONE_CHANNELS).default('whatsapp'),
+});
+export const phoneVerifySchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
+});
+export const phonePrefsSchema = z.object({
+  channel: z.enum(PHONE_CHANNELS).optional(),
+  weekly: z.boolean().optional(),
+  alerts: z.boolean().optional(),
+});

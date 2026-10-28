@@ -64,6 +64,11 @@ export const users = pgTable(
     leagueTier: integer('league_tier').notNull().default(0),
     /** Secret for the private calendar feed (subscribe in Google / Apple Calendar). */
     calendarToken: text('calendar_token'),
+    /** Parents: verified phone for WhatsApp / SMS reports and alerts. */
+    phone: text('phone'),
+    phoneVerifiedAt: ts('phone_verified_at'),
+    phoneChannel: text('phone_channel').$type<'whatsapp' | 'sms'>().notNull().default('whatsapp'),
+    phonePrefs: jsonb('phone_prefs').$type<{ weekly?: boolean; alerts?: boolean }>().notNull().default({}),
     xp: integer('xp').notNull().default(0),
     level: integer('level').notNull().default(1),
     streak: integer('streak').notNull().default(0),
@@ -96,6 +101,35 @@ export const users = pgTable(
     index('users_search_trgm').using('gin', sql`${t.searchName} gin_trgm_ops`),
     index('users_created_idx').on(t.createdAt),
   ],
+);
+
+/** A code sent to confirm a phone number (one at a time per person). */
+export const phoneCodes = pgTable('phone_codes', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  phone: text('phone').notNull(),
+  channel: text('channel').$type<'whatsapp' | 'sms'>().notNull(),
+  codeHash: text('code_hash').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  expiresAt: ts('expires_at').notNull(),
+  createdAt: createdAt(),
+});
+
+/** WhatsApp / SMS sent to people (for daily limits and the admin's view of costs). */
+export const messageLog = pgTable(
+  'message_log',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    channel: text('channel').notNull(),
+    kind: text('kind').notNull(),
+    status: text('status').$type<'sent' | 'failed'>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('message_log_user_idx').on(t.userId, t.kind, t.createdAt)],
 );
 
 export const sessions = pgTable(

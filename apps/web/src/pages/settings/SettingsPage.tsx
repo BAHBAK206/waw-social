@@ -34,6 +34,7 @@ import {
 import { useEffect, useState } from 'react';
 import { canInstall, promptInstall } from '@/app/pwa';
 import { FamilyCode } from '@/components/family/FamilyCode';
+import { PhoneAlerts } from '@/components/family/PhoneAlerts';
 import { FamilyRequests, InviteParent, MyControls } from '@/components/family/Linking';
 import { browserPushState, disableBrowserPush, enableBrowserPush, type BrowserPushState } from '@/lib/push';
 import { Avatar } from '@/components/ui/Avatar';
@@ -638,12 +639,15 @@ function FamilyTab({ me }: { me: Me }) {
       </div>
     );
   return (
-    <Section>
-      <p className="muted">{tr.t('family.parentsHint')}</p>
-      <ButtonLink to="/family" variant="soft">
-        {tr.t('family.open')}
-      </ButtonLink>
-    </Section>
+    <div className="space-y-5">
+      <Section>
+        <p className="muted">{tr.t('family.parentsHint')}</p>
+        <ButtonLink to="/family" variant="soft">
+          {tr.t('family.open')}
+        </ButtonLink>
+      </Section>
+      {me.accountType === 'parent' && <PhoneAlerts />}
+    </div>
   );
 }
 

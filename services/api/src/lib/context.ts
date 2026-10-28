@@ -5,6 +5,7 @@ import type { Env } from '../env';
 import type { AiClient } from './ai';
 import type { Kv } from './kv';
 import type { Mailer } from './mailer';
+import type { Messenger } from './messaging';
 import type { Realtime } from './realtime';
 import type { Storage } from './storage';
 
@@ -15,6 +16,7 @@ export interface Deps {
   kv: Kv;
   storage: Storage;
   mailer: Mailer;
+  messages: Messenger;
   realtime: Realtime;
   ai: AiClient;
   log: Logger;

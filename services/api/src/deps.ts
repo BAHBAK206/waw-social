@@ -5,6 +5,7 @@ import { createAiClient } from './lib/ai';
 import type { Deps } from './lib/context';
 import { createKv } from './lib/kv';
 import { createMailer } from './lib/mailer';
+import { createMessenger } from './lib/messaging';
 import { createPushSender, vapidKeys } from './lib/push';
 import { createRealtime } from './lib/realtime';
 import { createStorage } from './lib/storage';
@@ -34,6 +35,7 @@ export async function createDeps(env: Env, overrides: Partial<Deps> = {}): Promi
     log,
     storage: overrides.storage ?? createStorage(env),
     mailer: overrides.mailer ?? createMailer(env, log),
+    messages: overrides.messages ?? createMessenger(env, log),
     realtime:
       overrides.realtime ??
       createRealtime(kv, (err) => log.warn({ err }, 'realtime publish failed'), {

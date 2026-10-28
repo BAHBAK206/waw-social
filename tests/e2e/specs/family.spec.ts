@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { apiRegister, dismissOnboarding, newUser, trackErrors } from './helpers';
+import { apiRegister, dismissOnboarding, login, newUser, trackErrors } from './helpers';
 
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/login');
@@ -69,5 +69,21 @@ test('a parent links a child with a code and sees missing homework; the teacher 
   await pageT.getByRole('dialog').getByLabel('Message').fill('You can do it — hand in the worksheet today.');
   await pageT.getByRole('dialog').getByRole('button', { name: 'Send' }).click();
   await expect(pageT.getByText('Sent.')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('a parent adds a phone number for WhatsApp reports and gets a code', async ({ page, request }) => {
+  const parent = newUser('phoneparent');
+  await apiRegister(request, parent, 'parent');
+  const errors = trackErrors(page);
+  await login(page, parent);
+  await page.goto('/settings?tab=family');
+  const box = page.getByRole('region', { name: 'WhatsApp and SMS' });
+  await box.getByLabel('Phone number').fill('010 0123 4567');
+  await box.getByRole('button', { name: 'Send code' }).click();
+  await expect(box.getByText('We sent a 6-digit code to +20 100 ••• 4567.')).toBeVisible();
+  await box.getByLabel('Code').fill('000000');
+  await box.getByRole('button', { name: 'Confirm' }).click();
+  await expect(page.getByText('This code is not valid.')).toBeVisible();
   expect(errors).toEqual([]);
 });

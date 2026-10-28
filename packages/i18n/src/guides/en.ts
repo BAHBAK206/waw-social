@@ -60,6 +60,7 @@ export const en: GuideBook = {
       'Open Family and choose a child to see this week’s study time, upcoming homework, attendance, quiz results and the report card.',
       'For a child under 18, set the controls: who can message them (classmates and teachers only, or people they know), public posts, joining groups and the AI.',
       'Use “Message teacher” next to a class to contact the teacher directly.',
+      'To get reports on your phone: Settings → Family → WhatsApp and SMS. Type your number, enter the 6-digit code you receive, then choose the weekly report and/or instant alerts (absence, a grade below half).',
     ],
     tips: [
       'Under-13 students start in the safest mode (classes-only messages, no public posts) until a parent changes it.',

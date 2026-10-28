@@ -1,6 +1,40 @@
 import type { Dictionary } from './en';
 
 export const ar: Dictionary = {
+  phone: {
+    title: 'واتساب ورسائل SMS',
+    hint: 'استلم تقرير ابنك الأسبوعي وتنبيهات فورية (الغياب، الدرجة المنخفضة) على هاتفك.',
+    number: 'رقم الهاتف',
+    numberHint: 'بكود الدولة، أو رقم مصري محلي مثل 01001234567.',
+    channel: 'الإرسال عبر',
+    channels: {
+      whatsapp: 'واتساب',
+      sms: 'رسالة SMS',
+    },
+    sendCode: 'إرسال الرمز',
+    codeSent: 'أرسلنا رمزًا من 6 أرقام إلى {{phone}}.',
+    code: 'الرمز',
+    confirm: 'تأكيد',
+    resend: 'إرسال مرة أخرى',
+    verified: 'تم التأكيد: {{phone}}',
+    change: 'تغيير الرقم',
+    remove: 'حذف الرقم',
+    weekly: 'التقرير الأسبوعي',
+    weeklyHint: 'وقت المذاكرة ومتوسط الاختبارات والواجبات المتأخرة، مرة كل أسبوع.',
+    alerts: 'تنبيهات فورية',
+    alertsHint: 'الغياب أو درجة أقل من النصف. 5 تنبيهات في اليوم كحد أقصى.',
+    test: 'إرسال رسالة تجريبية',
+    testSent: 'تم إرسال الرسالة التجريبية.',
+    unavailable: 'رسائل واتساب و SMS غير مفعّلة على هذا الموقع بعد.',
+    parentsOnly: 'رسائل واتساب و SMS متاحة لحسابات أولياء الأمور فقط.',
+    messages: {
+      code: 'Qubedu: رمزك هو {{code}}. صالح لمدة 10 دقائق. لا تشاركه مع أحد.',
+      weekly: 'Qubedu — أسبوع {{name}}: {{minutes}} دقيقة مذاكرة، متوسط الاختبارات {{quizAvg}}، {{missing}} واجبات متأخرة. التفاصيل: {{link}}',
+      child_absent: 'Qubedu: تم تسجيل غياب {{name}} في {{course}} ({{day}}). {{link}}',
+      child_low_grade: 'Qubedu: حصل {{name}} على {{grade}}/{{points}} في «{{title}}» ({{course}}). {{link}}',
+      test: 'Qubedu: الرسائل على هذا الرقم تعمل. ستصلك التقارير والتنبيهات هنا.',
+    },
+  },
   math: {
     hint: 'المعادلات: اكتب $x^2$ داخل الجملة، أو $$\\frac{a}{b}$$ في سطر مستقل.',
     preview: 'معاينة',
@@ -980,6 +1014,11 @@ export const ar: Dictionary = {
     bannedHelp: 'إذا كنت ترى أن هذا خطأ فتواصل مع الإدارة.',
   },
   errors: {
+    phone_not_ready: 'أكّد رقمك وفعّل التنبيهات أولًا.',
+    code_expired: 'انتهت صلاحية الرمز. اطلب رمزًا جديدًا.',
+    message_failed: 'تعذر إرسال الرسالة. تأكد من الرقم وحاول مرة أخرى.',
+    channel_unavailable: 'الموقع لا يرسل رسائل بهذه الطريقة حاليًا.',
+    invalid_phone: 'تأكد من رقم الهاتف (مثال: 01001234567 أو ‎+201001234567).',
     already_reviewed: 'تمت مراجعة هذه الدفعة بالفعل.',
     reason_required: 'اكتب السبب ليعرف الطالب ما يصلحه.',
     phone_required: 'اكتب رقم المحفظة.',
@@ -1819,6 +1858,8 @@ export const ar: Dictionary = {
     empty: 'لا توجد إشعارات.',
     clear: 'مسح الكل',
     types: {
+      child_low_grade: 'حصل {{name}} على {{grade}}/{{points}} في «{{title}}» ({{course}}).',
+      child_absent: 'تم تسجيل غياب {{name}} في {{course}} ({{day}}).',
       transfer_rejected: 'لم يتم قبول دفعتك لـ {{course}}: {{reason}}',
       transfer_pending: '{{name}} أرسل إيصال دفع لـ {{course}}. راجعه.',
       guardian_removed: 'ألغى {{name}} ربط العائلة.',

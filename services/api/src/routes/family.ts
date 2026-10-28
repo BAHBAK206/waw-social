@@ -21,6 +21,7 @@ import { studentRisk } from '../lib/insights';
 import { summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { checkRate } from '../middleware';
+import { messagePerson } from '../lib/parentMessages';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_TTL = 24 * 3600;
@@ -570,6 +571,13 @@ export async function sendWeeklyReports(deps: Deps, limit = 200): Promise<number
         })
         .catch((err) => deps.log.warn({ err }, 'weekly report email failed'));
     }
+    const link = `${deps.env.APP_URL.replace(/\/$/, '')}/family?child=${d.studentId}`;
+    await messagePerson(deps, d.guardianId, {
+      kind: 'weekly',
+      key: 'weekly',
+      vars: { ...data, link },
+      params: () => [child.name, String(data.minutes), String(data.quizAvg), String(data.missing), link],
+    }).catch((err) => deps.log.warn({ err }, 'weekly report message failed'));
     await deps.db
       .update(guardianLinks)
       .set({ lastReportAt: new Date() })

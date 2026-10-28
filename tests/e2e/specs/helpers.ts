@@ -47,7 +47,7 @@ export async function login(page: Page, user: TestUser) {
 }
 
 /** Registers via the API (fast) and returns the bearer token for further API setup. */
-export async function apiRegister(request: APIRequestContext, user: TestUser, accountType: 'student' | 'teacher' = 'student') {
+export async function apiRegister(request: APIRequestContext, user: TestUser, accountType: 'student' | 'teacher' | 'parent' = 'student') {
   const res = await request.post('/api/v1/auth/register', {
     data: { email: user.email, password: user.password, displayName: user.name, accountType, language: 'en' },
   });

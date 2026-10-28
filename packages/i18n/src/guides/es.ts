@@ -60,6 +60,7 @@ export const es: GuideBook = {
       'Abre Familia y elige a un hijo para ver su tiempo de estudio de la semana, las próximas tareas, la asistencia, los cuestionarios y el boletín.',
       'Para un hijo menor de 18, ajusta los controles: quién puede escribirle (solo compañeros y docentes, o personas conocidas), publicaciones públicas, grupos e IA.',
       'Usa «Escribir al docente» junto a una clase para contactarle directamente.',
+      'Para recibir informes en tu teléfono: Ajustes → Familia → WhatsApp y SMS. Escribe tu número, introduce el código de 6 dígitos que recibas y elige el informe semanal y/o las alertas inmediatas (ausencia, nota por debajo de la mitad).',
     ],
     tips: [
       'Los menores de 13 empiezan con la configuración más segura (mensajes solo de la clase, sin publicaciones públicas) hasta que un padre la cambie.',

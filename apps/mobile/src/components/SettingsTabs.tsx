@@ -21,6 +21,7 @@ import { phonePushState, registerPhonePush, unregisterPhonePush, type PhonePushS
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { PhoneAlertsCard } from './PhoneAlerts';
 
 type Tab = 'profile' | 'appearance' | 'account' | 'privacy' | 'notifications' | 'family' | 'data';
 
@@ -549,10 +550,13 @@ function FamilyTab() {
       </View>
     );
   return (
-    <Card style={{ gap: 8 }}>
-      <Text muted>{tr.t('family.parentsHint')}</Text>
-      <Button variant="soft" icon="people-outline" title={tr.t('family.open')} onPress={() => router.push('/family' as never)} />
-    </Card>
+    <View style={{ gap: 12 }}>
+      <Card style={{ gap: 8 }}>
+        <Text muted>{tr.t('family.parentsHint')}</Text>
+        <Button variant="soft" icon="people-outline" title={tr.t('family.open')} onPress={() => router.push('/family' as never)} />
+      </Card>
+      {me.accountType === 'parent' ? <PhoneAlertsCard /> : null}
+    </View>
   );
 }
 

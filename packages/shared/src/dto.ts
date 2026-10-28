@@ -1392,3 +1392,17 @@ export interface TimetableEntryDto {
   /** The viewer can edit or delete it (their own row). */
   mine: boolean;
 }
+
+/** A parent's WhatsApp / SMS settings. */
+export interface PhoneSettingsDto {
+  /** Masked, e.g. +20 100 ••• 4567. */
+  phone: string | null;
+  verified: boolean;
+  channel: 'whatsapp' | 'sms';
+  weekly: boolean;
+  alerts: boolean;
+  /** A code was sent and is waiting (to this number). */
+  pending: string | null;
+  /** Which channels this site can send on. */
+  available: { whatsapp: boolean; sms: boolean };
+}

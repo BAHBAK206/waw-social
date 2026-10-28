@@ -60,6 +60,7 @@ export const fr: GuideBook = {
       'Ouvrez Famille et choisissez un enfant pour voir son temps d’étude de la semaine, ses prochains devoirs, ses présences, ses quiz et son bulletin.',
       'Pour un enfant de moins de 18 ans, réglez les contrôles : qui peut lui écrire (classe et enseignants seulement, ou personnes connues), publications publiques, groupes et IA.',
       'Utilisez « Écrire à l’enseignant » à côté d’une classe pour le contacter directement.',
+      'Pour recevoir les bilans sur votre téléphone : Réglages → Famille → WhatsApp et SMS. Saisissez votre numéro, puis le code à 6 chiffres reçu, et choisissez le bilan hebdomadaire et/ou les alertes immédiates (absence, note sous la moyenne).',
     ],
     tips: [
       'Les moins de 13 ans démarrent avec les réglages les plus sûrs (messages de la classe seulement, pas de publication publique) jusqu’à ce qu’un parent les change.',
