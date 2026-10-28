@@ -1,4 +1,7 @@
 import type {
+  TransferDto,
+  TransferInfoDto,
+  Attachment,
   CurriculumImportNode,
   CurriculumKind,
   CurriculumNodeDto,
@@ -601,7 +604,11 @@ export function createApi(options: ClientOptions) {
       list: (q: { q?: string; limit?: number } = {}) => http.get<{ items: CatalogCourseDto[] }>('/catalog', q),
       get: (id: string) => http.get<CatalogCourseDto>(`/catalog/${id}`),
       enroll: (id: string) => http.post<CourseDto>(`/catalog/${id}/enroll`),
-      checkout: (id: string) => http.post<{ url: string }>(`/catalog/${id}/checkout`),
+      checkout: (id: string, body: { method?: 'stripe' | 'paymob_card' | 'paymob_wallet'; phone?: string } = {}) =>
+        http.post<{ url: string }>(`/catalog/${id}/checkout`, body),
+      /** Paid by InstaPay, wallet or bank transfer: the teacher reviews the receipt. */
+      transfer: (id: string, body: { method: 'instapay' | 'wallet' | 'bank'; reference: string; receipt: Attachment; note?: string }) =>
+        http.post<Ok>(`/catalog/${id}/transfer`, body),
     },
 
     certificates: {
@@ -666,6 +673,9 @@ export function createApi(options: ClientOptions) {
     school: {
       redeem: (code: string) => http.post<CourseDto>('/school/redeem', { code }),
       vouchers: (courseId: string) => http.get<{ items: VoucherDto[] }>(`/school/courses/${courseId}/vouchers`),
+      transfers: (courseId: string) => http.get<{ items: TransferDto[] }>(`/school/courses/${courseId}/transfers`),
+      reviewTransfer: (transferId: string, body: { approve: boolean; reason?: string }) =>
+        http.post<TransferDto>(`/school/transfers/${transferId}/review`, body),
       makeVouchers: (courseId: string, count: number) => http.post<{ codes: string[] }>(`/school/courses/${courseId}/vouchers`, { count }),
       insights: (courseId: string) => http.get<CourseInsightsDto>(`/school/courses/${courseId}/insights`),
       atRisk: () => http.get<{ items: (StudentInsightDto & { courses: string[] })[] }>('/school/at-risk'),
@@ -702,6 +712,7 @@ export function createApi(options: ClientOptions) {
           listed: boolean;
           priceCents: number;
           currency: string;
+          transferInfo: TransferInfoDto | null;
           regenerateCode: boolean;
           subjectCode: string | null;
           maxMarks: number;

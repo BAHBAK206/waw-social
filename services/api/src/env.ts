@@ -43,6 +43,13 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_API_URL: z.string().default('https://api.stripe.com'),
+  /** Paymob (Egypt: cards, mobile wallets) for courses priced in EGP. From the Paymob dashboard → Settings / Developers. */
+  PAYMOB_SECRET_KEY: z.string().optional(),
+  PAYMOB_PUBLIC_KEY: z.string().optional(),
+  PAYMOB_HMAC_SECRET: z.string().optional(),
+  PAYMOB_CARD_INTEGRATION_ID: z.coerce.number().int().optional(),
+  PAYMOB_WALLET_INTEGRATION_ID: z.coerce.number().int().optional(),
+  PAYMOB_API_URL: z.string().default('https://accept.paymob.com'),
   /** Web Push (browser notifications). Generated and stored automatically when not set. */
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),

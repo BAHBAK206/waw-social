@@ -20,7 +20,8 @@ export type UploadPurpose =
   | 'general'
   | 'video'
   | 'thumbnail'
-  | 'story';
+  | 'story'
+  | 'receipt';
 
 /** Validates size/type on the client (the server re-checks magic bytes) and uploads. */
 export function useUpload() {

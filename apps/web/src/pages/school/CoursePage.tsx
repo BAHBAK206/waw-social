@@ -14,7 +14,7 @@ import { CourseInsights } from '@/components/family/Insights';
 import { ClassAiKnowledge } from '@/components/school/ClassAiKnowledge';
 import { RosterImport } from '@/components/school/RosterImport';
 import { ClassGradebook, GradingSettings, MyCourseResult } from '@/components/school/Gradebook';
-import { CatalogSettings, CourseCertificates, Vouchers } from '@/components/school/CourseCommerce';
+import { CatalogSettings, CourseCertificates, TransferRequests, Vouchers } from '@/components/school/CourseCommerce';
 import { UploadButton } from '@/components/ui/Upload';
 import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
 import { api, fileUrl } from '@/lib/api';
@@ -876,6 +876,7 @@ function Settings({ course }: { course: CourseDto }) {
       </section>
       <GradingSettings course={course} />
       <CatalogSettings course={course} />
+      <TransferRequests course={course} />
       <Vouchers course={course} />
       <CourseCertificates course={course} />
       <section className="card flex flex-wrap items-center gap-3 p-4">

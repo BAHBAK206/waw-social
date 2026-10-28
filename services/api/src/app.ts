@@ -17,7 +17,7 @@ import { videoRoutes } from './routes/videos';
 import { captionRoutes } from './routes/captions';
 import { teacherRoutes } from './routes/teacher';
 import { familyRoutes } from './routes/family';
-import { catalogRoutes, stripeWebhook, voucherRoutes } from './routes/catalog';
+import { catalogRoutes, paymobWebhook, stripeWebhook, voucherRoutes } from './routes/catalog';
 import { gradebookRoutes } from './routes/gradebook';
 import { courseKnowledgeRoutes } from './routes/knowledge';
 import { timetableRoutes } from './routes/timetable';
@@ -84,6 +84,7 @@ export function createApp(deps: Deps) {
   app.route('/internal', internalRoutes);
   // Payment provider → us (signed; outside /api so no session or CORS rules apply).
   app.route('/webhooks/stripe', stripeWebhook);
+  app.route('/webhooks/paymob', paymobWebhook);
 
   const api = new Hono<AppEnv>();
   api.route('/', configRoutes);

@@ -141,6 +141,13 @@
       "when": 1793210705576,
       "tag": "0019_curriculum_bank",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793212100173,
+      "tag": "0020_local_payments",
+      "breakpoints": true
     }
   ]
 }

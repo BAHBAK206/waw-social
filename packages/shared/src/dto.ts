@@ -549,6 +549,8 @@ export interface CourseDto {
   listed: boolean;
   priceCents: number;
   currency: string;
+  /** Manual payment details; null when the teacher accepts no transfers. */
+  transferInfo: TransferInfoDto | null;
   grading: CourseGradingDto;
   createdAt: number;
 }
@@ -568,7 +570,36 @@ export interface CatalogCourseDto {
   enrolled: boolean;
   /** Card payment available (else vouchers only). */
   cardPayments: boolean;
+  /** Ways to pay online, in the order to show them. */
+  paymentMethods: ('stripe' | 'paymob_card' | 'paymob_wallet')[];
+  /** The teacher's InstaPay / wallet / bank details (paid courses only). */
+  transferInfo: TransferInfoDto | null;
+  /** The viewer's latest transfer for this course, while it waits or after it was refused. */
+  myTransfer: { status: 'pending' | 'rejected'; reason: string | null; createdAt: number } | null;
   outline: { assignments: number; materials: number; lessons: number };
+}
+
+export interface TransferInfoDto {
+  instapay?: string | null;
+  wallet?: string | null;
+  bank?: string | null;
+  note?: string | null;
+}
+
+/** A student's manual payment (InstaPay, wallet, bank) waiting for or after the teacher's review. */
+export interface TransferDto {
+  id: string;
+  user: UserSummary;
+  method: 'instapay' | 'wallet' | 'bank';
+  reference: string;
+  receipt: Attachment | null;
+  note: string;
+  amountCents: number;
+  currency: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reason: string | null;
+  createdAt: number;
+  reviewedAt: number | null;
 }
 
 export interface VoucherDto {

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreditCard, GraduationCap, Ticket } from 'lucide-react';
+import { GraduationCap, Ticket } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Avatar } from '@/components/ui/Avatar';
@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/Field';
 import { QueryState } from '@/components/ui/States';
 import { RichText } from '@/components/common/RichText';
 import { api, fileUrl } from '@/lib/api';
-import { formatPrice } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { toast, toastError } from '@/lib/ui';
 import { useAuthGate } from '@/lib/useAuthGate';
 import { PriceTag } from './CatalogPage';
+import { OnlinePay, TransferPay } from '@/components/catalog/PayOptions';
 
 export default function CatalogCoursePage() {
   const { id = '' } = useParams();
@@ -98,20 +98,7 @@ export default function CatalogCoursePage() {
                 </Button>
               ) : (
                 <>
-                  {c.cardPayments && (
-                    <Button
-                      icon={<CreditCard className="size-4" />}
-                      loading={busy === 'pay'}
-                      onClick={() =>
-                        void run('pay', async () => {
-                          const { url } = await api.catalog.checkout(c.id);
-                          window.location.assign(url);
-                        })
-                      }
-                    >
-                      {tr.t('catalog.pay', { price: formatPrice(c.priceCents, c.currency, tr) })}
-                    </Button>
-                  )}
+                  <OnlinePay c={c} run={(k, fn) => void run(k, fn)} busy={busy} />
                   <form
                     className="flex flex-wrap items-end gap-2"
                     onSubmit={(e) => {
@@ -142,6 +129,7 @@ export default function CatalogCoursePage() {
                       {tr.t('catalog.redeem')}
                     </Button>
                   </form>
+                  {c.transferInfo && <TransferPay c={c} authed={authed} login={gate(() => undefined)} />}
                 </>
               )}
             </section>

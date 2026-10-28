@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiRegister, dismissOnboarding, newUser, trackErrors, uid, verifyTeacher } from './helpers';
+import { apiRegister, dismissOnboarding, login, newUser, trackErrors, uid, verifyTeacher } from './helpers';
 
 test('a teacher sells a course with vouchers; a student redeems one, and earns a verifiable certificate', async ({ page, request, browser }) => {
   const errors = trackErrors(page);
@@ -66,4 +66,65 @@ test('a teacher sells a course with vouchers; a student redeems one, and earns a
   await pg.goto(url);
   await expect(pg.getByText('Valid certificate')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('InstaPay transfer: the teacher lists the details, the student sends a receipt, the teacher approves', async ({ browser, request }) => {
+  const teacher = newUser('instapay');
+  const student = newUser('payer');
+  const tToken = await apiRegister(request, teacher, 'teacher');
+  await verifyTeacher(request, tToken);
+  await apiRegister(request, student);
+  const title = `Arabic Grammar ${uid()}`;
+  const course = await (
+    await request.post('/api/v1/school/courses', {
+      headers: { authorization: `Bearer ${tToken}` },
+      data: { title, listed: true, priceCents: 15000, currency: 'EGP' },
+    })
+  ).json();
+
+  // Teacher: payment details in the course settings.
+  const ctxT = await browser.newContext({ locale: 'en-US' });
+  const pageT = await ctxT.newPage();
+  const errors = trackErrors(pageT);
+  await login(pageT, teacher);
+  await pageT.goto(`/school/${course.id}?tab=settings`);
+  const sale = pageT.getByRole('region', { name: 'Courses' });
+  await sale.getByLabel('InstaPay address or phone').fill('teacher@instapay');
+  await sale.getByLabel('Instructions for students (optional)').fill('Write the course name in the note.');
+  await sale.getByRole('button', { name: 'Save' }).click();
+  await expect(pageT.getByText('Saved').first()).toBeVisible();
+
+  // Student: sees the details, uploads the receipt, waits for review.
+  const ctxS = await browser.newContext({ locale: 'en-US' });
+  const pageS = await ctxS.newPage();
+  errors.push(...trackErrors(pageS));
+  await login(pageS, student);
+  await pageS.goto(`/courses/${course.id}`);
+  await expect(pageS.getByText('teacher@instapay')).toBeVisible();
+  await pageS.getByLabel('Transaction number or sender name').fill('IP-552310');
+  const chooser = pageS.waitForEvent('filechooser');
+  await pageS.getByRole('button', { name: 'Receipt (photo or PDF)' }).click();
+  await (
+    await chooser
+  ).setFiles({
+    name: 'receipt.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'),
+  });
+  await expect(pageS.getByText('receipt.png')).toBeVisible();
+  await pageS.getByRole('button', { name: 'Send for review' }).click();
+  await expect(pageS.getByText('Your payment is waiting for the teacher’s review.')).toBeVisible();
+
+  // Teacher: approves; the student is in.
+  await pageT.reload();
+  const requests = pageT.getByRole('region', { name: 'Payment requests' });
+  await expect(requests.getByText('IP-552310')).toBeVisible();
+  await expect(requests.getByRole('link', { name: 'View receipt' })).toHaveAttribute('href', /\/files\/private\//);
+  await requests.getByRole('button', { name: 'Approve and enroll' }).click();
+  await expect(requests.getByText('Approved')).toBeVisible();
+  await pageS.reload();
+  await expect(pageS.getByRole('button', { name: 'Open the course' })).toBeVisible();
+  expect(errors).toEqual([]);
+  await ctxT.close();
+  await ctxS.close();
 });

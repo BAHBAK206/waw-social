@@ -246,10 +246,11 @@ export const es: GuideBook = {
       'Docente: verifícate primero (Ajustes → Cuenta → Verificación de docente).',
       'Abre la clase → Ajustes y activa «Mostrar en el catálogo público». Fija un precio (0 = gratis) y una moneda.',
       'Crea vales para regalar plazas, por ejemplo a un colegio.',
+      'Para cobrar directamente, añade tu dirección de InstaPay, número de monedero o cuenta bancaria en los mismos ajustes. El estudiante sube el comprobante; lo apruebas en «Solicitudes de pago» y entra al curso.',
       'Los estudiantes abren el catálogo, leen la descripción y se inscriben (o pagan, o canjean un vale).',
       'Cuando un estudiante termina el curso, emite un certificado desde los ajustes de la clase. Tiene un enlace público de verificación.',
     ],
-    tips: ['Los pagos con tarjeta los gestiona Stripe; Qubedu nunca guarda datos de tarjetas.'],
+    tips: ['Los pagos con tarjeta van por Stripe o Paymob (Egipto: Meeza, Visa, Mastercard y monederos móviles); Qubedu nunca guarda datos de tarjetas.'],
     roles: {
       student: 'Tus certificados están en Yo → Certificados.',
       teacher: 'Solo los docentes verificados pueden publicar o vender cursos.',

@@ -249,10 +249,13 @@ export const fr: GuideBook = {
       'Enseignant : faites-vous d’abord vérifier (Paramètres → Compte → Vérification enseignant).',
       'Ouvrez la classe → Paramètres et activez « Afficher dans le catalogue public ». Fixez un prix (0 = gratuit) et une devise.',
       'Créez des bons pour offrir des places, par exemple à une école.',
+      'Pour être payé directement, ajoutez votre adresse InstaPay, numéro de portefeuille ou compte bancaire dans les mêmes réglages. L’élève envoie le reçu ; vous l’acceptez dans « Demandes de paiement » et il rejoint le cours.',
       'Les élèves ouvrent le catalogue, lisent la description et s’inscrivent (ou paient, ou utilisent un bon).',
       'Quand un élève termine le cours, délivrez un certificat depuis les paramètres de la classe. Il a un lien de vérification public.',
     ],
-    tips: ['Les paiements par carte passent par Stripe ; Qubedu ne stocke jamais les données de carte.'],
+    tips: [
+      'Les paiements par carte passent par Stripe ou Paymob (Égypte : Meeza, Visa, Mastercard et portefeuilles mobiles) ; Qubedu ne stocke jamais les cartes.',
+    ],
     roles: {
       student: 'Vos certificats sont dans Moi → Certificats.',
       teacher: 'Seuls les enseignants vérifiés peuvent lister ou vendre des cours.',

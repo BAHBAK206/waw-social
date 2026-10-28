@@ -18,6 +18,7 @@ import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
 import { ClassAiKnowledge } from '@/components/ClassAiKnowledge';
+import { TransferRequests } from '@/components/Payments';
 
 type Tab = 'stream' | 'assignments' | 'people' | 'grades' | 'materials' | 'insights';
 
@@ -365,6 +366,7 @@ export default function CourseScreen() {
         />
         {tab === 'stream' && <Stream courseId={c.id} staff={staff} />}
         {tab === 'assignments' && <Classwork courseId={c.id} staff={staff} />}
+        {tab === 'people' && c.myRole === 'teacher' && <TransferRequests courseId={c.id} />}
         {tab === 'people' && <People courseId={c.id} staff={staff} />}
         {tab === 'grades' &&
           (staff ? (

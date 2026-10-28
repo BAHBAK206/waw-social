@@ -120,6 +120,7 @@ export async function courseDtos(deps: Deps, user: AuthUser, ids: string[]): Pro
         listed: r.c.listed,
         priceCents: r.c.priceCents,
         currency: r.c.currency,
+        transferInfo: r.c.transferInfo ?? null,
         grading: gradingOf(r.c),
         createdAt: r.c.createdAt.getTime(),
       };
@@ -477,6 +478,10 @@ export const schoolRoutes = new Hono<AppEnv>()
     if (rest.maxMarks !== undefined || rest.passMarks !== undefined) {
       const [cur] = await deps.db.select({ max: courses.maxMarks, pass: courses.passMarks }).from(courses).where(eq(courses.id, id));
       if ((rest.passMarks ?? cur!.pass) > (rest.maxMarks ?? cur!.max)) throw badRequest('pass_above_total');
+    }
+    if (rest.transferInfo) {
+      const t = Object.fromEntries(Object.entries(rest.transferInfo).map(([k, v]) => [k, v?.trim() || null]));
+      rest.transferInfo = Object.values(t).some(Boolean) ? t : null;
     }
     await deps.db
       .update(courses)

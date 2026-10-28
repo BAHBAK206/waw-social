@@ -2,8 +2,17 @@ import { createHmac } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it } from 'vitest';
-import type { AssignmentDto, CatalogCourseDto, CertificateDto, CertificateVerifyDto, CourseDto, VoucherDto } from '@qubedu/shared';
-import { verifyStripeSignature } from '../src/routes/catalog';
+import type {
+  AssignmentDto,
+  CatalogCourseDto,
+  CertificateDto,
+  CertificateVerifyDto,
+  CourseDto,
+  TransferDto,
+  UploadResultDto,
+  VoucherDto,
+} from '@qubedu/shared';
+import { paymobHmac, verifyStripeSignature } from '../src/routes/catalog';
 import { call, newUser, setupApp } from './helpers';
 
 /** A tiny stand-in for api.stripe.com that records the last request body. */
@@ -90,6 +99,7 @@ describe('course catalog and paid courses', () => {
       const mine = await call<CourseDto>('GET', `/school/courses/${course.id}`, { token: student.token });
       expect(mine.body.myRole).toBe('student');
     } finally {
+      for (const k of Object.keys(env)) if (!(k in prev)) delete (env as Record<string, unknown>)[k];
       Object.assign(env, prev);
       fake.close();
     }
@@ -101,6 +111,166 @@ describe('course catalog and paid courses', () => {
     expect(verifyStripeSignature('x', `t=${t},v1=${sig}`, 's', t * 1000)).toBe(true);
     expect(verifyStripeSignature('x', `t=${t},v1=${sig}`, 's', (t + 600) * 1000)).toBe(false);
     expect(verifyStripeSignature('y', `t=${t},v1=${sig}`, 's', t * 1000)).toBe(false);
+  });
+});
+
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+
+describe('local payments (Egypt)', () => {
+  it('takes InstaPay / wallet transfers with a private receipt that only the teacher approves or refuses', async () => {
+    const teacher = await newUser({ name: 'Ms Hoda', accountType: 'teacher' });
+    const c = await call<CourseDto>('POST', '/school/courses', {
+      token: teacher.token,
+      body: { title: `Physics ${Date.now()}`, listed: true, priceCents: 20000, currency: 'EGP' },
+    });
+    const course = c.body;
+    const student = await newUser({ name: 'Youssef' });
+    const form = new FormData();
+    form.set('file', new Blob([PNG], { type: 'image/png' }), 'receipt.png');
+    form.set('purpose', 'receipt');
+    const up = await call<UploadResultDto>('POST', '/uploads', { token: student.token, form });
+    expect(up.status).toBe(201);
+    expect(up.body.url).toContain('/files/private/');
+    const receipt = { url: up.body.url, name: 'receipt.png', mime: up.body.mime, size: up.body.size, kind: 'image' as const };
+    const send = (token: string, method = 'instapay') =>
+      call<{ error?: { code: string } }>('POST', `/catalog/${course.id}/transfer`, { token, body: { method, reference: 'TX-778812', receipt } });
+
+    // No details yet: transfers are off.
+    expect((await send(student.token)).body.error?.code).toBe('transfer_method_off');
+    const upd = await call<CourseDto>('PATCH', `/school/courses/${course.id}`, {
+      token: teacher.token,
+      body: { transferInfo: { instapay: 'hoda@instapay', wallet: '', bank: null, note: 'Write your name in the note' } },
+    });
+    expect(upd.body.transferInfo).toEqual({ instapay: 'hoda@instapay', wallet: null, bank: null, note: 'Write your name in the note' });
+    const shown = await call<CatalogCourseDto>('GET', `/catalog/${course.id}`, { token: student.token });
+    expect(shown.body.transferInfo?.instapay).toBe('hoda@instapay');
+    expect(shown.body.paymentMethods).toEqual([]);
+    expect((await send(student.token, 'wallet')).body.error?.code).toBe('transfer_method_off');
+
+    // Someone else can't pass off this student's receipt as their own.
+    const other = await newUser();
+    expect((await send(other.token)).status).toBe(400);
+
+    expect((await send(student.token)).status).toBe(201);
+    expect((await send(student.token)).body.error?.code).toBe('transfer_pending');
+    expect((await call<CatalogCourseDto>('GET', `/catalog/${course.id}`, { token: student.token })).body.myTransfer?.status).toBe('pending');
+
+    // The teacher sees it with a fresh link to the receipt; students can't list or review.
+    expect((await call('GET', `/school/courses/${course.id}/transfers`, { token: student.token })).status).toBe(404);
+    const list = await call<{ items: TransferDto[] }>('GET', `/school/courses/${course.id}/transfers`, { token: teacher.token });
+    const t = list.body.items[0]!;
+    expect(t).toMatchObject({ method: 'instapay', reference: 'TX-778812', amountCents: 20000, currency: 'EGP', status: 'pending' });
+    expect(t.user.id).toBe(student.user.id);
+    expect(t.receipt?.url).toContain('/files/private/');
+    expect(t.receipt?.url).toMatch(/[?&](sig|signature|exp|token)=/);
+    expect((await call('POST', `/school/transfers/${t.id}/review`, { token: student.token, body: { approve: true } })).status).toBe(404);
+
+    // Refused with a reason, then sent again and approved: enrolled once, and the decision can't be flipped.
+    expect((await call('POST', `/school/transfers/${t.id}/review`, { token: teacher.token, body: { approve: false } })).status).toBe(400);
+    await call('POST', `/school/transfers/${t.id}/review`, { token: teacher.token, body: { approve: false, reason: 'Amount is 150, not 200' } });
+    const refused = await call<CatalogCourseDto>('GET', `/catalog/${course.id}`, { token: student.token });
+    expect(refused.body.myTransfer).toMatchObject({ status: 'rejected', reason: 'Amount is 150, not 200' });
+    expect((await send(student.token)).status).toBe(201);
+    const again = await call<{ items: TransferDto[] }>('GET', `/school/courses/${course.id}/transfers`, { token: teacher.token });
+    const second = again.body.items.find((x) => x.status === 'pending')!;
+    const ok = await call<TransferDto>('POST', `/school/transfers/${second.id}/review`, { token: teacher.token, body: { approve: true } });
+    expect(ok.body.status).toBe('approved');
+    expect((await call('POST', `/school/transfers/${second.id}/review`, { token: teacher.token, body: { approve: false, reason: 'x' } })).status).toBe(409);
+    expect((await call<CourseDto>('GET', `/school/courses/${course.id}`, { token: student.token })).body.myRole).toBe('student');
+    const after = await call<CatalogCourseDto>('GET', `/catalog/${course.id}`, { token: student.token });
+    expect(after.body).toMatchObject({ enrolled: true, myTransfer: null });
+    expect((await send(student.token)).body.error?.code).toBe('already_enrolled');
+  });
+
+  it('pays EGP courses through Paymob and enrolls only on a callback with a valid HMAC and the right amount', async () => {
+    const teacher = await newUser({ accountType: 'teacher' });
+    const course = (
+      await call<CourseDto>('POST', '/school/courses', {
+        token: teacher.token,
+        body: { title: `Chemistry ${Date.now()}`, listed: true, priceCents: 35000, currency: 'EGP' },
+      })
+    ).body;
+    const student = await newUser();
+    const { deps, app } = await setupApp();
+    const env = deps.env as Record<string, unknown>;
+    const prev = { ...env };
+    let sent: Record<string, unknown> = {};
+    const server = createServer((req, res) => {
+      let data = '';
+      req.on('data', (d: Buffer) => (data += d.toString()));
+      req.on('end', () => {
+        sent = JSON.parse(data) as Record<string, unknown>;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ client_secret: 'egy_csk_test_1' }));
+      });
+    });
+    const base = await new Promise<string>((r) => server.listen(0, '127.0.0.1', () => r(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)));
+    Object.assign(env, {
+      PAYMOB_SECRET_KEY: 'egy_sk_test',
+      PAYMOB_PUBLIC_KEY: 'egy_pk_test',
+      PAYMOB_HMAC_SECRET: 'hmac_test',
+      PAYMOB_CARD_INTEGRATION_ID: 111,
+      PAYMOB_WALLET_INTEGRATION_ID: 222,
+      PAYMOB_API_URL: base,
+    });
+    try {
+      const shown = await call<CatalogCourseDto>('GET', `/catalog/${course.id}`, { token: student.token });
+      expect(shown.body.paymentMethods).toEqual(['paymob_card', 'paymob_wallet']);
+      expect(
+        (await call<{ error: { code: string } }>('POST', `/catalog/${course.id}/checkout`, { token: student.token, body: { method: 'paymob_wallet' } })).body
+          .error.code,
+      ).toBe('phone_required');
+      const co = await call<{ url: string }>('POST', `/catalog/${course.id}/checkout`, { token: student.token, body: { method: 'paymob_card' } });
+      expect(co.status).toBe(200);
+      expect(co.body.url).toBe(`${base}/unifiedcheckout/?publicKey=egy_pk_test&clientSecret=egy_csk_test_1`);
+      expect(sent).toMatchObject({ amount: 35000, currency: 'EGP', payment_methods: [111] });
+      const pid = sent.special_reference as string;
+
+      const tx = (over: Record<string, unknown> = {}) => ({
+        amount_cents: 35000,
+        created_at: '2026-10-28T10:00:00',
+        currency: 'EGP',
+        error_occured: false,
+        has_parent_transaction: false,
+        id: 9001,
+        integration_id: 111,
+        is_3d_secure: true,
+        is_auth: false,
+        is_capture: false,
+        is_refunded: false,
+        is_standalone_payment: true,
+        is_voided: false,
+        order: { id: 555, merchant_order_id: pid },
+        owner: 77,
+        pending: false,
+        source_data: { pan: '2346', sub_type: 'MasterCard', type: 'card' },
+        success: true,
+        ...over,
+      });
+      const post = (obj: Record<string, unknown>, hmac: string) =>
+        app.request(`/webhooks/paymob?hmac=${hmac}`, {
+          method: 'POST',
+          body: JSON.stringify({ type: 'TRANSACTION', obj }),
+          headers: { 'content-type': 'application/json' },
+        });
+      const enrolled = async () => (await call<CatalogCourseDto>('GET', `/catalog/${course.id}`, { token: student.token })).body.enrolled;
+
+      expect((await post(tx(), 'bad')).status).toBe(400);
+      // A correctly signed callback for less money doesn't enroll (and closes that payment).
+      const cheap = tx({ amount_cents: 100 });
+      expect((await post(cheap, paymobHmac(cheap, 'hmac_test'))).status).toBe(200);
+      expect(await enrolled()).toBe(false);
+
+      const co2 = await call<{ url: string }>('POST', `/catalog/${course.id}/checkout`, { token: student.token, body: { method: 'paymob_card' } });
+      expect(co2.status).toBe(200);
+      const good = tx({ order: { id: 556, merchant_order_id: sent.special_reference } });
+      expect((await post(good, paymobHmac(good, 'hmac_test'))).status).toBe(200);
+      expect(await enrolled()).toBe(true);
+    } finally {
+      for (const k of Object.keys(env)) if (!(k in prev)) delete env[k];
+      Object.assign(env, prev);
+      server.close();
+    }
   });
 });
 

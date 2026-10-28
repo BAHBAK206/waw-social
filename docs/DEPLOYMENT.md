@@ -23,6 +23,10 @@ The API image includes `ffmpeg`: uploaded lessons are converted in the backgroun
 
 Paid courses use Stripe Checkout. Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, and add a Stripe webhook to `https://<api>/webhooks/stripe` (event `checkout.session.completed`). The nginx config already forwards `/webhooks/`. Without Stripe, courses can still be unlocked with school vouchers.
 
+**Egypt (Paymob):** courses priced in EGP can also be paid by card (Meeza, Visa, Mastercard) and mobile wallets through Paymob. Set `PAYMOB_SECRET_KEY`, `PAYMOB_PUBLIC_KEY`, `PAYMOB_HMAC_SECRET` and the integration ids `PAYMOB_CARD_INTEGRATION_ID` / `PAYMOB_WALLET_INTEGRATION_ID` (Paymob dashboard → Developers). Set the transaction processed callback to `https://<api>/webhooks/paymob`; a payment is accepted only when the callback's HMAC and amount match.
+
+**Manual transfers (no payment company needed):** in a paid course's settings the teacher adds an InstaPay address, wallet number and/or bank account. Students send the transfer, then upload the receipt (kept private) with the transaction number; the teacher approves it (the student joins the course) or refuses it with a reason.
+
 ## Notifications
 
 Phone notifications go through Expo (set the EAS project id in the app build). Browser notifications use VAPID keys: leave `VAPID_*` empty and the API generates a pair once and stores it, or set your own.

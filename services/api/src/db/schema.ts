@@ -451,15 +451,28 @@ export const payments = pgTable(
     courseId: uuid('course_id')
       .notNull()
       .references(() => courses.id, { onDelete: 'cascade' }),
+    /** stripe | paymob | transfer */
     provider: text('provider').notNull().default('stripe'),
     sessionId: text('session_id').notNull(),
     amountCents: integer('amount_cents').notNull(),
     currency: text('currency').notNull(),
     status: text('status').$type<'pending' | 'paid' | 'failed'>().notNull().default('pending'),
+    /** Manual transfers: instapay | wallet | bank, the student's reference and receipt, and the teacher's review. */
+    method: text('method'),
+    reference: text('reference'),
+    receipt: jsonb('receipt').$type<Record<string, unknown> | null>(),
+    note: text('note'),
+    reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewedAt: ts('reviewed_at'),
+    reason: text('reason'),
     createdAt: createdAt(),
     paidAt: ts('paid_at'),
   },
-  (t) => [uniqueIndex('payments_session_uq').on(t.sessionId), index('payments_user_idx').on(t.userId)],
+  (t) => [
+    uniqueIndex('payments_session_uq').on(t.sessionId),
+    index('payments_user_idx').on(t.userId),
+    index('payments_course_provider_idx').on(t.courseId, t.provider, t.status),
+  ],
 );
 
 /** Certificates of completion, verifiable by anyone with the code. */
@@ -1003,6 +1016,7 @@ export const courses = pgTable(
     /** 0 = free. Paid courses are joined by card payment (Stripe) or a single-use voucher. */
     priceCents: integer('price_cents').notNull().default(0),
     currency: text('currency').notNull().default('USD'),
+    transferInfo: jsonb('transfer_info').$type<{ instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null } | null>(),
     /** Subject grading: code (e.g. MATH-3), total marks ("out of 60"), pass mark, whether it counts in the overall total. */
     subjectCode: text('subject_code'),
     maxMarks: real('max_marks').notNull().default(100),

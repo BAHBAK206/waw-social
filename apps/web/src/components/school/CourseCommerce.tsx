@@ -2,12 +2,12 @@ import { Link } from 'react-router';
 import { useSession } from '@/lib/session';
 import type { CourseDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Award, Download, Ticket, Trash2 } from 'lucide-react';
+import { Award, Check, Download, ExternalLink, Ticket, Trash2, Wallet, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button, IconButton } from '@/components/ui/Button';
-import { Input, Select, Switch } from '@/components/ui/Field';
+import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatPrice } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { toast, toastError } from '@/lib/ui';
@@ -22,11 +22,17 @@ export function CatalogSettings({ course }: { course: CourseDto }) {
   const [listed, setListed] = useState(course.listed);
   const [price, setPrice] = useState(String(course.priceCents / 100));
   const [currency, setCurrency] = useState(course.currency);
+  const [transfer, setTransfer] = useState({
+    instapay: course.transferInfo?.instapay ?? '',
+    wallet: course.transferInfo?.wallet ?? '',
+    bank: course.transferInfo?.bank ?? '',
+    note: course.transferInfo?.note ?? '',
+  });
   const [busy, setBusy] = useState(false);
   const me = useSession((s) => s.me);
   const allowed = !!me && (me.verifiedTeacher || me.role !== 'user');
   return (
-    <section className="card space-y-4 p-4">
+    <section className="card space-y-4 p-4" aria-label={tr.t('catalog.title')}>
       {!allowed && (
         <p className="rounded-[var(--radius-control)] bg-soft p-3 text-sm">
           {tr.t('errors.verified_teacher_required')}{' '}
@@ -45,12 +51,52 @@ export function CatalogSettings({ course }: { course: CourseDto }) {
           options={CURRENCIES.map((c) => ({ value: c, label: c }))}
         />
       </div>
+      <fieldset className="space-y-3 rounded-[var(--radius-control)] border border-line p-3">
+        <legend className="px-1 font-black">{tr.t('payments.settingsTitle')}</legend>
+        <p className="muted text-sm">{tr.t('payments.settingsHint')}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            label={tr.t('payments.instapayLabel')}
+            value={transfer.instapay}
+            maxLength={100}
+            dir="ltr"
+            onChange={(e) => setTransfer({ ...transfer, instapay: e.target.value })}
+          />
+          <Input
+            label={tr.t('payments.walletLabel')}
+            type="tel"
+            value={transfer.wallet}
+            maxLength={20}
+            dir="ltr"
+            onChange={(e) => setTransfer({ ...transfer, wallet: e.target.value })}
+          />
+        </div>
+        <Input
+          label={tr.t('payments.bankLabel')}
+          value={transfer.bank}
+          maxLength={300}
+          dir="auto"
+          onChange={(e) => setTransfer({ ...transfer, bank: e.target.value })}
+        />
+        <Textarea
+          label={tr.t('payments.noteLabel')}
+          rows={2}
+          value={transfer.note}
+          maxLength={500}
+          onChange={(e) => setTransfer({ ...transfer, note: e.target.value })}
+        />
+      </fieldset>
       <Button
         loading={busy}
         onClick={async () => {
           setBusy(true);
           try {
-            await api.school.update(course.id, { listed, priceCents: Math.max(0, Math.round(Number(price || 0) * 100)), currency });
+            await api.school.update(course.id, {
+              listed,
+              priceCents: Math.max(0, Math.round(Number(price || 0) * 100)),
+              currency,
+              transferInfo: transfer,
+            });
             await qc.invalidateQueries({ queryKey: qk.course(course.id) });
             toast(tr.t('common.saved'));
           } catch (e) {
@@ -62,6 +108,114 @@ export function CatalogSettings({ course }: { course: CourseDto }) {
       >
         {tr.t('common.save')}
       </Button>
+    </section>
+  );
+}
+
+/** Teacher: InstaPay / wallet / bank payments waiting for approval, with the receipt. */
+export function TransferRequests({ course }: { course: CourseDto }) {
+  const tr = useT();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['transfers', course.id], queryFn: () => api.school.transfers(course.id) });
+  const [busy, setBusy] = useState<string | null>(null);
+  const [refusing, setRefusing] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
+  const review = async (id: string, approve: boolean, name: string) => {
+    setBusy(id);
+    try {
+      await api.school.reviewTransfer(id, approve ? { approve } : { approve, reason: reason.trim() });
+      if (approve) toast(tr.t('payments.approvedToast', { name }));
+      setRefusing(null);
+      setReason('');
+      await q.refetch();
+      await qc.invalidateQueries({ queryKey: qk.course(course.id) });
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+  if (!course.transferInfo && !q.data?.items.length) return null;
+  return (
+    <section className="card space-y-3 p-4" aria-label={tr.t('payments.requests')}>
+      <h3 className="flex items-center gap-2 font-black">
+        <Wallet className="size-4" aria-hidden /> {tr.t('payments.requests')}
+      </h3>
+      {!q.data?.items.length ? (
+        <p className="muted text-sm">{tr.t('payments.none')}</p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {q.data.items.map((t) => (
+            <li key={t.id} className="space-y-2 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold" dir="auto">
+                  {t.user.displayName}
+                </span>
+                <span className="badge">{tr.t(`payments.methods.${t.method}`)}</span>
+                <span className="muted text-sm">{formatPrice(t.amountCents, t.currency, tr)}</span>
+                <span className={t.status === 'approved' ? 'badge badge-ok' : t.status === 'rejected' ? 'badge badge-err' : 'badge badge-primary'}>
+                  {tr.t(`payments.status.${t.status}`)}
+                </span>
+                <span className="muted ms-auto text-xs">{formatDate(t.createdAt, tr)}</span>
+              </div>
+              <p className="text-sm">
+                <span className="muted">{tr.t('payments.reference')}: </span>
+                <span className="font-mono" dir="auto">
+                  {t.reference}
+                </span>
+              </p>
+              {t.note && (
+                <p className="text-sm" dir="auto">
+                  {t.note}
+                </p>
+              )}
+              {t.reason && <p className="text-sm text-err">{t.reason}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                {t.receipt && (
+                  <a href={t.receipt.url} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm inline-flex items-center gap-1">
+                    <ExternalLink className="size-4" aria-hidden /> {tr.t('payments.viewReceipt')}
+                  </a>
+                )}
+                {t.status === 'pending' && (
+                  <>
+                    <Button
+                      size="sm"
+                      icon={<Check className="size-4" />}
+                      loading={busy === t.id && refusing !== t.id}
+                      onClick={() => void review(t.id, true, t.user.displayName)}
+                    >
+                      {tr.t('payments.approve')}
+                    </Button>
+                    <Button size="sm" variant="outline" icon={<X className="size-4" />} onClick={() => setRefusing(refusing === t.id ? null : t.id)}>
+                      {tr.t('payments.reject')}
+                    </Button>
+                  </>
+                )}
+              </div>
+              {refusing === t.id && (
+                <form
+                  className="flex flex-wrap items-end gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void review(t.id, false, t.user.displayName);
+                  }}
+                >
+                  <Input
+                    label={tr.t('payments.rejectReason')}
+                    value={reason}
+                    maxLength={300}
+                    onChange={(e) => setReason(e.target.value)}
+                    wrapperClassName="min-w-60 flex-1"
+                  />
+                  <Button type="submit" variant="danger" size="sm" loading={busy === t.id} disabled={!reason.trim()}>
+                    {tr.t('payments.reject')}
+                  </Button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

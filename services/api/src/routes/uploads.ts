@@ -25,9 +25,10 @@ const PURPOSES = [
   'thumbnail',
   'story',
   'voice',
+  'receipt',
 ] as const;
 const VIDEO_PURPOSES = new Set(['video', 'story']);
-const PRIVATE_PURPOSES = new Set(['chat', 'assignment']);
+const PRIVATE_PURPOSES = new Set(['chat', 'assignment', 'receipt']);
 
 function kindOf(mime: string): UploadResultDto['kind'] {
   if (mime.startsWith('image/')) return 'image';

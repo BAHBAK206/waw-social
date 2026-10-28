@@ -246,10 +246,11 @@ export const en: GuideBook = {
       'Teacher: get verified first (Settings → Account → Teacher verification).',
       'Open the class → Settings and turn on “Show in the public course catalog”. Set a price (0 = free) and a currency.',
       'Create vouchers to give free places, for example to a school.',
+      'To be paid directly, add your InstaPay address, wallet number or bank account in the same settings. Students upload the receipt; you approve it under “Payment requests” and they join.',
       'Students open Course catalog, read the description and enroll (or pay, or redeem a voucher).',
       'When a student completes the course, issue a certificate from the class settings. It has a public verification link.',
     ],
-    tips: ['Card payments are handled by Stripe; Qubedu never stores card details.'],
+    tips: ['Card payments are handled by Stripe or Paymob (Egypt: Meeza, Visa, Mastercard and mobile wallets); Qubedu never stores card details.'],
     roles: {
       student: 'Your certificates are under Me → Certificates.',
       teacher: 'Only verified teachers can list or sell courses.',

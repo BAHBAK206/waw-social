@@ -1,6 +1,23 @@
 import { z } from 'zod';
 import { attachmentSchema, daySchema, idSchema, optionalUrl, trimmed, urlSchema } from './common';
 
+/** How students pay a teacher directly (Egypt: InstaPay, mobile wallets, bank transfer). Shown on paid courses. */
+export const TRANSFER_METHODS = ['instapay', 'wallet', 'bank'] as const;
+export type TransferMethod = (typeof TRANSFER_METHODS)[number];
+export const transferInfoSchema = z.object({
+  instapay: trimmed(100).optional().nullable(),
+  wallet: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9 ]{8,20}$/)
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  bank: trimmed(300).optional().nullable(),
+  note: trimmed(500).optional().nullable(),
+});
+export type TransferInfo = z.infer<typeof transferInfoSchema>;
+
 export const courseInputSchema = z.object({
   title: trimmed(160, 2),
   description: trimmed(4000).default(''),
@@ -18,6 +35,8 @@ export const courseInputSchema = z.object({
     .string()
     .regex(/^[A-Z]{3}$/)
     .optional(),
+  /** Manual payment details (InstaPay handle, wallet number, bank account). */
+  transferInfo: transferInfoSchema.nullable().optional(),
   /** Subject grading. */
   subjectCode: trimmed(32).optional().nullable(),
   maxMarks: z.number().min(1).max(1000).optional(),
@@ -127,6 +146,25 @@ export const scheduledClassSchema = z.object({
 });
 
 export const voucherBatchSchema = z.object({ count: z.number().int().min(1).max(200) });
+export const CHECKOUT_METHODS = ['stripe', 'paymob_card', 'paymob_wallet'] as const;
+export type CheckoutMethod = (typeof CHECKOUT_METHODS)[number];
+export const checkoutSchema = z.object({
+  method: z.enum(CHECKOUT_METHODS).default('stripe'),
+  /** Mobile wallet number (Vodafone Cash, Orange, Etisalat, WE). */
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9]{10,15}$/)
+    .optional(),
+});
+export const transferRequestSchema = z.object({
+  method: z.enum(TRANSFER_METHODS),
+  /** Transaction number / sender name or number, so the teacher can match it. */
+  reference: trimmed(80, 3),
+  receipt: attachmentSchema,
+  note: trimmed(500).default(''),
+});
+export const transferReviewSchema = z.object({ approve: z.boolean(), reason: trimmed(300).optional() });
 export const redeemVoucherSchema = z.object({ code: z.string().trim().min(6).max(20) });
 export const issueCertificatesSchema = z
   .object({
