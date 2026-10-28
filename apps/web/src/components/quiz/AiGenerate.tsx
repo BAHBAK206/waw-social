@@ -61,7 +61,14 @@ export function AiGenerateDialog({ open, onClose, onAdd }: { open: boolean; onCl
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2" role="radiogroup">
           {(['text', 'lesson', 'file'] as const).map((s) => (
-            <button key={s} type="button" role="radio" aria-checked={source === s} className={`chip ${source === s ? 'is-active' : ''}`} onClick={() => setSource(s)}>
+            <button
+              key={s}
+              type="button"
+              role="radio"
+              aria-checked={source === s}
+              className={`chip ${source === s ? 'is-active' : ''}`}
+              onClick={() => setSource(s)}
+            >
               {tr.t(s === 'text' ? 'quiz.editor.sourceText' : s === 'lesson' ? 'quiz.editor.sourceLesson' : 'quiz.editor.sourceFile')}
             </button>
           ))}
