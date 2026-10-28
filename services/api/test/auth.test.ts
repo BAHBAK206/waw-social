@@ -68,3 +68,19 @@ describe('auth', () => {
     else expect(res.status).toBe(409);
   });
 });
+
+describe('mobile → web handoff', () => {
+  it('signs the web app in once with a short-lived code', async () => {
+    const u = await newUser({ name: 'Handoff user' });
+    expect((await call('POST', '/auth/handoff')).status).toBe(401);
+    const h = await call<{ code: string; expiresAt: number }>('POST', '/auth/handoff', { token: u.token });
+    expect(h.status).toBe(200);
+    expect(h.body.expiresAt).toBeGreaterThan(Date.now());
+    const first = await call<{ accessToken: string; user: { id: string } }>('POST', '/auth/handoff/redeem', { body: { code: h.body.code } });
+    expect(first.status).toBe(200);
+    expect(first.body.user.id).toBe(u.user.id);
+    expect(first.headers.get('set-cookie') ?? '').toMatch(/qb_rt=/);
+    expect((await call('POST', '/auth/handoff/redeem', { body: { code: h.body.code } })).status).toBe(401);
+    expect((await call('POST', '/auth/handoff/redeem', { body: { code: 'x'.repeat(32) } })).status).toBe(401);
+  });
+});

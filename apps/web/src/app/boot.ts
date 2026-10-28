@@ -39,8 +39,20 @@ function flushAppearance(keepalive = false) {
 export async function boot() {
   const configP = loadConfig();
   let me = null;
+  // Opened from the mobile app with a one-time handoff code: sign in with it and drop it from the URL.
+  const handoff = new URLSearchParams(location.search).get('handoff');
+  if (handoff) {
+    const url = new URL(location.href);
+    url.searchParams.delete('handoff');
+    history.replaceState(history.state, '', url.toString());
+    try {
+      me = await api.auth.redeemHandoff(handoff);
+    } catch {
+      me = null;
+    }
+  }
   try {
-    me = await api.auth.restore();
+    me ??= await api.auth.restore();
   } catch {
     me = null;
   }

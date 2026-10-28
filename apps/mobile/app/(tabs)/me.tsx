@@ -9,7 +9,6 @@ import { useFeatureMode } from '@/lib/features';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
-import { openWeb } from '@/lib/web';
 
 interface HubItem {
   id: FeatureId;
@@ -84,8 +83,8 @@ function HubRow({ item, badge }: { item: HubItem; badge?: number }) {
     <Row
       icon={item.icon}
       title={label}
-      subtitle={item.web ? tr.t('common.opensInBrowser') : undefined}
-      onPress={() => (item.web ? void openWeb(item.web) : router.push(item.href as never))}
+      subtitle={undefined}
+      onPress={() => router.push((item.web ? `/web?path=${encodeURIComponent(item.web)}&title=${encodeURIComponent(label)}` : item.href) as never)}
       right={
         mode !== 'enabled' ? (
           <Ionicons name="lock-closed-outline" size={16} color={t.text3} />
@@ -145,7 +144,11 @@ export default function MeScreen() {
             <HubRow key={i.id} item={i} badge={i.id === 'notifications' ? me.unreadNotifications : undefined} />
           ))}
           {s.key === 'tools' && isAdmin && (
-            <Row icon="construct-outline" title={tr.t('nav.admin')} subtitle={tr.t('common.opensInBrowser')} onPress={() => void openWeb('/admin')} />
+            <Row
+              icon="construct-outline"
+              title={tr.t('nav.admin')}
+              onPress={() => router.push(`/web?path=${encodeURIComponent('/admin')}&title=${encodeURIComponent(tr.t('nav.admin'))}` as never)}
+            />
           )}
         </View>
       ))}

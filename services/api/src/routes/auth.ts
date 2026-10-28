@@ -1,5 +1,6 @@
 import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import {
   changePasswordSchema,
@@ -26,6 +27,8 @@ import { checkRate } from '../middleware';
 export const REFRESH_COOKIE = 'qb_rt';
 const ROTATION_GRACE_MS = 60_000;
 let dummyHash: Promise<string> | null = null;
+const HANDOFF_TTL_SEC = 60;
+const handoffRedeemSchema = z.object({ code: z.string().min(16).max(200) });
 const getDummyHash = () => (dummyHash ??= hashPassword(randomToken(16)));
 
 const isMobile = (c: Ctx) => c.req.header('x-client') === 'mobile';
@@ -146,6 +149,29 @@ export const authRoutes = new Hono<AppEnv>()
     const ok = await verifyPassword(user?.hash ?? (await getDummyHash()), input.password);
     if (!user || !user.hash || !ok || user.deletedAt) throw unauthorized('invalid_credentials');
     return c.json(await issueSession(c, user.id));
+  })
+  /**
+   * One-time sign-in handoff: the mobile app opens a web-only tool (workspace editors, live room, admin) in an
+   * in-app browser already signed in. The code lives 60 s, works once and only carries the user id.
+   */
+  .post('/handoff', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'handoff', limit: 30, windowSec: 600, by: 'user' });
+    const code = randomToken(24);
+    await c.get('deps').kv.set(`handoff:${sha256(code)}`, user.id, HANDOFF_TTL_SEC);
+    return c.json({ code, expiresAt: Date.now() + HANDOFF_TTL_SEC * 1000 });
+  })
+  .post('/handoff/redeem', async (c) => {
+    await checkRate(c, { bucket: 'handoff-redeem', limit: 30, windowSec: 600 });
+    const deps = c.get('deps');
+    const { code } = await body(c, handoffRedeemSchema);
+    const key = `handoff:${sha256(code)}`;
+    const userId = await deps.kv.get(key);
+    await deps.kv.del(key);
+    if (!userId) throw unauthorized('handoff_invalid');
+    const [u] = await deps.db.select({ deletedAt: users.deletedAt }).from(users).where(eq(users.id, userId));
+    if (!u || u.deletedAt) throw unauthorized('handoff_invalid');
+    return c.json(await issueSession(c, userId));
   })
   .post('/refresh', async (c) => {
     await checkRate(c, { bucket: 'refresh', limit: 60, windowSec: 300 });

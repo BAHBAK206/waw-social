@@ -127,6 +127,9 @@ export function createApi(options: ClientOptions) {
         http.acceptAuth(await http.request<AuthResult>('POST', '/auth/login', { body, anonymous: true })),
       /** Restores a session on app start (cookie on web, secure storage on mobile). */
       restore: async () => ((await http.refresh()) ? http.get<Me>('/me') : null),
+      /** Mobile → in-app browser: a 60-second, single-use code that signs the web app in as this user. */
+      handoff: () => http.post<{ code: string; expiresAt: number }>('/auth/handoff'),
+      redeemHandoff: async (code: string) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/handoff/redeem', { body: { code }, anonymous: true })),
       logout: async () => {
         let body: Record<string, string> = {};
         if (options.platform === 'mobile') {

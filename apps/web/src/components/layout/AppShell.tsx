@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigation } from 'react-router';
 import { Spinner } from '@/components/ui/States';
 import { startTokenKeepAlive } from '@/lib/auth';
@@ -40,7 +40,21 @@ function useGlobalShortcuts() {
   }, []);
 }
 
+/** Opened inside the mobile app (`?embed=1`): the app provides navigation, so the web chrome is hidden. */
+function useEmbedded(): boolean {
+  const [embedded] = useState(() => {
+    try {
+      if (new URLSearchParams(location.search).get('embed') === '1') sessionStorage.setItem('qubedu:embed', '1');
+      return sessionStorage.getItem('qubedu:embed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  return embedded;
+}
+
 export function AppShell() {
+  const embedded = useEmbedded();
   const status = useSession((s) => s.status);
   const me = useSession((s) => s.me);
   const config = useSession((s) => s.config);
@@ -66,20 +80,20 @@ export function AppShell() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-[100] focus:rounded focus:bg-card focus:p-2">
         Skip to content
       </a>
-      <Sidebar />
+      {!embedded && <Sidebar />}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        {!embedded && <Topbar />}
         <OfflineBanner />
         <AnnouncementsBar />
         <VerifyEmailBar />
-        <main id="main" className="flex-1 pb-24 lg:pb-8">
+        <main id="main" className={embedded ? 'flex-1 pb-8' : 'flex-1 pb-24 lg:pb-8'}>
           <FeatureGate>
             <Suspense fallback={<Spinner />}>
               <Outlet />
             </Suspense>
           </FeatureGate>
         </main>
-        <BottomNav />
+        {!embedded && <BottomNav />}
       </div>
       <Suspense fallback={null}>
         {ui.paletteOpen && <CommandPalette />}
