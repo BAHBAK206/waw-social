@@ -85,7 +85,11 @@ export const flashcardInputSchema = z.object({
   topic: trimmed(120).optional().nullable(),
   courseId: idSchema.optional().nullable(),
 });
-export const flashcardReviewSchema = z.object({ rating: z.enum(FLASHCARD_RATINGS as [string, ...string[]]) });
+export const flashcardReviewSchema = z.object({
+  rating: z.enum(FLASHCARD_RATINGS as [string, ...string[]]),
+  /** When the review happened (set by apps that reviewed offline and sync later). */
+  reviewedAt: z.number().int().positive().optional(),
+});
 
 export const pomodoroStartSchema = z.object({
   minutes: z.number().int().min(5).max(90).default(25),

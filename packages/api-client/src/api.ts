@@ -508,8 +508,8 @@ export function createApi(options: ClientOptions) {
       update: (id: string, body: Partial<{ front: string; back: string; deck: string; topic: string | null }>) =>
         http.patch<FlashcardDto>(`/flashcards/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/flashcards/${id}`),
-      review: (id: string, rating: 'again' | 'unsure' | 'know' | 'easy') =>
-        http.post<{ card: FlashcardDto; newAchievements: string[] }>(`/flashcards/${id}/review`, { rating }),
+      review: (id: string, rating: 'again' | 'unsure' | 'know' | 'easy', reviewedAt?: number) =>
+        http.post<{ card: FlashcardDto; newAchievements: string[] }>(`/flashcards/${id}/review`, { rating, reviewedAt }),
     },
 
     pomodoro: {

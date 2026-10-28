@@ -1,4 +1,6 @@
-import { api, realtime } from './api';
+import { api, hasSavedSession, realtime } from './api';
+import { cacheConfig, cachedConfig, cachedMe, onReconnect, useNetwork } from './network';
+import { flushOutbox, startOutbox } from './outbox';
 import { onAppearanceChange, syncDirection, useAppearance } from './appearance';
 import { wirePushTaps } from './push';
 import { queryClient } from './query';
@@ -11,8 +13,14 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 
 async function loadConfig(attempt = 0): Promise<void> {
   try {
-    useSession.getState().setConfig(await api.config());
+    const config = await api.config();
+    useSession.getState().setConfig(config);
+    void cacheConfig(config);
   } catch {
+    if (!useSession.getState().config) {
+      const saved = await cachedConfig();
+      if (saved) useSession.getState().setConfig(saved);
+    }
     if (attempt < 3) {
       await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
       return loadConfig(attempt + 1);
@@ -31,11 +39,35 @@ export async function boot() {
   } catch {
     me = null;
   }
+  // No connection at launch: open with the last known profile instead of the sign-in screen,
+  // and finish signing in when the connection returns.
+  let offlineSession = false;
+  if (!me && useNetwork.getState().offline && (await hasSavedSession())) {
+    me = await cachedMe();
+    offlineSession = !!me;
+  }
   useSession.getState().setMe(me);
+  onReconnect(() => {
+    void (async () => {
+      if (offlineSession) {
+        offlineSession = false;
+        const fresh = await api.auth.restore().catch(() => null);
+        if (!fresh) {
+          // Still unreachable: try again on the next reconnect. A revoked sign-in has already signed the app out.
+          if (useNetwork.getState().offline) offlineSession = true;
+          return;
+        }
+      }
+      if (!useSession.getState().config) void loadConfig();
+      await flushOutbox();
+      void queryClient.invalidateQueries();
+    })();
+  });
+  startOutbox();
   if (me) {
     useAppearance.getState().replace(me.appearance);
     syncDirection(me.appearance.language);
-    realtime.connect();
+    if (!offlineSession) realtime.connect();
   }
   wirePushTaps();
   await config;

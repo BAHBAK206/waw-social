@@ -76,6 +76,7 @@ export default function WatchScreen() {
               [
                 ['flash-outline', tr.t('nav.shorts'), '/shorts'],
                 ['library-outline', tr.t('watch.history'), '/watch-library'],
+                ['download-outline', tr.t('nav.downloads'), '/downloads'],
                 ['compass-outline', tr.t('nav.explore'), '/explore'],
               ] as const
             ).map(([icon, label, href]) => (

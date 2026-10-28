@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastHost } from '@/components/Toast';
 import { ReportHost } from '@/components/Report';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { useAppearance } from '@/lib/appearance';
 import { boot } from '@/lib/boot';
 import { useT } from '@/lib/i18n';
@@ -59,6 +60,7 @@ function Shell() {
         <Stack.Screen name="groups" options={{ title: tr.t('groups.title') }} />
         <Stack.Screen name="people" options={{ title: tr.t('people.title') }} />
         <Stack.Screen name="saved" options={{ title: tr.t('saved.title') }} />
+        <Stack.Screen name="downloads" options={{ title: tr.t('nav.downloads') }} />
         <Stack.Screen name="notifications" options={{ title: tr.t('notifications.title') }} />
         <Stack.Screen name="settings" options={{ title: tr.t('settings.title') }} />
         <Stack.Screen name="live" options={{ title: tr.t('live.title') }} />
@@ -97,6 +99,7 @@ function Shell() {
         <Stack.Screen name="info/[page]" options={{ title: tr.t('nav.help') }} />
         <Stack.Screen name="collection/[slug]" options={{ title: tr.t('saved.collections') }} />
       </Stack>
+      <OfflineBanner />
       <ReportHost />
       <ToastHost />
     </View>

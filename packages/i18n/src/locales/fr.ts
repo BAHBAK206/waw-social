@@ -1,6 +1,30 @@
 import type { Dictionary } from './en';
 
 export const fr: Dictionary = {
+  offline: {
+    banner: 'Hors ligne · les leçons enregistrées fonctionnent',
+    offlineNow: 'Vous êtes hors ligne',
+    onlineNow: 'Vous êtes en ligne',
+    hint: 'Les leçons enregistrées se lisent sans internet, avec sous-titres et transcription. Les révisions de cartes et la progression faites hors ligne sont envoyées à la reconnexion.',
+    pending: '{count, plural, one {# modification en attente de synchronisation} other {# modifications en attente de synchronisation}}',
+    syncNow: 'Synchroniser',
+    downloading: 'Téléchargement… {{pct}} %',
+    downloadingUnknown: 'Téléchargement…',
+    empty: 'Aucune leçon enregistrée',
+    emptyHint: 'Ouvrez une leçon et touchez « Télécharger » pour la regarder plus tard sans internet.',
+    remove: 'Supprimer le téléchargement',
+    removeConfirm: 'Supprimer cette leçon de votre téléphone ?',
+    removeAll: 'Tout supprimer',
+    removeAllConfirm: 'Supprimer toutes les leçons enregistrées sur ce téléphone ?',
+    total: '{{size}} utilisés sur ce téléphone',
+    download: 'Télécharger',
+    saved: 'Enregistrée',
+    done: 'Leçon enregistrée pour un visionnage hors ligne',
+    playingSaved: 'Lecture de la copie enregistrée sur ce téléphone',
+    cardsOffline: 'hors ligne',
+    cardsQueued: '{count, plural, one {# révision sera synchronisée à la reconnexion.} other {# révisions seront synchronisées à la reconnexion.}}',
+    noCache: 'Pas de connexion. Ouvrez vos cartes une fois en ligne pour les réviser hors ligne.',
+  },
   league: {
     title: 'Ligue de la semaine',
     subtitle: 'Gagnez de l’XP cette semaine. Les premiers montent lundi ; les derniers descendent.',
@@ -354,6 +378,7 @@ export const fr: Dictionary = {
     unmute: 'Réactiver le son',
   },
   nav: {
+    downloads: 'Téléchargements',
     league: 'Ligue',
     certificates: 'Certificats',
     catalog: 'Cours',

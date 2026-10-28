@@ -17,6 +17,8 @@ interface HubItem {
   href?: string;
   web?: string;
   label?: string;
+  /** Translation key when the row is not the feature's own page (e.g. downloads under "watch"). */
+  labelKey?: string;
 }
 
 const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; items: HubItem[] }[] = [
@@ -53,6 +55,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
       { id: 'certificates', icon: 'ribbon-outline', href: '/certificates' },
       { id: 'league', icon: 'medal-outline', href: '/league' },
       { id: 'saved', icon: 'bookmark-outline', href: '/saved' },
+      { id: 'watch', icon: 'download-outline', href: '/downloads', labelKey: 'nav.downloads' },
       { id: 'studio', icon: 'cloud-upload-outline', href: '/studio' },
     ],
   },
@@ -82,7 +85,10 @@ function HubRow({ item, badge }: { item: HubItem; badge?: number }) {
   const router = useRouter();
   const { mode } = useFeatureMode(item.id);
   if (mode === 'hidden') return null;
-  const label = item.label ?? tr.tDyn(`nav.${item.id}`, undefined, tr.tDyn(`features.${item.id}`, undefined, item.id));
+  const label =
+    item.label ??
+    (item.labelKey ? tr.tDyn(item.labelKey) : undefined) ??
+    tr.tDyn(`nav.${item.id}`, undefined, tr.tDyn(`features.${item.id}`, undefined, item.id));
   return (
     <Row
       icon={item.icon}
@@ -145,7 +151,7 @@ export default function MeScreen() {
             {tr.t(`nav.categories.${s.key}`)}
           </Text>
           {s.items.map((i) => (
-            <HubRow key={i.id} item={i} badge={i.id === 'notifications' ? me.unreadNotifications : undefined} />
+            <HubRow key={i.href ?? i.web ?? i.id} item={i} badge={i.id === 'notifications' ? me.unreadNotifications : undefined} />
           ))}
           {s.key === 'tools' && isAdmin && (
             <Row

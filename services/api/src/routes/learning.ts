@@ -212,7 +212,12 @@ export const flashcardRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const id = param(c, 'id');
     const card = await own((await deps.db.select().from(flashcards).where(eq(flashcards.id, id)))[0], user);
-    const { rating } = await body(c, flashcardReviewSchema);
+    const { rating, reviewedAt } = await body(c, flashcardReviewSchema);
+    // Offline reviews arrive later with their own time: accept up to two weeks back, never the future.
+    const now = Date.now();
+    const at = reviewedAt ? Math.min(now, Math.max(now - 14 * 86_400_000, reviewedAt)) : now;
+    // A synced review that is not newer than the last one is a replay (the app retried after a lost reply).
+    if (reviewedAt && card.lastReviewedAt && card.lastReviewedAt.getTime() >= at) return c.json({ card: toCard(card), newAchievements: [] });
     const next = rateCard(
       {
         level: card.level,
@@ -224,6 +229,7 @@ export const flashcardRoutes = new Hono<AppEnv>()
         lastReviewedAt: ms(card.lastReviewedAt),
       },
       rating as FlashcardRating,
+      at,
     );
     const result = await deps.db.transaction(async (tx) => {
       const [row] = await tx
@@ -243,7 +249,7 @@ export const flashcardRoutes = new Hono<AppEnv>()
         .update(users)
         .set({ cardReviews: sql`${users.cardReviews} + 1` })
         .where(eq(users.id, user.id));
-      await logStudy(tx, user.id, dayKey(Date.now(), user.timezone), { cards: 1 });
+      await logStudy(tx, user.id, dayKey(at, user.timezone), { cards: 1 });
       const newAchievements = await checkAchievements(tx, user.id);
       return { card: toCard(row!), newAchievements };
     });

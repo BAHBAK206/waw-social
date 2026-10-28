@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { useAppearance } from './appearance';
+import { cacheMe, trackingFetch } from './network';
 import { useSession } from './session';
 
 const REFRESH_KEY = 'qubedu.refresh';
@@ -21,9 +22,15 @@ function resolveBaseUrl(): string {
 
 export const API_URL = resolveBaseUrl();
 
+/** True when this phone holds a sign-in that has not been revoked (it may still need a connection to refresh). */
+export async function hasSavedSession() {
+  return !!(await SecureStore.getItemAsync(REFRESH_KEY).catch(() => null));
+}
+
 export const api = createApi({
   baseUrl: API_URL,
   platform: 'mobile',
+  fetchImpl: trackingFetch(API_URL),
   language: () => useAppearance.getState().appearance.language,
   tokenStore: {
     getRefreshToken: () => SecureStore.getItemAsync(REFRESH_KEY),
@@ -35,10 +42,13 @@ export const api = createApi({
   onAuthChange: (me) => {
     const wasSignedIn = useSession.getState().status === 'authed';
     useSession.getState().setMe(me);
+    void cacheMe(me);
     if (me) realtime.connect();
     else realtime.disconnect();
     // A fresh sign-in (not a token refresh) registers this phone for notifications.
     if (me && !wasSignedIn) void import('./push').then((m) => m.onSignedInPush());
+    // Downloads and queued offline actions belong to one person on this phone.
+    if (me) void import('./downloads').then((m) => m.keepOnlyFor(me.id));
   },
 });
 

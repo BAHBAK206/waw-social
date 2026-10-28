@@ -1,6 +1,30 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  offline: {
+    banner: 'Sin conexión · las lecciones guardadas funcionan',
+    offlineNow: 'Estás sin conexión',
+    onlineNow: 'Estás en línea',
+    hint: 'Las lecciones guardadas se ven sin internet, con subtítulos y transcripción. Los repasos de tarjetas y el progreso sin conexión se envían al reconectar.',
+    pending: '{count, plural, one {# cambio pendiente de sincronizar} other {# cambios pendientes de sincronizar}}',
+    syncNow: 'Sincronizar ahora',
+    downloading: 'Descargando… {{pct}} %',
+    downloadingUnknown: 'Descargando…',
+    empty: 'Aún no hay lecciones guardadas',
+    emptyHint: 'Abre una lección y toca «Descargar» para verla luego sin internet.',
+    remove: 'Eliminar descarga',
+    removeConfirm: '¿Eliminar esta lección de tu teléfono?',
+    removeAll: 'Eliminar todas las descargas',
+    removeAllConfirm: '¿Eliminar todas las lecciones guardadas en este teléfono?',
+    total: '{{size}} usados en este teléfono',
+    download: 'Descargar',
+    saved: 'Guardada',
+    done: 'Lección guardada para verla sin conexión',
+    playingSaved: 'Reproduciendo la copia guardada en este teléfono',
+    cardsOffline: 'sin conexión',
+    cardsQueued: '{count, plural, one {# repaso se sincronizará al volver la conexión.} other {# repasos se sincronizarán al volver la conexión.}}',
+    noCache: 'Sin conexión. Abre tus tarjetas una vez con conexión para repasarlas sin internet.',
+  },
   league: {
     title: 'Liga semanal',
     subtitle: 'Gana XP esta semana. Los primeros suben de liga el lunes; los últimos bajan.',
@@ -353,6 +377,7 @@ export const es: Dictionary = {
     unmute: 'Activar sonido',
   },
   nav: {
+    downloads: 'Descargas',
     league: 'Liga',
     certificates: 'Certificados',
     catalog: 'Cursos',

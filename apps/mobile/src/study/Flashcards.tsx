@@ -7,6 +7,7 @@ import { ReadAloud } from '@/components/ReadAloud';
 import { Badge, Sheet, SwitchRow } from '@/components/kit';
 import { Button, Card, Chip, Empty, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { loadDueCards, reviewCard } from './offlineCards';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
@@ -18,7 +19,8 @@ function Reviewer({ deck, onDone }: { deck?: string; onDone: () => void }) {
   const tr = useT();
   const t = useTheme();
   const qc = useQueryClient();
-  const due = useQuery({ queryKey: ['flashcards', 'due', deck ?? ''], queryFn: () => api.flashcards.list({ due: true, deck }), staleTime: Infinity });
+  const due = useQuery({ queryKey: ['flashcards', 'due', deck ?? ''], queryFn: () => loadDueCards(deck), staleTime: Infinity, retry: false });
+  const [queued, setQueued] = useState(0);
   const [queue, setQueue] = useState<FlashcardDto[] | null>(null);
   const [flipped, setFlipped] = useState(false);
   const [reviewed, setReviewed] = useState(0);
@@ -29,8 +31,13 @@ function Reviewer({ deck, onDone }: { deck?: string; onDone: () => void }) {
     return (
       <View style={{ gap: 12, alignItems: 'center' }}>
         <Text weight="black" size={20} style={{ textAlign: 'center' }}>
-          {reviewed ? tr.t('academic.cards.sessionDone', { count: reviewed }) : tr.t('academic.cards.noneDue')}
+          {reviewed ? tr.t('academic.cards.sessionDone', { count: reviewed }) : due.error ? tr.t('offline.noCache') : tr.t('academic.cards.noneDue')}
         </Text>
+        {queued ? (
+          <Text muted size={13} style={{ textAlign: 'center' }}>
+            {tr.t('offline.cardsQueued', { count: queued })}
+          </Text>
+        ) : null}
         <Button title={tr.t('common.done')} onPress={onDone} />
       </View>
     );
@@ -38,13 +45,14 @@ function Reviewer({ deck, onDone }: { deck?: string; onDone: () => void }) {
   const rate = async (rating: Rating) => {
     setBusy(true);
     try {
-      const res = await api.flashcards.review(card.id, rating);
+      const res = await reviewCard(card, rating);
+      if (res.queued) setQueued((n) => n + 1);
       void Haptics.selectionAsync();
       const rest = cards.slice(1);
       setQueue(rating === 'again' ? [...rest, res.card] : rest);
       setReviewed((n) => n + 1);
       setFlipped(false);
-      if (!rest.length && rating !== 'again') void qc.invalidateQueries({ queryKey: ['flashcards'] });
+      if (!rest.length && rating !== 'again' && !res.queued) void qc.invalidateQueries({ queryKey: ['flashcards'] });
     } catch (e) {
       toastError(e);
     } finally {
@@ -61,6 +69,7 @@ function Reviewer({ deck, onDone }: { deck?: string; onDone: () => void }) {
     <View style={{ gap: 12 }}>
       <Text muted size={12}>
         {tr.t('academic.cards.due', { count: cards.length })} · {card.deck}
+        {due.data?.offline ? ` · ${tr.t('offline.cardsOffline')}` : ''}
       </Text>
       <Pressable
         onPress={() => setFlipped((f) => !f)}
