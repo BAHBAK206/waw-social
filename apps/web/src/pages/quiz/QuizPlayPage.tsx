@@ -1,4 +1,4 @@
-import type { QuizAttemptDto, QuizResultDto } from '@qubedu/shared';
+import { mathToPlain, type QuizAttemptDto, type QuizResultDto } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Flag, Send } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,6 +14,7 @@ import { celebrate, confirmDialog, toastError } from '@/lib/ui';
 import { QuizResultView } from './QuizResultView';
 import { ReadAloud } from '@/components/common/ReadAloud';
 import { ExamIntegrity } from '@/components/quiz/ExamIntegrity';
+import { MathText } from '@/components/common/Math';
 
 type Answer = number | number[] | string | null;
 
@@ -140,9 +141,9 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
         {attempt.review && <p className="badge badge-warn mb-3">{tr.t('quiz.result.reviewMode')}</p>}
         <div className="flex items-start gap-3">
           <h2 className="flex-1 text-xl leading-relaxed font-bold" dir="auto">
-            {q.prompt}
+            <MathText text={q.prompt} />
           </h2>
-          <ReadAloud text={[q.prompt, ...q.options].join('. ')} className="shrink-0 !px-2" compact={false} />
+          <ReadAloud text={mathToPlain([q.prompt, ...q.options].join('. '))} className="shrink-0 !px-2" compact={false} />
           <button
             type="button"
             className={cx('icon-btn shrink-0', flags.has(index) && 'bg-soft text-warn')}
@@ -176,7 +177,7 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
               >
                 <input type="radio" name={`q-${index}`} className="size-5 accent-[var(--primary)]" checked={answers[index] === i} onChange={() => set(i)} />
                 <span className="flex-1" dir="auto">
-                  {opt}
+                  <MathText text={opt} />
                 </span>
               </label>
             ))}
@@ -200,7 +201,7 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
                       onChange={(e) => set(e.target.checked ? [...cur, i].sort() : cur.filter((x) => x !== i))}
                     />
                     <span className="flex-1" dir="auto">
-                      {opt}
+                      <MathText text={opt} />
                     </span>
                   </label>
                 );

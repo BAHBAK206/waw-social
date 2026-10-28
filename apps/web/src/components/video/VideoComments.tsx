@@ -15,6 +15,7 @@ import { useT } from '@/lib/i18n';
 import { usePaged } from '@/lib/infinite';
 import { useSession } from '@/lib/session';
 import { confirmDialog, toastError } from '@/lib/ui';
+import { MathText } from '@/components/common/Math';
 
 type Sort = 'top' | 'new';
 
@@ -144,7 +145,7 @@ function CommentItem({ video, comment, isReply, onChanged }: { video: VideoDto; 
           <span className="muted text-xs">{relativeTime(c.createdAt, tr)}</span>
         </div>
         <p className="mt-0.5 text-sm" dir="auto" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
-          {c.text}
+          <MathText text={c.text} />
         </p>
         <div className="mt-1 flex items-center gap-1">
           <button

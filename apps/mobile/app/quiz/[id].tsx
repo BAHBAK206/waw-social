@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { QuizAttemptDto, QuizResultDto } from '@qubedu/shared';
-import { xpProgress } from '@qubedu/shared';
+import { mathToPlain, xpProgress } from '@qubedu/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +12,7 @@ import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { MathText } from '@/components/MathText';
 
 type Answer = number | number[] | string | null;
 
@@ -127,20 +128,20 @@ function Result({ res }: { res: QuizResultDto }) {
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Ionicons name={b.correct ? 'checkmark-circle' : 'close-circle'} size={22} color={b.correct ? t.ok : t.err} />
               <Text weight="bold" style={{ flex: 1 }}>
-                {i + 1}. {b.prompt}
+                {i + 1}. <MathText text={b.prompt} />
               </Text>
             </View>
             <Text size={13}>
-              {tr.t('quiz.result.yourAnswer')}: {fmt(b.given)}
+              {tr.t('quiz.result.yourAnswer')}: <MathText text={fmt(b.given)} />
             </Text>
             {!b.correct && (
               <Text size={13} color={t.ok} weight="bold">
-                {tr.t('quiz.result.correctAnswer')}: {fmt(b.answer)}
+                {tr.t('quiz.result.correctAnswer')}: <MathText text={fmt(b.answer)} />
               </Text>
             )}
             {b.explanation ? (
               <Text size={13} muted>
-                {tr.t('quiz.result.explanation')}: {b.explanation}
+                {tr.t('quiz.result.explanation')}: <MathText text={b.explanation} />
               </Text>
             ) : null}
           </Card>
@@ -235,9 +236,9 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
       <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }} keyboardShouldPersistTaps="handled">
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
           <Text weight="black" size={19} style={{ flex: 1 }}>
-            {q.prompt}
+            <MathText text={q.prompt} />
           </Text>
-          <ReadAloud text={[q.prompt, ...q.options].join('. ')} size={24} />
+          <ReadAloud text={mathToPlain([q.prompt, ...q.options].join('. '))} size={24} />
         </View>
         {q.type === 'multi' ? (
           <Text muted size={13}>
@@ -278,7 +279,7 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
                   color={selected ? t.primary : t.text3}
                 />
                 <Text style={{ flex: 1 }} weight={selected ? 'bold' : 'regular'}>
-                  {o}
+                  <MathText text={o} />
                 </Text>
               </Pressable>
             );

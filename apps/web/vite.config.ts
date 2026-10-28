@@ -9,6 +9,8 @@ const realtime = process.env.VITE_DEV_REALTIME ?? 'ws://localhost:8788';
 
 export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  // Loaded lazily on pages with formulas; pre-bundled so the dev server doesn't reload the page when it first appears.
+  optimizeDeps: { include: ['katex'] },
   plugins: [
     react(),
     tailwindcss(),

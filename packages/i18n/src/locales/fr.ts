@@ -1,6 +1,21 @@
 import type { Dictionary } from './en';
 
 export const fr: Dictionary = {
+  math: {
+    hint: 'Maths : écrivez $x^2$ dans une phrase, ou $$\\frac{a}{b}$$ sur une ligne à part.',
+    preview: 'Aperçu',
+    insert: 'Insérer une formule',
+    symbols: {
+      frac: 'Fraction',
+      pow: 'Puissance',
+      sqrt: 'Racine carrée',
+      sub: 'Indice',
+      pi: 'Pi',
+      times: 'Fois',
+      le: 'Inférieur ou égal',
+      ge: 'Supérieur ou égal',
+    },
+  },
   payments: {
     paymobCard: 'Payer {{price}} par carte (Meeza, Visa, Mastercard)',
     paymobWallet: 'Payer {{price}} par portefeuille mobile',

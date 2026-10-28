@@ -7,6 +7,7 @@ import { Avatar, Button, Card, ErrorView, Loading, SectionTitle, Text } from '@/
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
+import { MathText } from '@/components/MathText';
 
 export default function QuizStatsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,7 +54,7 @@ export default function QuizStatsScreen() {
         return (
           <Card key={x.id} style={{ gap: 6 }}>
             <Text weight="bold">
-              {i + 1}. {x.prompt}
+              {i + 1}. <MathText text={x.prompt} />
             </Text>
             <Progress value={pct} color={pct >= 60 ? t.ok : t.err} />
             <Text muted size={12}>

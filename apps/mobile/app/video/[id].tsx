@@ -20,6 +20,7 @@ import { useSession } from '@/lib/session';
 import { cancelDownload, downloadLesson, refreshSavedLesson, removeDownload, useDownloads, useSavedLesson } from '@/lib/downloads';
 import { enqueue } from '@/lib/outbox';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { MathText } from '@/components/MathText';
 
 type Controller = { seek: (sec: number) => void };
 
@@ -390,7 +391,9 @@ export default function VideoScreen() {
                         {relativeTime(c.createdAt, tr)}
                       </Text>
                     </Text>
-                    <Text>{c.text}</Text>
+                    <Text>
+                      <MathText text={c.text} />
+                    </Text>
                   </View>
                   {c.canDelete ? (
                     <Pressable

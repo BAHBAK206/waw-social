@@ -15,6 +15,7 @@ import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { useSession } from '@/lib/session';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { MathText } from '@/components/MathText';
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,7 +110,11 @@ export default function PostScreen() {
                         {relativeTime(c.createdAt, tr)}
                       </Text>
                     </Text>
-                    {c.text ? <Text>{c.text}</Text> : null}
+                    {c.text ? (
+                      <Text>
+                        <MathText text={c.text} />
+                      </Text>
+                    ) : null}
                     {c.audio ? <VoiceCard a={c.audio} label={teacher ? tr.t('voice.teacherVoice') : tr.t('voice.note')} /> : null}
                   </View>
                 </View>

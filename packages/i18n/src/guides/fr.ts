@@ -191,7 +191,11 @@ export const fr: GuideBook = {
       'Les résultats peuvent compter dans une partie de la notation de la classe.',
       'Ouvrez les statistiques d’un quiz pour voir les questions les plus difficiles.',
     ],
-    tips: ['Votre meilleur score s’affiche sur chaque quiz.', 'La correction se fait sur le serveur : les réponses ne sont pas visibles avant l’envoi.'],
+    tips: [
+      'Votre meilleur score s’affiche sur chaque quiz.',
+      'La correction se fait sur le serveur : les réponses ne sont pas visibles avant l’envoi.',
+      'Formules : écrivez $x^2$ ou $\\frac{1}{2}$ entre dollars, ou touchez les boutons de symboles (fraction, puissance, racine). Elles marchent aussi dans les publications et les réponses.',
+    ],
     roles: {
       student: 'Refaites les quiz d’entraînement autant que vous voulez ; votre meilleur score est gardé.',
       teacher: 'Tout le monde peut créer des quiz d’entraînement ; ceux d’une classe ne sont visibles que par elle.',

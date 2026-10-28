@@ -31,6 +31,7 @@ import { useT } from '@/lib/i18n';
 import { celebrate, confirmDialog, toast, toastError } from '@/lib/ui';
 import { CommentsSection } from './Comments';
 import { ReadAloud } from '@/components/common/ReadAloud';
+import { MathText } from '@/components/common/Math';
 
 type Patch = (fn: (p: PostDto) => PostDto) => void;
 
@@ -120,7 +121,7 @@ function SharedEmbed({ post }: { post: NonNullable<PostDto['shared']> }) {
         </div>
         {post.text && (
           <p className="line-clamp-4 mt-1.5 text-sm" dir="auto">
-            {post.text}
+            <MathText text={post.text} />
           </p>
         )}
       </div>

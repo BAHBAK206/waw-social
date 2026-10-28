@@ -1,6 +1,21 @@
 import type { Dictionary } from './en';
 
 export const ar: Dictionary = {
+  math: {
+    hint: 'المعادلات: اكتب $x^2$ داخل الجملة، أو $$\\frac{a}{b}$$ في سطر مستقل.',
+    preview: 'معاينة',
+    insert: 'إدراج معادلة',
+    symbols: {
+      frac: 'كسر',
+      pow: 'أُس',
+      sqrt: 'جذر تربيعي',
+      sub: 'رقم سفلي',
+      pi: 'باي',
+      times: 'ضرب',
+      le: 'أصغر من أو يساوي',
+      ge: 'أكبر من أو يساوي',
+    },
+  },
   payments: {
     paymobCard: 'ادفع {{price}} بالبطاقة (ميزة، فيزا، ماستركارد)',
     paymobWallet: 'ادفع {{price}} بالمحفظة الإلكترونية',

@@ -5,7 +5,9 @@ import {
   blankQuestion,
   blankQuiz,
   ITEM_DIFFICULTIES,
+  hasMath,
   LIMITS,
+  MATH_SNIPPETS,
   quizBody,
   retypeQuestion,
   validQuizQuestions,
@@ -28,6 +30,7 @@ import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { MathText } from '@/components/MathText';
 
 const TYPES: QuestionType[] = ['mc', 'tf', 'multi', 'short'];
 
@@ -73,6 +76,46 @@ function QuestionEditor({
         </Pressable>
       </View>
       <Input label={tr.t('quiz.editor.prompt')} value={q.prompt} onChangeText={(v) => set({ prompt: v })} multiline maxLength={LIMITS.questionText} />
+      <Text muted size={12}>
+        {tr.t('math.hint')}
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }} accessibilityLabel={tr.t('math.insert')}>
+        {MATH_SNIPPETS.map((m) => (
+          <Pressable
+            key={m.id}
+            accessibilityRole="button"
+            accessibilityLabel={tr.t(`math.symbols.${m.id}`)}
+            onPress={() => set({ prompt: `${q.prompt}${q.prompt && !q.prompt.endsWith(' ') ? ' ' : ''}${m.snippet}` })}
+            style={{
+              minWidth: 40,
+              minHeight: 36,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: t.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 8,
+            }}
+          >
+            <Text style={{ fontFamily: 'serif' }}>{m.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {hasMath(q.prompt) || q.options.some(hasMath) ? (
+        <View style={{ gap: 4, padding: 10, borderRadius: 10, backgroundColor: t.bg2 }}>
+          <Text muted size={12} weight="bold">
+            {tr.t('math.preview')}
+          </Text>
+          <Text weight="bold">
+            <MathText text={q.prompt} />
+          </Text>
+          {q.options.map((o, i) => (
+            <Text key={i}>
+              • <MathText text={o} />
+            </Text>
+          ))}
+        </View>
+      ) : null}
       <SelectField
         label={tr.t('quiz.editor.type')}
         value={q.type}

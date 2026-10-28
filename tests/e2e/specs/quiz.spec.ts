@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiRegister, dismissOnboarding, newUser, uid } from './helpers';
+import { apiRegister, dismissOnboarding, login, newUser, trackErrors, uid } from './helpers';
 
 test('a teacher publishes a quiz and a student takes it and sees graded results', async ({ browser, request }) => {
   const teacher = newUser('teacher');
@@ -58,4 +58,32 @@ test('a teacher publishes a quiz and a student takes it and sees graded results'
   await expect(page.getByText('100%', { exact: true })).toBeVisible();
   await expect(page.getByText('2 / 2 correct')).toBeVisible();
   await ctx.close();
+});
+
+test('math formulas render in quiz questions and posts', async ({ page, request }) => {
+  const teacher = newUser('mathteacher');
+  const token = await apiRegister(request, teacher, 'teacher');
+  const title = `Algebra ${uid()}`;
+  const made = await request.post('/api/v1/quizzes', {
+    headers: { authorization: `Bearer ${token}` },
+    data: {
+      title,
+      published: true,
+      questions: [{ type: 'mc', prompt: 'Simplify $\\frac{x^2}{x}$ when $x \\ne 0$', options: ['$x$', '$x^2$', '$1$', '$2x$'], answer: 0, points: 1 }],
+    },
+  });
+  expect(made.ok(), await made.text()).toBeTruthy();
+  const errors = trackErrors(page);
+  await login(page, teacher);
+  await page.goto(`/quiz?q=${encodeURIComponent(title)}`);
+  await page.getByRole('button', { name: 'Start' }).first().click();
+  await expect(page.locator('h2 .katex').first()).toBeVisible();
+  await expect(page.locator('label .katex')).toHaveCount(4);
+  await expect(page.locator('h2 .katex-html').first()).not.toContainText('frac');
+
+  await page.goto('/feed');
+  const box = page.getByRole('textbox').first();
+  await box.fill('Area of a circle: $\\pi r^2$');
+  await expect(page.getByLabel('Preview').locator('.katex')).toBeVisible();
+  expect(errors).toEqual([]);
 });

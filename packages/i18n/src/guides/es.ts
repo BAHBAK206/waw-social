@@ -188,7 +188,11 @@ export const es: GuideBook = {
       'Los resultados pueden contar en una parte de la calificación de la clase.',
       'Abre las estadísticas de un cuestionario para ver las preguntas más difíciles.',
     ],
-    tips: ['Tu mejor puntuación aparece en cada cuestionario.', 'La corrección se hace en el servidor, así que las respuestas no se ven antes de entregar.'],
+    tips: [
+      'Tu mejor puntuación aparece en cada cuestionario.',
+      'La corrección se hace en el servidor, así que las respuestas no se ven antes de entregar.',
+      'Fórmulas: escribe $x^2$ o $\\frac{1}{2}$ entre signos de dólar, o toca los botones de símbolos (fracción, potencia, raíz). También funcionan en publicaciones y respuestas.',
+    ],
     roles: {
       student: 'Repite los cuestionarios de práctica cuanto quieras; se guarda tu mejor puntuación.',
       teacher: 'Cualquiera puede crear cuestionarios de práctica; los de una clase solo los ve esa clase.',

@@ -3,6 +3,7 @@ import {
   blankBank,
   blankQuestion,
   blankQuiz,
+  hasMath,
   ITEM_DIFFICULTIES,
   LIMITS,
   quizBody,
@@ -29,6 +30,8 @@ import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { useSession } from '@/lib/session';
 import { toast, toastError } from '@/lib/ui';
+import { MathText } from '@/components/common/Math';
+import { MathToolbar } from '@/components/common/MathToolbar';
 
 type Q = QuizEditorDto['questions'][number];
 
@@ -69,7 +72,31 @@ function QuestionEditor({
           <Trash2 className="size-4" />
         </button>
       </div>
-      <Textarea label={tr.t('quiz.editor.prompt')} value={q.prompt} maxLength={LIMITS.questionText} onChange={(e) => set({ prompt: e.target.value })} />
+      <Textarea
+        label={tr.t('quiz.editor.prompt')}
+        hint={tr.t('math.hint')}
+        value={q.prompt}
+        maxLength={LIMITS.questionText}
+        onChange={(e) => set({ prompt: e.target.value })}
+      />
+      <MathToolbar onInsert={(snippet) => set({ prompt: `${q.prompt}${q.prompt && !q.prompt.endsWith(' ') ? ' ' : ''}${snippet}` })} />
+      {[q.prompt, ...q.options, q.explanation ?? ''].some(hasMath) && (
+        <div className="rounded-[var(--radius-control)] bg-bg-2 p-3 text-sm" aria-label={tr.t('math.preview')}>
+          <p className="muted mb-1 text-xs font-bold">{tr.t('math.preview')}</p>
+          <p className="font-bold" dir="auto">
+            <MathText text={q.prompt} />
+          </p>
+          {q.type !== 'short' && (
+            <ul className="mt-1 list-disc ps-5">
+              {q.options.map((o, i) => (
+                <li key={i} dir="auto">
+                  <MathText text={o} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <Select
           label={tr.t('quiz.editor.type')}

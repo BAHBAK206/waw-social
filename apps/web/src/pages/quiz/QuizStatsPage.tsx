@@ -7,6 +7,8 @@ import { PageHeader, QueryState } from '@/components/ui/States';
 import { api } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
+import { MathText } from '@/components/common/Math';
+import { mathToPlain } from '@qubedu/shared';
 
 export default function QuizStatsPage() {
   const { id = '' } = useParams();
@@ -40,7 +42,7 @@ export default function QuizStatsPage() {
                     <li key={qq.id}>
                       <div className="mb-1 flex flex-wrap items-center justify-between gap-2 text-sm">
                         <span className="line-clamp-1 min-w-0 flex-1 font-bold" dir="auto">
-                          {i + 1}. {qq.prompt}
+                          {i + 1}. <MathText text={qq.prompt} />
                         </span>
                         <span className="tabular-nums">{qq.total ? `${pct}%` : '—'}</span>
                         {qq.quality ? (
@@ -51,7 +53,7 @@ export default function QuizStatsPage() {
                           <span className="muted text-xs">{tr.t('quiz.bank.notEnough')}</span>
                         )}
                       </div>
-                      <ProgressBar value={pct} label={qq.prompt} />
+                      <ProgressBar value={pct} label={mathToPlain(qq.prompt)} />
                     </li>
                   );
                 })}

@@ -10,6 +10,7 @@ import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { achievementName, toast, toastError } from '@/lib/ui';
 import { ACHIEVEMENTS, xpProgress } from '@qubedu/shared';
+import { MathText } from '@/components/common/Math';
 
 function show(r: QuestionReview, v: unknown): string {
   if (v === null || v === undefined || v === '') return '';
@@ -34,20 +35,20 @@ function Review({ attemptId, item, index }: { attemptId: string; item: QuestionR
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-bold" dir="auto">
-            {index + 1}. {item.prompt}
+            {index + 1}. <MathText text={item.prompt} />
           </p>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex gap-2">
               <dt className="muted shrink-0">{tr.t('quiz.result.yourAnswer')}:</dt>
               <dd className={item.correct ? 'text-ok font-bold' : 'text-err font-bold'} dir="auto">
-                {given || tr.t('quiz.result.noAnswer')}
+                {given ? <MathText text={given} /> : tr.t('quiz.result.noAnswer')}
               </dd>
             </div>
             {!item.correct && (
               <div className="flex gap-2">
                 <dt className="muted shrink-0">{tr.t('quiz.result.correctAnswer')}:</dt>
                 <dd className="text-ok font-bold" dir="auto">
-                  {show(item, item.answer)}
+                  <MathText text={show(item, item.answer)} />
                 </dd>
               </div>
             )}
@@ -55,7 +56,7 @@ function Review({ attemptId, item, index }: { attemptId: string; item: QuestionR
           {item.explanation && (
             <p className="mt-2 rounded-[var(--radius-control)] bg-bg-2 p-2 text-sm" dir="auto">
               <span className="font-bold">{tr.t('quiz.result.explanation')}: </span>
-              {item.explanation}
+              <MathText text={item.explanation} />
             </p>
           )}
           {!item.correct && (

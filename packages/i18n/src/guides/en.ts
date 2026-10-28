@@ -188,7 +188,11 @@ export const en: GuideBook = {
       'Quiz results can count toward a grading part in the class gradebook.',
       'Open a quiz’s statistics to see which questions were hardest.',
     ],
-    tips: ['Your best score is shown on each quiz card.', 'Grading happens on the server, so answers cannot be seen before you submit.'],
+    tips: [
+      'Your best score is shown on each quiz card.',
+      'Grading happens on the server, so answers cannot be seen before you submit.',
+      'Math formulas: write $x^2$ or $\\frac{1}{2}$ between dollar signs, or tap the symbol buttons (fraction, power, root). They also work in posts and answers.',
+    ],
     roles: {
       student: 'Retake practice quizzes as often as you like; your best score is kept.',
       teacher: 'Anyone can create practice quizzes; class quizzes are visible to your class only.',

@@ -16,6 +16,7 @@ import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { useSession } from '@/lib/session';
 import { celebrate, toastError } from '@/lib/ui';
+import { MathText } from '@/components/common/Math';
 
 /**
  * Comments on a discussion, or answers to a question. Answers show the best answer first, a "teacher" badge,
@@ -118,7 +119,7 @@ export function CommentsSection({
                     </div>
                     {c.text && (
                       <p className="text-sm" dir="auto" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
-                        {c.text}
+                        <MathText text={c.text} />
                       </p>
                     )}
                     {c.audio && <VoiceNote a={c.audio} className="mt-1" label={teacher ? tr.t('voice.teacherVoice') : undefined} />}

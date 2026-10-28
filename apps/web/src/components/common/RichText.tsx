@@ -1,10 +1,19 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router';
+import { MathText } from './Math';
 
 const TOKEN = /(https?:\/\/[^\s<]+[^\s<.,;:!?)"'’])|(^|[\s(])#([\p{L}\p{N}_]{2,40})/gu;
 
-/** Renders plain text with clickable #hashtags and links. Never injects HTML. */
+/** Renders plain text with clickable #hashtags and links, and `$…$` math formulas. Never injects user HTML. */
 export function RichText({ text, className }: { text: string; className?: string }) {
+  return (
+    <p className={className} dir="auto" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+      <MathText text={text} renderText={(part, key) => <Linkified key={key} text={part} />} />
+    </p>
+  );
+}
+
+function Linkified({ text }: { text: string }) {
   const nodes: React.ReactNode[] = [];
   let last = 0;
   let i = 0;
@@ -41,10 +50,10 @@ export function RichText({ text, className }: { text: string; className?: string
   }
   nodes.push(text.slice(last));
   return (
-    <p className={className} dir="auto" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+    <>
       {nodes.map((n, k) => (
         <Fragment key={k}>{n}</Fragment>
       ))}
-    </p>
+    </>
   );
 }

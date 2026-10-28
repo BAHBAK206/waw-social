@@ -1,4 +1,19 @@
 export const en = {
+  math: {
+    hint: 'Math: write $x^2$ inside a sentence, or $$\\frac{a}{b}$$ on its own line.',
+    preview: 'Preview',
+    insert: 'Insert a formula',
+    symbols: {
+      frac: 'Fraction',
+      pow: 'Power',
+      sqrt: 'Square root',
+      sub: 'Subscript',
+      pi: 'Pi',
+      times: 'Times',
+      le: 'Less or equal',
+      ge: 'Greater or equal',
+    },
+  },
   payments: {
     paymobCard: 'Pay {{price}} by card (Meeza, Visa, Mastercard)',
     paymobWallet: 'Pay {{price}} by mobile wallet',

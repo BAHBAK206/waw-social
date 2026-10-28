@@ -11,6 +11,7 @@ import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toastError } from '@/lib/ui';
+import { MathText } from './MathText';
 
 export function PostCard({
   post,
@@ -113,7 +114,7 @@ export function PostCard({
       )}
       {post.text ? (
         <Text size={post.kind === 'question' ? 17 : 16} weight={post.kind === 'question' ? 'bold' : 'regular'}>
-          {post.text}
+          <MathText text={post.text} />
         </Text>
       ) : null}
       {post.imageUrl ? (

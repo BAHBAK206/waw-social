@@ -1,4 +1,4 @@
-import { LIMITS } from '@qubedu/shared';
+import { hasMath, LIMITS } from '@qubedu/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PostKind } from '@qubedu/shared';
 import { BarChart3, BookOpenText, CircleHelp, ImagePlus, MessagesSquare, Plus, X } from 'lucide-react';
@@ -12,6 +12,8 @@ import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { celebrate, toast, toastError } from '@/lib/ui';
+import { RichText } from '@/components/common/RichText';
+import { MathToolbar } from '@/components/common/MathToolbar';
 
 const DURATIONS = [
   { key: 'h1', hours: 1 },
@@ -139,6 +141,15 @@ export function Composer({ groupId, onPosted, defaultKind = 'discussion' }: { gr
             aria-label={placeholder}
             dir="auto"
           />
+          {(kind === 'question' || kind === 'note') && (
+            <MathToolbar onInsert={(snippet) => setText((v) => `${v}${v && !v.endsWith(' ') ? ' ' : ''}${snippet}`)} />
+          )}
+          {hasMath(text) && (
+            <div className="mb-2 rounded-[var(--radius-control)] bg-bg-2 p-3 text-sm" aria-label={tr.t('math.preview')}>
+              <p className="muted mb-1 text-xs font-bold">{tr.t('math.preview')}</p>
+              <RichText text={text} />
+            </div>
+          )}
           {tagSuggestions.length > 0 && tagCtx && (
             <ul className="card absolute start-0 z-20 mt-1 max-h-48 w-64 overflow-auto bg-[var(--card-solid)] py-1" role="listbox">
               {tagSuggestions.map((t) => (
