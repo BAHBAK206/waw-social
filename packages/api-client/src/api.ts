@@ -183,6 +183,8 @@ export function createApi(options: ClientOptions) {
         onboardingDone?: boolean;
       }) => http.patch<Me>('/me/prefs', body),
       checkin: () => http.post<{ streak: number; changed: boolean; newAchievements: string[] }>('/me/checkin'),
+      calendar: () => http.get<{ url: string }>('/me/calendar'),
+      resetCalendar: () => http.post<{ url: string }>('/me/calendar/reset'),
       pushKey: () => http.get<{ enabled: boolean; vapidPublicKey: string | null }>('/me/push/key'),
       registerPush: (
         body: { kind: 'expo'; token: string; platform: 'ios' | 'android' } | { kind: 'web'; token: string; keys: { p256dh: string; auth: string } },
@@ -590,6 +592,8 @@ export function createApi(options: ClientOptions) {
       makeVouchers: (courseId: string, count: number) => http.post<{ codes: string[] }>(`/school/courses/${courseId}/vouchers`, { count }),
       insights: (courseId: string) => http.get<CourseInsightsDto>(`/school/courses/${courseId}/insights`),
       atRisk: () => http.get<{ items: (StudentInsightDto & { courses: string[] })[] }>('/school/at-risk'),
+      roster: (courseId: string, emails: string[]) =>
+        http.post<{ added: number; already: number; invited: number }>(`/school/courses/${courseId}/roster`, { emails }),
       nudge: (courseId: string, studentId: string, message: string) => http.post<Ok>(`/school/courses/${courseId}/nudge`, { studentId, message }),
       courses: (archived = false) => http.get<{ items: CourseDto[] }>('/school/courses', { archived }),
       create: (body: { title: string; description?: string; subject?: string | null; coverUrl?: string | null; color?: string | null }) =>

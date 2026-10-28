@@ -8,13 +8,14 @@ import { Files } from '@/components/Files';
 import { VoiceAttach } from '@/components/Voice';
 import { Screen } from '@/components/Screen';
 import { CourseInsightsTab } from '@/components/Family';
+import { RosterImport } from '@/components/Roster';
 import { Badge, DateField, FeatureGate, Row, Segmented, Sheet, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatDay, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
-import { toast, toastError } from '@/lib/ui';
+import { confirm, toast, toastError } from '@/lib/ui';
 
 type Tab = 'stream' | 'assignments' | 'people' | 'grades' | 'materials' | 'insights';
 
@@ -178,20 +179,60 @@ function Classwork({ courseId, staff }: { courseId: string; staff: boolean }) {
   );
 }
 
-function People({ courseId }: { courseId: string }) {
+function People({ courseId, staff }: { courseId: string; staff: boolean }) {
   const tr = useT();
   const router = useRouter();
   const q = useQuery({ queryKey: ['course', courseId, 'members'], queryFn: () => api.school.members(courseId) });
   if (q.isPending) return <Loading />;
   return (
     <View style={{ gap: 8 }}>
+      {staff ? (
+        <View style={{ alignItems: 'flex-end' }}>
+          <RosterImport courseId={courseId} />
+        </View>
+      ) : null}
       {(q.data?.items ?? []).map((m) => (
-        <Card key={m.user.id} onPress={() => router.push(`/user/${m.user.id}` as never)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Avatar name={m.user.displayName} url={m.user.avatarUrl} size={36} />
-          <Text weight="bold" style={{ flex: 1 }}>
-            {m.user.displayName}
-          </Text>
-          <Badge label={tr.t(`school.roles.${m.role}`)} tone={m.role === 'teacher' ? 'primary' : 'neutral'} />
+        <Card key={m.user.id} onPress={() => router.push(`/user/${m.user.id}` as never)} style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Avatar name={m.user.displayName} url={m.user.avatarUrl} size={36} />
+            <Text weight="bold" style={{ flex: 1 }}>
+              {m.user.displayName}
+            </Text>
+            <Badge label={tr.t(`school.roles.${m.role}`)} tone={m.role === 'teacher' ? 'primary' : 'neutral'} />
+          </View>
+          {staff && m.role !== 'teacher' ? (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Button
+                small
+                variant="ghost"
+                icon="swap-horizontal-outline"
+                title={m.role === 'assistant' ? tr.t('school.roles.student') : tr.t('school.roles.assistant')}
+                onPress={async () => {
+                  try {
+                    await api.school.setMemberRole(courseId, m.user.id, m.role === 'assistant' ? 'student' : 'assistant');
+                    await q.refetch();
+                  } catch (e) {
+                    toastError(e);
+                  }
+                }}
+              />
+              <Button
+                small
+                variant="ghost"
+                icon="trash-outline"
+                title={tr.t('common.remove')}
+                onPress={async () => {
+                  if (!(await confirm(tr.t('common.confirmTitle'), { danger: true }))) return;
+                  try {
+                    await api.school.removeMember(courseId, m.user.id);
+                    await q.refetch();
+                  } catch (e) {
+                    toastError(e);
+                  }
+                }}
+              />
+            </View>
+          ) : null}
         </Card>
       ))}
     </View>
@@ -322,7 +363,7 @@ export default function CourseScreen() {
         />
         {tab === 'stream' && <Stream courseId={c.id} staff={staff} />}
         {tab === 'assignments' && <Classwork courseId={c.id} staff={staff} />}
-        {tab === 'people' && <People courseId={c.id} />}
+        {tab === 'people' && <People courseId={c.id} staff={staff} />}
         {tab === 'grades' && <Grades courseId={c.id} staff={staff} />}
         {tab === 'materials' && <Materials courseId={c.id} />}
         {tab === 'insights' && staff && <CourseInsightsTab courseId={c.id} />}

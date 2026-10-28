@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { birthYearChoices } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
+import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
@@ -350,12 +351,80 @@ function Notifications() {
   );
 }
 
+/** Private iCal link: homework, exams, sessions and live classes in the phone's calendar app. */
+function CalendarSync() {
+  const tr = useT();
+  const q = useQuery({ queryKey: ['me', 'calendar'], queryFn: () => api.me.calendar(), staleTime: Infinity });
+  const url = q.data?.url;
+  return (
+    <Card style={{ gap: 8 }}>
+      <Text weight="bold">{tr.t('settings.calendar.title')}</Text>
+      <Text muted size={13}>
+        {tr.t('settings.calendar.hint')}
+      </Text>
+      {!url ? (
+        <Loading />
+      ) : (
+        <>
+          <Text selectable size={12} style={{ writingDirection: 'ltr', textAlign: 'left' }} numberOfLines={2}>
+            {url}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Button
+              small
+              icon="calendar-outline"
+              title={tr.t('settings.calendar.apple')}
+              onPress={() => void Linking.openURL(url.replace(/^https?:/, 'webcal:')).catch(toastError)}
+            />
+            <Button
+              small
+              variant="soft"
+              icon="logo-google"
+              title={tr.t('settings.calendar.google')}
+              onPress={() => void Linking.openURL(`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(url.replace(/^https?:/, 'webcal:'))}`)}
+            />
+            <Button
+              small
+              variant="outline"
+              icon="copy-outline"
+              title={tr.t('settings.calendar.copy')}
+              onPress={async () => {
+                await Clipboard.setStringAsync(url);
+                toast(tr.t('common.copied'));
+              }}
+            />
+            <Button
+              small
+              variant="ghost"
+              icon="refresh-outline"
+              title={tr.t('settings.calendar.reset')}
+              onPress={async () => {
+                if (!(await confirm(tr.t('settings.calendar.resetConfirm'), { danger: true }))) return;
+                try {
+                  queryClient.setQueryData(['me', 'calendar'], await api.me.resetCalendar());
+                  toast(tr.t('settings.calendar.resetDone'));
+                } catch (e) {
+                  toastError(e);
+                }
+              }}
+            />
+          </View>
+          <Text muted size={11}>
+            {tr.t('settings.calendar.private')}
+          </Text>
+        </>
+      )}
+    </Card>
+  );
+}
+
 function Data() {
   const tr = useT();
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   return (
     <View style={{ gap: 12 }}>
+      <CalendarSync />
       <Card style={{ gap: 8 }}>
         <Text weight="bold">{tr.t('settings.data.export')}</Text>
         <Text muted size={13}>

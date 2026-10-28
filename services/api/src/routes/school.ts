@@ -304,6 +304,63 @@ export const schoolRoutes = new Hono<AppEnv>()
     }
     return c.json({ items: items.sort(byRisk) });
   })
+  /**
+   * Add a class list (emails from a CSV, e.g. a Google Classroom export). People with an account join right away;
+   * everyone else gets an email invitation with the class code.
+   */
+  .post('/courses/:id/roster', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'roster', limit: 20, windowSec: 3600, by: 'user' });
+    const deps = c.get('deps');
+    const id = param(c, 'id');
+    await requireRole(deps, id, user, STAFF);
+    const { emails } = await body(c, z.object({ emails: z.array(z.string().trim().toLowerCase().email().max(254)).min(1).max(500) }));
+    const unique = [...new Set(emails)];
+    const [course] = await deps.db.select({ title: courses.title, joinCode: courses.joinCode }).from(courses).where(eq(courses.id, id));
+    const found = await deps.db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(and(inArray(users.email, unique), isNull(users.deletedAt)));
+    const byEmail = new Map(found.map((u) => [u.email, u.id]));
+    let added = 0;
+    let already = 0;
+    let invited = 0;
+    for (const email of unique) {
+      const uid = byEmail.get(email);
+      if (uid) {
+        const ins = await deps.db.insert(courseMembers).values({ courseId: id, userId: uid, role: 'student' }).onConflictDoNothing().returning();
+        if (!ins.length) {
+          already++;
+          continue;
+        }
+        added++;
+        await deps.db
+          .update(courses)
+          .set({ memberCount: sql`${courses.memberCount} + 1` })
+          .where(eq(courses.id, id));
+        await notify(deps, {
+          userId: uid,
+          type: 'course_added',
+          icon: 'graduation-cap',
+          actorId: user.id,
+          link: `/school/${id}`,
+          data: { name: user.displayName, course: course?.title ?? '' },
+          pref: 'school',
+        });
+      } else {
+        invited++;
+        const link = `${deps.env.APP_URL.replace(/\/$/, '')}/register?next=${encodeURIComponent(`/school?join=${course?.joinCode ?? ''}`)}`;
+        await deps.mailer
+          .send({
+            to: email,
+            subject: `${user.displayName} invited you to “${course?.title ?? ''}” on Qubedu`,
+            text: `${user.displayName} added you to the class “${course?.title ?? ''}”.\n\nCreate your free account, then join with the class code: ${course?.joinCode ?? ''}\n${link}\n\n—\nدعاك ${user.displayName} إلى فصل «${course?.title ?? ''}». أنشئ حسابك ثم انضم بالكود: ${course?.joinCode ?? ''}`,
+          })
+          .catch((err) => deps.log.warn({ err }, 'roster invite failed'));
+      }
+    }
+    return c.json({ added, already, invited });
+  })
   /** A short encouraging message to one student (arrives as a notification and on their phone). */
   .post('/courses/:id/nudge', async (c) => {
     const user = requireUser(c);

@@ -85,6 +85,13 @@
       "when": 1793171086011,
       "tag": "0011_leagues",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793171354508,
+      "tag": "0012_calendar",
+      "breakpoints": true
     }
   ]
 }

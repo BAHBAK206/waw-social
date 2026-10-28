@@ -1032,6 +1032,17 @@ export const en = {
     },
   },
   school: {
+    roster: {
+      open: 'Import students',
+      title: 'Import a class list',
+      hint: 'Pick a CSV file (for example a Google Classroom or school system export) or paste emails. Students with an account join right away; the others get an email invitation with the class code.',
+      file: 'Choose CSV file',
+      emails: 'Emails',
+      none: 'No email addresses were found in this file.',
+      found: '{count, plural, =0 {No emails yet} one {# email found} other {# emails found}} (max {{max}})',
+      submit: '{count, plural, =0 {Import} one {Import # student} other {Import # students}}',
+      done: 'Added {{added}} · already in class {{already}} · invited {{invited}}',
+    },
     title: 'Classroom',
     subtitle: 'Your courses, assignments and grades.',
     create: 'New course',
@@ -1269,6 +1280,7 @@ export const en = {
     empty: 'You have no notifications.',
     clear: 'Clear all',
     types: {
+      course_added: '{{name}} added you to the class “{{course}}”.',
       league_stay: 'You stayed in the {{tier}} league. Aim for the top this week!',
       league_down: 'New week, new chance: you’re in the {{tier}} league.',
       league_up: 'Promoted! You’re in the {{tier}} league this week. 🚀',
@@ -1364,6 +1376,18 @@ export const en = {
     searchNotes: 'Search notes…',
   },
   settings: {
+    calendar: {
+      title: 'Calendar sync',
+      hint: 'Homework due dates, exams, study sessions, workshops and live classes appear in your Google, Apple or Outlook calendar and update by themselves.',
+      link: 'Your calendar link',
+      copy: 'Copy link',
+      google: 'Add to Google Calendar',
+      apple: 'Apple / Outlook',
+      reset: 'Make a new link',
+      resetConfirm: 'The old link will stop working in every calendar that uses it. Continue?',
+      resetDone: 'New link ready. Add it to your calendar again.',
+      private: 'Keep this link private: anyone who has it can see your schedule.',
+    },
     push: {
       title: 'Notifications on this device',
       hint: 'Get messages, grades, new lessons and live classes even when Qubedu is closed.',

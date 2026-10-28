@@ -55,6 +55,8 @@ export const users = pgTable(
     birthYear: integer('birth_year'),
     /** Weekly league tier for the next placement (0 = bronze). */
     leagueTier: integer('league_tier').notNull().default(0),
+    /** Secret for the private calendar feed (subscribe in Google / Apple Calendar). */
+    calendarToken: text('calendar_token'),
     xp: integer('xp').notNull().default(0),
     level: integer('level').notNull().default(1),
     streak: integer('streak').notNull().default(0),

@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { CourseInsights } from '@/components/family/Insights';
+import { RosterImport } from '@/components/school/RosterImport';
 import { CatalogSettings, CourseCertificates, Vouchers } from '@/components/school/CourseCommerce';
 import { UploadButton } from '@/components/ui/Upload';
 import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
@@ -327,46 +328,53 @@ function People({ course, staff }: { course: CourseDto; staff: boolean }) {
   return (
     <QueryState query={q}>
       {(d) => (
-        <ul className="mx-auto max-w-3xl divide-y divide-line rounded-[var(--radius-card)] border border-line bg-card">
-          {d.items.map((m) => (
-            <li key={m.user.id} className="flex items-center gap-3 p-3">
-              <UserChip user={m.user} className="flex-1" subtitle={tr.t(`school.roles.${m.role}`)} />
-              {staff && m.role !== 'teacher' && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        await api.school.setMemberRole(course.id, m.user.id, m.role === 'assistant' ? 'student' : 'assistant');
-                        await q.refetch();
-                      } catch (e) {
-                        toastError(e);
-                      }
-                    }}
-                  >
-                    {m.role === 'assistant' ? tr.t('school.roles.student') : tr.t('school.roles.assistant')}
-                  </Button>
-                  <IconButton
-                    label={tr.t('common.remove')}
-                    size="sm"
-                    onClick={async () => {
-                      if (!(await confirmDialog({ title: tr.t('common.confirmTitle'), danger: true, confirmLabel: tr.t('common.remove') }))) return;
-                      try {
-                        await api.school.removeMember(course.id, m.user.id);
-                        await q.refetch();
-                      } catch (e) {
-                        toastError(e);
-                      }
-                    }}
-                  >
-                    <Trash2 className="size-4 text-err" />
-                  </IconButton>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="mx-auto max-w-3xl space-y-3">
+          {staff && (
+            <div className="flex justify-end">
+              <RosterImport course={course} />
+            </div>
+          )}
+          <ul className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-card">
+            {d.items.map((m) => (
+              <li key={m.user.id} className="flex items-center gap-3 p-3">
+                <UserChip user={m.user} className="flex-1" subtitle={tr.t(`school.roles.${m.role}`)} />
+                {staff && m.role !== 'teacher' && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          await api.school.setMemberRole(course.id, m.user.id, m.role === 'assistant' ? 'student' : 'assistant');
+                          await q.refetch();
+                        } catch (e) {
+                          toastError(e);
+                        }
+                      }}
+                    >
+                      {m.role === 'assistant' ? tr.t('school.roles.student') : tr.t('school.roles.assistant')}
+                    </Button>
+                    <IconButton
+                      label={tr.t('common.remove')}
+                      size="sm"
+                      onClick={async () => {
+                        if (!(await confirmDialog({ title: tr.t('common.confirmTitle'), danger: true, confirmLabel: tr.t('common.remove') }))) return;
+                        try {
+                          await api.school.removeMember(course.id, m.user.id);
+                          await q.refetch();
+                        } catch (e) {
+                          toastError(e);
+                        }
+                      }}
+                    >
+                      <Trash2 className="size-4 text-err" />
+                    </IconButton>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </QueryState>
   );

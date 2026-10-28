@@ -1041,6 +1041,17 @@ export const fr: Dictionary = {
     },
   },
   school: {
+    roster: {
+      open: 'Importer des élèves',
+      title: 'Importer une liste de classe',
+      hint: 'Choisissez un fichier CSV (par exemple un export Google Classroom ou de l’ENT) ou collez des e-mails. Les élèves qui ont un compte rejoignent tout de suite ; les autres reçoivent une invitation avec le code de la classe.',
+      file: 'Choisir un fichier CSV',
+      emails: 'E-mails',
+      none: 'Aucune adresse e-mail trouvée dans ce fichier.',
+      found: '{count, plural, =0 {Aucun e-mail pour l’instant} one {# e-mail trouvé} other {# e-mails trouvés}} (max {{max}})',
+      submit: '{count, plural, =0 {Importer} one {Importer # élève} other {Importer # élèves}}',
+      done: 'Ajoutés {{added}} · déjà inscrits {{already}} · invités {{invited}}',
+    },
     title: 'Classe',
     subtitle: 'Vos cours, devoirs et notes.',
     create: 'Nouveau cours',
@@ -1278,6 +1289,7 @@ export const fr: Dictionary = {
     empty: 'Aucune notification.',
     clear: 'Tout effacer',
     types: {
+      course_added: '{{name}} vous a ajouté à la classe « {{course}} ».',
       league_stay: 'Vous restez en ligue {{tier}}. Visez le podium cette semaine !',
       league_down: 'Nouvelle semaine, nouvelle chance : vous êtes en ligue {{tier}}.',
       league_up: 'Promu ! Vous êtes en ligue {{tier}} cette semaine. 🚀',
@@ -1373,6 +1385,18 @@ export const fr: Dictionary = {
     searchNotes: 'Rechercher dans les notes…',
   },
   settings: {
+    calendar: {
+      title: 'Synchronisation du calendrier',
+      hint: 'Les échéances des devoirs, examens, séances de révision, ateliers et cours en direct apparaissent dans Google, Apple ou Outlook et se mettent à jour seuls.',
+      link: 'Votre lien de calendrier',
+      copy: 'Copier le lien',
+      google: 'Ajouter à Google Agenda',
+      apple: 'Apple / Outlook',
+      reset: 'Créer un nouveau lien',
+      resetConfirm: 'L’ancien lien cessera de fonctionner dans tous les calendriers qui l’utilisent. Continuer ?',
+      resetDone: 'Nouveau lien prêt. Ajoutez-le de nouveau à votre calendrier.',
+      private: 'Gardez ce lien privé : quiconque l’a peut voir votre emploi du temps.',
+    },
     push: {
       title: 'Notifications sur cet appareil',
       hint: 'Recevez messages, notes, nouvelles leçons et cours en direct même quand Qubedu est fermé.',

@@ -1039,6 +1039,17 @@ export const es: Dictionary = {
     },
   },
   school: {
+    roster: {
+      open: 'Importar alumnos',
+      title: 'Importar una lista de clase',
+      hint: 'Elige un archivo CSV (por ejemplo, una exportación de Google Classroom o del sistema escolar) o pega correos. Quien ya tiene cuenta entra al momento; el resto recibe una invitación por correo con el código de la clase.',
+      file: 'Elegir archivo CSV',
+      emails: 'Correos',
+      none: 'No se encontraron correos en este archivo.',
+      found: '{count, plural, =0 {Aún no hay correos} one {# correo encontrado} other {# correos encontrados}} (máx. {{max}})',
+      submit: '{count, plural, =0 {Importar} one {Importar # alumno} other {Importar # alumnos}}',
+      done: 'Añadidos {{added}} · ya en la clase {{already}} · invitados {{invited}}',
+    },
     title: 'Aula',
     subtitle: 'Tus cursos, tareas y calificaciones.',
     create: 'Nuevo curso',
@@ -1280,6 +1291,7 @@ export const es: Dictionary = {
     empty: 'No tienes notificaciones.',
     clear: 'Borrar todo',
     types: {
+      course_added: '{{name}} te añadió a la clase «{{course}}».',
       league_stay: 'Sigues en la liga {{tier}}. ¡Apunta a lo más alto esta semana!',
       league_down: 'Nueva semana, nueva oportunidad: estás en la liga {{tier}}.',
       league_up: '¡Ascenso! Esta semana estás en la liga {{tier}}. 🚀',
@@ -1384,6 +1396,18 @@ export const es: Dictionary = {
     searchNotes: 'Buscar notas…',
   },
   settings: {
+    calendar: {
+      title: 'Sincronizar calendario',
+      hint: 'Las entregas de tareas, exámenes, sesiones de estudio, talleres y clases en directo aparecen en Google, Apple u Outlook y se actualizan solas.',
+      link: 'Tu enlace de calendario',
+      copy: 'Copiar enlace',
+      google: 'Añadir a Google Calendar',
+      apple: 'Apple / Outlook',
+      reset: 'Crear un enlace nuevo',
+      resetConfirm: 'El enlace anterior dejará de funcionar en todos los calendarios que lo usen. ¿Continuar?',
+      resetDone: 'Enlace nuevo listo. Vuelve a añadirlo a tu calendario.',
+      private: 'Mantén este enlace en privado: quien lo tenga puede ver tu horario.',
+    },
     push: {
       title: 'Notificaciones en este dispositivo',
       hint: 'Recibe mensajes, notas, nuevas lecciones y clases en vivo aunque Qubedu esté cerrado.',

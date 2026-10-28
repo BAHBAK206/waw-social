@@ -1,7 +1,22 @@
 import { DESIGNS, LANGUAGES, LIMITS, SKINS, birthYearChoices, TEXT_SIZES, THEME_MODES, type Me, type NotificationPrefs, type Privacy } from '@qubedu/shared';
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Check, Database, Download, HeartHandshake, Lock, MonitorSmartphone, Palette, Shield, Trash2, User } from 'lucide-react';
+import {
+  Bell,
+  CalendarDays,
+  Check,
+  Copy,
+  Database,
+  Download,
+  HeartHandshake,
+  Lock,
+  MonitorSmartphone,
+  Palette,
+  RefreshCw,
+  Shield,
+  Trash2,
+  User,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canInstall, promptInstall } from '@/app/pwa';
 import { FamilyCode } from '@/components/family/FamilyCode';
@@ -552,10 +567,65 @@ function FamilyTab({ me }: { me: Me }) {
   );
 }
 
+/** A private iCal link: homework, exams, sessions and live classes show up in Google / Apple / Outlook calendars. */
+function CalendarSync() {
+  const tr = useT();
+  const q = useQuery({ queryKey: ['me', 'calendar'], queryFn: () => api.me.calendar(), staleTime: Infinity });
+  const qc = useQueryClient();
+  const url = q.data?.url;
+  const webcal = url?.replace(/^https?:/, 'webcal:');
+  return (
+    <Section title={tr.t('settings.calendar.title')}>
+      <p className="muted">{tr.t('settings.calendar.hint')}</p>
+      {url ? (
+        <>
+          <Input label={tr.t('settings.calendar.link')} value={url} readOnly dir="ltr" onFocus={(e) => e.target.select()} />
+          <div className="flex flex-wrap gap-2">
+            <Button icon={<Copy className="size-4" />} onClick={() => void navigator.clipboard.writeText(url).then(() => toast(tr.t('common.copied')))}>
+              {tr.t('settings.calendar.copy')}
+            </Button>
+            <a
+              className="btn btn-outline"
+              href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal!)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <CalendarDays className="size-4" aria-hidden />
+              {tr.t('settings.calendar.google')}
+            </a>
+            <a className="btn btn-outline" href={webcal}>
+              {tr.t('settings.calendar.apple')}
+            </a>
+            <Button
+              variant="ghost"
+              icon={<RefreshCw className="size-4" />}
+              onClick={async () => {
+                if (!(await confirmDialog({ title: tr.t('settings.calendar.reset'), body: tr.t('settings.calendar.resetConfirm'), danger: true }))) return;
+                try {
+                  qc.setQueryData(['me', 'calendar'], await api.me.resetCalendar());
+                  toast(tr.t('settings.calendar.resetDone'));
+                } catch (e) {
+                  toastError(e);
+                }
+              }}
+            >
+              {tr.t('settings.calendar.reset')}
+            </Button>
+          </div>
+          <p className="muted text-xs">{tr.t('settings.calendar.private')}</p>
+        </>
+      ) : (
+        <Spinner />
+      )}
+    </Section>
+  );
+}
+
 function DataTab() {
   const tr = useT();
   return (
     <div className="space-y-5">
+      <CalendarSync />
       <Section title={tr.t('settings.data.export')}>
         <p className="muted">{tr.t('settings.data.exportDesc')}</p>
         <Button
