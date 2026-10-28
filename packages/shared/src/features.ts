@@ -39,6 +39,7 @@ export const FEATURES = [
   { id: 'classes', kind: 'page', category: 'learning', route: '/classes', icon: 'video', auth: true },
   { id: 'exams', kind: 'page', category: 'learning', route: '/academic?tab=exams', icon: 'calendar-clock', auth: true },
   { id: 'people', kind: 'page', category: 'social', route: '/people', icon: 'users', auth: true },
+  { id: 'league', kind: 'page', category: 'social', route: '/league', icon: 'medal', auth: true },
   { id: 'leaderboard', kind: 'page', category: 'social', route: '/people?tab=leaderboard', icon: 'trophy', auth: true },
   { id: 'groups', kind: 'page', category: 'social', route: '/groups', icon: 'users-round', auth: true },
   { id: 'communities', kind: 'page', category: 'social', route: '/communities', icon: 'globe', auth: true },

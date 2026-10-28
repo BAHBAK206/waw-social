@@ -1,4 +1,27 @@
 export const en = {
+  league: {
+    title: 'Weekly league',
+    subtitle: 'Earn XP this week. The top move up a league on Monday; the bottom move down.',
+    tiers: {
+      bronze: 'Bronze',
+      silver: 'Silver',
+      gold: 'Gold',
+      sapphire: 'Sapphire',
+      ruby: 'Ruby',
+      emerald: 'Emerald',
+      diamond: 'Diamond',
+    },
+    endsIn: '{count, plural, =0 {Ends today} one {Ends in # day} other {Ends in # days}}',
+    notJoined: 'Earn your first XP this week (a quiz, a lesson, flashcards) to join a group.',
+    promoteZone: 'Promotion zone',
+    demoteZone: 'Demotion zone',
+    xp: '{{xp}} XP',
+    you: 'You',
+    lastUp: 'Last week: promoted 🚀',
+    lastDown: 'Last week: moved down',
+    lastStay: 'Last week: stayed',
+    rank: 'You are #{{rank}} in {{tier}}',
+  },
   certificates: {
     title: 'Certificates',
     mine: 'My certificates',
@@ -328,6 +351,7 @@ export const en = {
     unmute: 'Unmute',
   },
   nav: {
+    league: 'League',
     certificates: 'Certificates',
     catalog: 'Courses',
     family: 'Family',
@@ -376,6 +400,7 @@ export const en = {
     categories: { main: 'Main', learning: 'Learning', social: 'Learn together', personal: 'Personal', tools: 'Tools', help: 'Help' },
   },
   features: {
+    league: 'Weekly leagues: compete on XP with learners at your level, move up or down every Monday.',
     certificates: 'Certificates you earned, with a link anyone can verify.',
     catalog: 'Browse free and paid courses from teachers and enroll.',
     family: 'Parents follow their children’s study time, quizzes, homework and attendance.',
@@ -1244,6 +1269,9 @@ export const en = {
     empty: 'You have no notifications.',
     clear: 'Clear all',
     types: {
+      league_stay: 'You stayed in the {{tier}} league. Aim for the top this week!',
+      league_down: 'New week, new chance: you’re in the {{tier}} league.',
+      league_up: 'Promoted! You’re in the {{tier}} league this week. 🚀',
       course_paid: 'Payment received — welcome to {{course}}!',
       certificate_issued: '{{name}} awarded you a certificate: “{{title}}” 🎓',
       teacher_nudge: '{{name}} ({{course}}): “{{message}}”',

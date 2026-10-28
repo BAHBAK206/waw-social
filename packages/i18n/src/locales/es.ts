@@ -1,6 +1,29 @@
 import type { Dictionary } from './en';
 
 export const es: Dictionary = {
+  league: {
+    title: 'Liga semanal',
+    subtitle: 'Gana XP esta semana. Los primeros suben de liga el lunes; los últimos bajan.',
+    tiers: {
+      bronze: 'Bronce',
+      silver: 'Plata',
+      gold: 'Oro',
+      sapphire: 'Zafiro',
+      ruby: 'Rubí',
+      emerald: 'Esmeralda',
+      diamond: 'Diamante',
+    },
+    endsIn: '{count, plural, =0 {Termina hoy} one {Termina en # día} other {Termina en # días}}',
+    notJoined: 'Gana tu primer XP de la semana (un cuestionario, una lección, tarjetas) para unirte a un grupo.',
+    promoteZone: 'Zona de ascenso',
+    demoteZone: 'Zona de descenso',
+    xp: '{{xp}} XP',
+    you: 'Tú',
+    lastUp: 'Semana pasada: ascendiste 🚀',
+    lastDown: 'Semana pasada: bajaste',
+    lastStay: 'Semana pasada: te mantuviste',
+    rank: 'Eres el n.º {{rank}} en {{tier}}',
+  },
   certificates: {
     title: 'Certificados',
     mine: 'Mis certificados',
@@ -330,6 +353,7 @@ export const es: Dictionary = {
     unmute: 'Activar sonido',
   },
   nav: {
+    league: 'Liga',
     certificates: 'Certificados',
     catalog: 'Cursos',
     family: 'Familia',
@@ -378,6 +402,7 @@ export const es: Dictionary = {
     categories: { main: 'Principal', learning: 'Aprendizaje', social: 'Aprender juntos', personal: 'Personal', tools: 'Herramientas', help: 'Ayuda' },
   },
   features: {
+    league: 'Ligas semanales: compite en XP con estudiantes de tu nivel y sube o baja cada lunes.',
     certificates: 'Tus certificados, con un enlace que cualquiera puede verificar.',
     catalog: 'Explora cursos gratuitos y de pago de los docentes e inscríbete.',
     family: 'Los padres siguen el estudio, los cuestionarios, las tareas y la asistencia de sus hijos.',
@@ -1255,6 +1280,9 @@ export const es: Dictionary = {
     empty: 'No tienes notificaciones.',
     clear: 'Borrar todo',
     types: {
+      league_stay: 'Sigues en la liga {{tier}}. ¡Apunta a lo más alto esta semana!',
+      league_down: 'Nueva semana, nueva oportunidad: estás en la liga {{tier}}.',
+      league_up: '¡Ascenso! Esta semana estás en la liga {{tier}}. 🚀',
       course_paid: 'Pago recibido: ¡bienvenido a {{course}}!',
       certificate_issued: '{{name}} te otorgó un certificado: «{{title}}» 🎓',
       teacher_nudge: '{{name}} ({{course}}): «{{message}}»',

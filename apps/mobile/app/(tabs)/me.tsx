@@ -51,6 +51,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
       { id: 'organizer', icon: 'checkbox-outline', href: '/organizer' },
       { id: 'family', icon: 'people-circle-outline', href: '/family' },
       { id: 'certificates', icon: 'ribbon-outline', href: '/certificates' },
+      { id: 'league', icon: 'medal-outline', href: '/league' },
       { id: 'saved', icon: 'bookmark-outline', href: '/saved' },
       { id: 'studio', icon: 'cloud-upload-outline', href: '/studio' },
     ],

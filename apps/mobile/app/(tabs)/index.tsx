@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AtRiskList } from '@/components/Family';
+import { LeagueCard } from '../league';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Empty, GradientHeader, Loading, SectionTitle, Text } from '@/components/ui';
 import { toast, toastError } from '@/lib/ui';
@@ -93,6 +94,7 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </View>
+        {me.accountType === 'student' && <LeagueCard />}
         {me.accountType === 'teacher' && <AtRiskList limit={3} />}
         {me.accountType === 'parent' && (
           <Card onPress={() => router.push('/family' as never)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

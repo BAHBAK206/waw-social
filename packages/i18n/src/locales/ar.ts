@@ -1,6 +1,30 @@
 import type { Dictionary } from './en';
 
 export const ar: Dictionary = {
+  league: {
+    title: 'الدوري الأسبوعي',
+    subtitle: 'اجمع النقاط هذا الأسبوع. الأوائل يصعدون دوريًا يوم الاثنين، والأخيرون ينزلون.',
+    tiers: {
+      bronze: 'البرونزي',
+      silver: 'الفضي',
+      gold: 'الذهبي',
+      sapphire: 'الياقوت الأزرق',
+      ruby: 'الياقوت الأحمر',
+      emerald: 'الزمرد',
+      diamond: 'الماسي',
+    },
+    endsIn:
+      '{count, plural, =0 {ينتهي اليوم} one {ينتهي بعد يوم واحد} two {ينتهي بعد يومين} few {ينتهي بعد # أيام} many {ينتهي بعد # يومًا} other {ينتهي بعد # يوم}}',
+    notJoined: 'اجمع أول نقاطك هذا الأسبوع (اختبار، درس، بطاقات) لتنضم إلى مجموعة.',
+    promoteZone: 'منطقة الصعود',
+    demoteZone: 'منطقة الهبوط',
+    xp: '{{xp}} نقطة',
+    you: 'أنت',
+    lastUp: 'الأسبوع الماضي: صعدت 🚀',
+    lastDown: 'الأسبوع الماضي: نزلت',
+    lastStay: 'الأسبوع الماضي: بقيت',
+    rank: 'ترتيبك #{{rank}} في الدوري {{tier}}',
+  },
   certificates: {
     title: 'الشهادات',
     mine: 'شهاداتي',
@@ -332,6 +356,7 @@ export const ar: Dictionary = {
     unmute: 'إلغاء الكتم',
   },
   nav: {
+    league: 'الدوري',
     certificates: 'الشهادات',
     catalog: 'الكورسات',
     family: 'العائلة',
@@ -380,6 +405,7 @@ export const ar: Dictionary = {
     categories: { main: 'الأساسية', learning: 'التعلّم', social: 'التعلّم الجماعي', personal: 'شخصي', tools: 'أدوات', help: 'مساعدة' },
   },
   features: {
+    league: 'دوري أسبوعي: نافس بالنقاط مع متعلمين في مستواك واصعد أو انزل كل يوم اثنين.',
     certificates: 'الشهادات التي حصلت عليها مع رابط يمكن لأي أحد التحقق منه.',
     catalog: 'تصفّح الكورسات المجانية والمدفوعة من المعلمين واشترك فيها.',
     family: 'يتابع أولياء الأمور وقت مذاكرة أبنائهم واختباراتهم وواجباتهم وحضورهم.',
@@ -1242,6 +1268,9 @@ export const ar: Dictionary = {
     empty: 'لا توجد إشعارات.',
     clear: 'مسح الكل',
     types: {
+      league_stay: 'بقيت في دوري {{tier}}. استهدف القمة هذا الأسبوع!',
+      league_down: 'أسبوع جديد وفرصة جديدة: أنت في دوري {{tier}}.',
+      league_up: 'ترقية! أنت في دوري {{tier}} هذا الأسبوع. 🚀',
       course_paid: 'تم استلام الدفع — أهلًا بك في {{course}}!',
       certificate_issued: 'منحك {{name}} شهادة: «{{title}}» 🎓',
       teacher_nudge: '{{name}} ({{course}}): «{{message}}»',

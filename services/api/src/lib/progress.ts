@@ -2,6 +2,7 @@ import { and, count, eq, sql } from 'drizzle-orm';
 import { dayKey, evaluateAchievements, levelFromXp, nextStreak } from '@qubedu/shared';
 import type { Db } from '../db/client';
 import { follows, groupMembers, posts, studyLog, userAchievements, users, xpLedger } from '../db/schema';
+import { addLeagueXp } from './leagues';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0] | Db;
 
@@ -24,6 +25,7 @@ export async function awardXp(tx: Tx, userId: string, amount: number, reason: st
     .where(eq(users.id, userId))
     .returning({ xp: users.xp });
   const xpAfter = after?.xp ?? xpBefore + amount;
+  await addLeagueXp(tx, userId, amount);
   await tx
     .update(users)
     .set({ level: levelFromXp(xpAfter) })

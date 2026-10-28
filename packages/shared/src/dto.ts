@@ -1,4 +1,5 @@
 import type { RiskLevel, RiskReason, StudentSignals } from './insights';
+import type { LeagueTier } from './leagues';
 import type { AccountType, AdminPermission, Role } from './roles';
 import type { Appearance } from './appearance';
 import type { FeatureControlMap } from './features';
@@ -1135,4 +1136,17 @@ export interface ChildReportDto {
 export interface FamilyDto {
   children: (UserSummary & { risk: RiskLevel; minutesThisWeek: number })[];
   guardians: UserSummary[];
+}
+
+export interface LeagueDto {
+  week: string;
+  endsAt: number;
+  tier: LeagueTier;
+  tierIndex: number;
+  /** False until the learner earns XP this week. */
+  joined: boolean;
+  members: { user: UserSummary; xp: number; rank: number; me: boolean }[];
+  promote: number;
+  demote: number;
+  lastResult: 'up' | 'down' | 'stay' | null;
 }

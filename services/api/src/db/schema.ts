@@ -53,6 +53,8 @@ export const users = pgTable(
     institution: text('institution'),
     /** Used only to apply under-18 protections; never shown to other people. */
     birthYear: integer('birth_year'),
+    /** Weekly league tier for the next placement (0 = bronze). */
+    leagueTier: integer('league_tier').notNull().default(0),
     xp: integer('xp').notNull().default(0),
     level: integer('level').notNull().default(1),
     streak: integer('streak').notNull().default(0),
@@ -393,6 +395,24 @@ export const notifications = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+);
+
+/** This week's league groups: who competes with whom, and their XP this week. */
+export const leagueMembers = pgTable(
+  'league_members',
+  {
+    /** Monday (UTC) of the week. */
+    week: date('week', { mode: 'string' }).notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tier: integer('tier').notNull(),
+    groupNo: integer('group_no').notNull(),
+    xp: integer('xp').notNull().default(0),
+    joinedAt: ts('joined_at').notNull().defaultNow(),
+    result: text('result').$type<'up' | 'down' | 'stay'>(),
+  },
+  (t) => [primaryKey({ columns: [t.week, t.userId] }), index('league_members_group_idx').on(t.week, t.tier, t.groupNo)],
 );
 
 /** Single-use enrollment codes a teacher sells or gives out (cash, school fees, scholarships). */

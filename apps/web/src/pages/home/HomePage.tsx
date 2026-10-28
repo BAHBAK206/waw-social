@@ -22,6 +22,7 @@ import { Link } from 'react-router';
 import { AdsStrip } from '@/components/common/Ads';
 import { TrendingWidget } from '@/components/feed/TrendingWidget';
 import { AtRiskSection } from '@/components/family/Insights';
+import { LeagueCard } from '@/pages/league/LeaguePage';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ColumnChart, ProgressBar, ProgressRing } from '@/components/ui/Charts';
 import { Spinner } from '@/components/ui/States';
@@ -171,6 +172,7 @@ function Dashboard() {
           </ProgressRing>
         </div>
       </section>
+      {me.accountType === 'student' && <LeagueCard />}
       {(me.accountType === 'teacher' || me.role !== 'user') && <AtRiskSection limit={3} />}
       {me.accountType === 'parent' && <ParentCard />}
 

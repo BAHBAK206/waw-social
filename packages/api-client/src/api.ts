@@ -28,6 +28,7 @@ import type {
   VideoCommentDto,
   VideoDto,
   CaptionTrackDto,
+  LeagueDto,
   CatalogCourseDto,
   CertificateDto,
   CertificateVerifyDto,
@@ -569,6 +570,10 @@ export function createApi(options: ClientOptions) {
         http.post<{ issued: number }>(`/certificates/course/${courseId}`, body),
       revoke: (id: string) => http.del<Ok>(`/certificates/${id}`),
       verify: (code: string) => http.get<CertificateVerifyDto>(`/certificates/verify/${encodeURIComponent(code)}`),
+    },
+
+    leagues: {
+      me: () => http.get<LeagueDto>('/leagues/me'),
     },
 
     family: {

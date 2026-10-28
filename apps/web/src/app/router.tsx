@@ -90,6 +90,7 @@ export const router = createBrowserRouter([
       { path: 'services', ...page(() => import('@/pages/services/ServicesPage')) },
       { path: 'settings', ...page(() => import('@/pages/settings/SettingsPage'), { auth: true }) },
       { path: 'family', ...page(() => import('@/pages/family/FamilyPage'), { auth: true }) },
+      { path: 'league', ...page(() => import('@/pages/league/LeaguePage'), { auth: true }) },
       { path: 'courses', ...page(() => import('@/pages/catalog/CatalogPage')) },
       { path: 'courses/:id', ...page(() => import('@/pages/catalog/CatalogCoursePage')) },
       { path: 'certificates', ...page(() => import('@/pages/certificates/CertificatesPage'), { auth: true }) },

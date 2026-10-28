@@ -19,6 +19,7 @@ import { teacherRoutes } from './routes/teacher';
 import { familyRoutes } from './routes/family';
 import { catalogRoutes, stripeWebhook, voucherRoutes } from './routes/catalog';
 import { certificateRoutes } from './routes/certificates';
+import { leagueRoutes } from './routes/leagues';
 import { chatRoutes } from './routes/chat';
 import { groupRoutes } from './routes/groups';
 import { academicRoutes, dailyRoutes, examRoutes, flashcardRoutes, noteRoutes, pomodoroRoutes, studySessionRoutes, taskRoutes } from './routes/learning';
@@ -116,6 +117,7 @@ export function createApp(deps: Deps) {
   api.route('/catalog', catalogRoutes);
   api.route('/school', voucherRoutes);
   api.route('/certificates', certificateRoutes);
+  api.route('/leagues', leagueRoutes);
   api.route('/playlists', playlistRoutes);
   api.route('/channels', channelRoutes);
   api.route('/studio', studioRoutes);

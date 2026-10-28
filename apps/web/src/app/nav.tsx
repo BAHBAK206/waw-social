@@ -23,6 +23,7 @@ import {
   Hand,
   HeartHandshake,
   Award,
+  Medal,
   Store,
   House,
   Info,
@@ -115,6 +116,7 @@ export const ICONS: Record<string, LucideIcon> = {
   vote: Vote,
   'heart-handshake': HeartHandshake,
   award: Award,
+  medal: Medal,
   store: Store,
 };
 
