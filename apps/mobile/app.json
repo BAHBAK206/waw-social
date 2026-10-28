@@ -46,6 +46,12 @@
         }
       ],
       [
+        "expo-audio",
+        {
+          "microphonePermission": "Used to record voice notes and to practise pronunciation."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#6c5ce7",

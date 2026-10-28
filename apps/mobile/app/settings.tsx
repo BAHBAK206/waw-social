@@ -2,22 +2,19 @@ import { DESIGNS, LANGUAGES, SKINS, TEXT_SIZES, THEME_MODES } from '@qubedu/shar
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { Alert, Pressable, View } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Chip, SectionTitle, Text } from '@/components/ui';
-import { api } from '@/lib/api';
+import { SettingsTabs } from '@/components/SettingsTabs';
+import { SwitchRow } from '@/components/kit';
+import { Chip, SectionTitle, Text } from '@/components/ui';
 import { syncDirection, useAppearance } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
-import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
-import { confirm, toast, toastError } from '@/lib/ui';
-import { queryClient } from '@/lib/query';
 
 const LANGUAGE_NAMES = { ar: 'العربية', en: 'English', fr: 'Français', es: 'Español' } as const;
 
-export default function SettingsScreen() {
+function Appearance() {
   const tr = useT();
   const t = useTheme();
   const { appearance: a, update } = useAppearance();
-  const me = useSession((s) => s.me)!;
 
   const setLanguage = (language: (typeof LANGUAGES)[number]) => {
     update({ language });
@@ -25,14 +22,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <Screen>
-      <Card>
-        <Text weight="black" size={18}>
-          {me.displayName}
-        </Text>
-        <Text muted>{me.email}</Text>
-      </Card>
-
+    <View style={{ gap: 12 }}>
       <SectionTitle>{tr.t('settings.appearance.language')}</SectionTitle>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {LANGUAGES.map((l) => (
@@ -92,22 +82,15 @@ export default function SettingsScreen() {
         ))}
       </View>
 
-      <View style={{ height: 16 }} />
-      <Button
-        title={tr.t('nav.signOut')}
-        variant="outline"
-        icon="log-out-outline"
-        onPress={async () => {
-          if (!(await confirm(tr.t('nav.signOut')))) return;
-          try {
-            await api.auth.logout();
-            queryClient.clear();
-            toast(tr.t('common.done'));
-          } catch (e) {
-            toastError(e);
-          }
-        }}
-      />
+      <SwitchRow label={tr.t('settings.appearance.reduceMotion')} value={a.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
+    </View>
+  );
+}
+
+export default function SettingsScreen() {
+  return (
+    <Screen>
+      <SettingsTabs appearance={<Appearance />} />
     </Screen>
   );
 }

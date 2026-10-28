@@ -6,6 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, TextInput, View } from 'react-native';
+import { VoicePlayer, VoiceRecorder } from '@/components/Voice';
+import { pickDocument } from '@/components/kit';
 import { Avatar, Loading, Text } from '@/components/ui';
 import { api, fileUrl, realtime, uploadFile } from '@/lib/api';
 import { formatTime } from '@/lib/format';
@@ -105,6 +107,26 @@ export default function ChatScreen() {
     }
   };
 
+  const attachFile = async () => {
+    try {
+      const f = await pickDocument();
+      if (!f) return;
+      const up = await uploadFile(f, 'chat');
+      await send({ text: '', attachment: { url: up.url, name: f.name, mime: up.mime, size: up.size, kind: up.kind } });
+    } catch (e) {
+      toastError(e);
+    }
+  };
+
+  const sendVoice = async ({ uri }: { uri: string; seconds: number }) => {
+    try {
+      const up = await uploadFile({ uri, name: `voice-${Date.now()}.m4a`, mimeType: 'audio/mp4' }, 'chat');
+      await send({ text: '', attachment: { url: up.url, name: tr.t('chat.record'), mime: up.mime, size: up.size, kind: 'audio' } });
+    } catch (e) {
+      toastError(e);
+    }
+  };
+
   const peerRead = q.data?.pages[0]?.peerLastReadAt ?? null;
   const direct = conv.data?.kind === 'direct';
 
@@ -160,6 +182,8 @@ export default function ChatScreen() {
                           contentFit="cover"
                           accessibilityLabel={m.attachment.name}
                         />
+                      ) : m.attachment?.kind === 'audio' ? (
+                        <VoicePlayer uri={fileUrl(m.attachment.url)!} color={mine ? t.onPrimary : t.primaryInk} />
                       ) : m.attachment ? (
                         <Pressable
                           onPress={() => void Linking.openURL(fileUrl(m.attachment!.url)!)}
@@ -212,6 +236,14 @@ export default function ChatScreen() {
         >
           <Ionicons name="image-outline" size={24} color={t.primaryInk} />
         </Pressable>
+        <Pressable
+          onPress={attachFile}
+          accessibilityRole="button"
+          accessibilityLabel={tr.t('common.file')}
+          style={{ width: 34, height: 42, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="attach" size={24} color={t.primaryInk} />
+        </Pressable>
         <TextInput
           value={text}
           onChangeText={(v) => {
@@ -243,21 +275,32 @@ export default function ChatScreen() {
             textAlign: 'auto',
           }}
         />
-        <Pressable
-          disabled={!text.trim()}
-          onPress={() => {
-            const v = text.trim();
-            setText('');
-            realtime.publish(channels.conv(id!), 'stop-typing');
-            lastTyping.current = 0;
-            void send({ text: v });
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={tr.t('common.send')}
-          style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: text.trim() ? t.primary : t.bg3, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Ionicons name="send" size={19} color={text.trim() ? t.onPrimary : t.text3} />
-        </Pressable>
+        {!text.trim() ? (
+          <VoiceRecorder onRecorded={(f) => void sendVoice(f)} />
+        ) : (
+          <Pressable
+            disabled={!text.trim()}
+            onPress={() => {
+              const v = text.trim();
+              setText('');
+              realtime.publish(channels.conv(id!), 'stop-typing');
+              lastTyping.current = 0;
+              void send({ text: v });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={tr.t('common.send')}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: text.trim() ? t.primary : t.bg3,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="send" size={19} color={text.trim() ? t.onPrimary : t.text3} />
+          </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
