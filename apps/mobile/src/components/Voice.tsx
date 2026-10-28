@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import type { Attachment } from '@qubedu/shared';
 import { Text } from '@/components/ui';
+import { fileUrl, uploadFile } from '@/lib/api';
 import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
@@ -94,6 +96,73 @@ export function VoiceRecorder({ onRecorded, disabled }: { onRecorded: (file: { u
       >
         <Ionicons name={recording ? 'stop' : 'mic-outline'} size={21} color={recording ? '#fff' : t.primaryInk} />
       </Pressable>
+    </View>
+  );
+}
+
+/** Uploads a recorded voice note and returns it as an attachment. */
+export async function uploadVoice(uri: string, purpose: string, name: string): Promise<Attachment> {
+  const up = await uploadFile({ uri, name: `voice-${Date.now()}.m4a`, mimeType: 'audio/mp4' }, purpose);
+  return { url: up.url, name, mime: up.mime, size: up.size, kind: 'audio' };
+}
+
+/** A voice note card with a label (e.g. the teacher's spoken explanation). */
+export function VoiceCard({ a, label }: { a: Attachment; label: string }) {
+  const t = useTheme();
+  return (
+    <View style={{ gap: 4, padding: 10, borderRadius: 12, backgroundColor: t.primarySoft }}>
+      <Text size={12} weight="bold" color={t.primaryInk}>
+        🎙️ {label}
+      </Text>
+      <VoicePlayer uri={fileUrl(a.url)!} color={t.primaryInk} />
+    </View>
+  );
+}
+
+/** Record → preview → remove, for forms that attach one voice note (answers, announcements, feedback). */
+export function VoiceAttach({
+  value,
+  onChange,
+  purpose,
+  label,
+}: {
+  value: Attachment | null;
+  onChange: (a: Attachment | null) => void;
+  purpose: string;
+  label: string;
+}) {
+  const tr = useT();
+  const t = useTheme();
+  const [busy, setBusy] = useState(false);
+  if (value)
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <VoiceCard a={value} label={tr.t('voice.note')} />
+        </View>
+        <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr.t('voice.remove')}>
+          <Ionicons name="trash-outline" size={20} color={t.err} />
+        </Pressable>
+      </View>
+    );
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <VoiceRecorder
+        disabled={busy}
+        onRecorded={async ({ uri }) => {
+          setBusy(true);
+          try {
+            onChange(await uploadVoice(uri, purpose, tr.t('voice.note')));
+          } catch {
+            toast(tr.t('common.errorGeneric'), 'err');
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      <Text muted size={13}>
+        {busy ? tr.t('common.loading') : label}
+      </Text>
     </View>
   );
 }

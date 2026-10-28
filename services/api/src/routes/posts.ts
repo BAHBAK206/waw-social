@@ -45,6 +45,7 @@ import { notify } from '../lib/notify';
 import { removeHashtags, syncHashtags } from '../lib/hashtags';
 import { awardXp, checkAchievements } from '../lib/progress';
 import { ch } from '../lib/realtime';
+import { ownAttachment, readableAttachment } from '../lib/attachments';
 import { checkRate } from '../middleware';
 
 const authorCols = {
@@ -472,6 +473,7 @@ export const postRoutes = new Hono<AppEnv>()
       id: comments.id,
       postId: comments.postId,
       text: comments.text,
+      audio: comments.audio,
       votes: comments.votes,
       createdAt: comments.createdAt,
       ...authorCols,
@@ -506,6 +508,7 @@ export const postRoutes = new Hono<AppEnv>()
     const page = isQuestion ? { items: rows, nextCursor: null } : pageOf(rows, q.limit, (r) => ({ t: r.createdAt, id: r.id }));
     const mod = await canModeratePost(deps, viewer, post);
     const items: CommentDto[] = page.items.map((r) => ({
+      audio: (r.audio as CommentDto['audio']) ?? null,
       id: r.id,
       postId: r.postId,
       author: toSummary(pickSummary('author', r)),
@@ -524,8 +527,9 @@ export const postRoutes = new Hono<AppEnv>()
     const post = await loadPost(deps, param(c, 'id'));
     await assertCanSeePost(deps, viewer, post);
     if (post.groupId && !(await groupRole(deps.db, post.groupId, viewer.id))) throw forbidden('not_a_member');
-    const { text } = await body(c, commentSchema);
-    const [row] = await deps.db.insert(comments).values({ postId: post.id, authorId: viewer.id, text }).returning();
+    const { text, audio: rawAudio } = await body(c, commentSchema);
+    const audio = rawAudio ? await ownAttachment(deps, viewer, rawAudio, 'audio/') : null;
+    const [row] = await deps.db.insert(comments).values({ postId: post.id, authorId: viewer.id, text, audio }).returning();
     await deps.db
       .update(posts)
       .set({ commentCount: sql`${posts.commentCount} + 1` })
@@ -536,7 +540,7 @@ export const postRoutes = new Hono<AppEnv>()
       icon: 'message-square',
       actorId: viewer.id,
       link: `/post/${post.id}`,
-      data: { name: viewer.displayName, postId: post.id, preview: text.slice(0, 80) },
+      data: { name: viewer.displayName, postId: post.id, preview: text.slice(0, 80) || '🎙️' },
       pref: 'comments',
     });
     const [me] = await deps.db.select(summaryColumns).from(users).where(eq(users.id, viewer.id));
@@ -549,6 +553,7 @@ export const postRoutes = new Hono<AppEnv>()
       canDelete: true,
       votes: 0,
       myVote: false,
+      audio: await readableAttachment(deps, audio),
     };
     return c.json(dto, 201);
   })

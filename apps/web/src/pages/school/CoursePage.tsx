@@ -1,4 +1,4 @@
-import type { AssignmentDto, CourseDto } from '@qubedu/shared';
+import type { AssignmentDto, Attachment, CourseDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Copy, FileText, Megaphone, Plus, RefreshCw, Trash2, Video } from 'lucide-react';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { UploadButton } from '@/components/ui/Upload';
+import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
 import { api, fileUrl } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { formatBytes, formatDateTime, fromLocalInput, relativeTime } from '@/lib/format';
@@ -69,15 +70,16 @@ function Stream({ course, staff }: { course: CourseDto; staff: boolean }) {
               ))}
             </ul>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <UploadButton variant="ghost" size="sm" purpose="course" onUploaded={(r) => setFiles((x) => [...x, r].slice(0, 5))}>
               {tr.t('school.assignment.addFile')}
             </UploadButton>
+            <VoiceRecordButton purpose="course" label={tr.t('voice.announceByVoice')} onRecorded={(a) => setFiles((x) => [...x, a].slice(0, 5))} />
             <Button
               size="sm"
               className="ms-auto"
               loading={busy}
-              disabled={!text.trim()}
+              disabled={!text.trim() && !files.length}
               icon={<Megaphone className="size-4" />}
               onClick={async () => {
                 setBusy(true);
@@ -122,19 +124,28 @@ function Stream({ course, staff }: { course: CourseDto; staff: boolean }) {
                     </IconButton>
                   )}
                 </div>
-                <p className="mt-3 whitespace-pre-wrap" dir="auto">
-                  {a.text}
-                </p>
-                {a.attachments.length > 0 && (
+                {a.text && (
+                  <p className="mt-3 whitespace-pre-wrap" dir="auto">
+                    {a.text}
+                  </p>
+                )}
+                {a.attachments
+                  .filter((f) => f.kind === 'audio')
+                  .map((f) => (
+                    <VoiceNote key={f.url} a={f} className="mt-3" label={tr.t('voice.teacherVoice')} />
+                  ))}
+                {a.attachments.some((f) => f.kind !== 'audio') && (
                   <ul className="mt-3 flex flex-wrap gap-2">
-                    {a.attachments.map((f) => (
-                      <li key={f.url}>
-                        <a className="chip" href={fileUrl(f.url)} target="_blank" rel="noopener noreferrer">
-                          <FileText className="size-4" />
-                          {f.name} · {formatBytes(f.size)}
-                        </a>
-                      </li>
-                    ))}
+                    {a.attachments
+                      .filter((f) => f.kind !== 'audio')
+                      .map((f) => (
+                        <li key={f.url}>
+                          <a className="chip" href={fileUrl(f.url)} target="_blank" rel="noopener noreferrer">
+                            <FileText className="size-4" />
+                            {f.name} · {formatBytes(f.size)}
+                          </a>
+                        </li>
+                      ))}
                   </ul>
                 )}
               </li>
@@ -160,6 +171,7 @@ function AssignmentForm({ course, onClose }: { course: CourseDto; onClose: () =>
     state: 'published' as AssignmentDto['state'],
     topic: '',
   });
+  const [voice, setVoice] = useState<Attachment | null>(null);
   const [busy, setBusy] = useState(false);
   return (
     <Modal
@@ -183,6 +195,7 @@ function AssignmentForm({ course, onClose }: { course: CourseDto; onClose: () =>
                 allowLate: f.allowLate,
                 state: f.state,
                 topic: f.topic.trim() || null,
+                attachments: voice ? [voice] : [],
               });
               void qc.invalidateQueries({ queryKey: ['course', course.id, 'assignments'] });
               onClose();
@@ -200,6 +213,11 @@ function AssignmentForm({ course, onClose }: { course: CourseDto; onClose: () =>
       <div className="space-y-4">
         <Input label={tr.t('school.assignment.title')} value={f.title} maxLength={200} onChange={(e) => setF({ ...f, title: e.target.value })} />
         <Textarea label={tr.t('school.assignment.instructions')} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        {voice ? (
+          <PendingVoice a={voice} onRemove={() => setVoice(null)} />
+        ) : (
+          <VoiceRecordButton purpose="course" label={tr.t('voice.explainByVoice')} onRecorded={setVoice} />
+        )}
         <div className="grid gap-3 sm:grid-cols-3">
           <Input type="datetime-local" label={tr.t('school.assignment.due')} value={f.dueAt} onChange={(e) => setF({ ...f, dueAt: e.target.value })} />
           <Input

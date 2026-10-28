@@ -24,6 +24,7 @@ const PURPOSES = [
   'video',
   'thumbnail',
   'story',
+  'voice',
 ] as const;
 const VIDEO_PURPOSES = new Set(['video', 'story']);
 const PRIVATE_PURPOSES = new Set(['chat', 'assignment']);
@@ -58,6 +59,7 @@ export const uploadRoutes = new Hono<AppEnv>().post('/', async (c) => {
   if (!real || !ALLOWED_UPLOAD_MIME.includes(real)) throw badRequest('unsupported_file_type');
   if (imageOnly && !(IMAGE_MIME as readonly string[]).includes(real)) throw badRequest('image_required');
   if (purpose === 'video' && !real.startsWith('video/')) throw badRequest('video_required');
+  if (purpose === 'voice' && !real.startsWith('audio/')) throw badRequest('audio_required');
   const visibility = PRIVATE_PURPOSES.has(purpose) ? 'private' : 'public';
   const stored = await deps.storage.put(data, { mime: real, ext: EXT_FOR_MIME[real] ?? 'bin', visibility });
   // eslint-disable-next-line no-control-regex -- control characters are stripped from stored file names on purpose

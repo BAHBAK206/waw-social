@@ -1,6 +1,18 @@
 import type { Dictionary } from './en';
 
 export const ar: Dictionary = {
+  voice: {
+    note: 'ملاحظة صوتية',
+    record: 'سجّل صوتك',
+    recording: 'جارٍ التسجيل… {{time}} · اضغط للإيقاف',
+    remove: 'حذف الملاحظة الصوتية',
+    teacherVoice: 'شرح صوتي من المعلم',
+    feedback: 'ملاحظات صوتية',
+    answerByVoice: 'أجب بصوتك',
+    announceByVoice: 'إعلان صوتي',
+    explainByVoice: 'اشرح بصوتك',
+    feedbackByVoice: 'سجّل ملاحظاتك بصوتك',
+  },
   lab: {
     cardBack: 'انطقها بصوت مسموع ({{language}}) ثم اختبر نطقك في معمل النطق.',
     deck: 'النطق',

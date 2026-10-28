@@ -13,7 +13,9 @@ export const courseInputSchema = z.object({
     .nullable(),
 });
 export const joinCourseSchema = z.object({ code: z.string().trim().min(4).max(16) });
-export const courseAnnouncementSchema = z.object({ text: trimmed(5000, 1), attachments: z.array(attachmentSchema).max(10).default([]) });
+export const courseAnnouncementSchema = z
+  .object({ text: trimmed(5000).default(''), attachments: z.array(attachmentSchema).max(10).default([]) })
+  .refine((v) => v.text.length > 0 || v.attachments.length > 0, { message: 'empty_announcement' });
 export const courseMemberRoleSchema = z.object({ role: z.enum(['assistant', 'student']) });
 
 export const assignmentInputSchema = z.object({
@@ -37,6 +39,11 @@ export const submissionInputSchema = z
 export const gradeInputSchema = z.object({
   grade: z.number().min(0).max(1000),
   feedback: trimmed(5000).default(''),
+  /** Spoken feedback recorded by the teacher. */
+  feedbackAudio: attachmentSchema
+    .refine((a) => a.kind === 'audio', { message: 'audio_required' })
+    .nullable()
+    .optional(),
   rubricScores: z.record(z.string(), z.number().min(0).max(1000)).optional(),
   returned: z.boolean().default(true),
 });

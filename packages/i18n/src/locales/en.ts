@@ -1,4 +1,16 @@
 export const en = {
+  voice: {
+    note: 'Voice note',
+    record: 'Record voice',
+    recording: 'Recording… {{time}} · tap to stop',
+    remove: 'Remove voice note',
+    teacherVoice: "Teacher's voice explanation",
+    feedback: 'Voice feedback',
+    answerByVoice: 'Answer by voice',
+    announceByVoice: 'Voice announcement',
+    explainByVoice: 'Explain by voice',
+    feedbackByVoice: 'Record voice feedback',
+  },
   lab: {
     cardBack: 'Say it aloud ({{language}}), then check yourself in the Pronunciation lab.',
     deck: 'Pronunciation',

@@ -1,6 +1,18 @@
 import type { Dictionary } from './en';
 
 export const fr: Dictionary = {
+  voice: {
+    note: 'Note vocale',
+    record: 'Enregistrer',
+    recording: 'Enregistrement… {{time}} · touchez pour arrêter',
+    remove: 'Supprimer la note vocale',
+    teacherVoice: 'Explication vocale de l’enseignant',
+    feedback: 'Retour vocal',
+    answerByVoice: 'Répondre à voix haute',
+    announceByVoice: 'Annonce vocale',
+    explainByVoice: 'Expliquer à voix haute',
+    feedbackByVoice: 'Enregistrer un retour vocal',
+  },
   lab: {
     cardBack: 'Dites-le à voix haute ({{language}}), puis vérifiez dans le labo de prononciation.',
     deck: 'Prononciation',

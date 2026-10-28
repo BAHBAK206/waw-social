@@ -222,7 +222,7 @@ export function createApi(options: ClientOptions) {
       react: (id: string, reaction: Reaction | null) =>
         http.put<{ reactionCounts: Record<string, number>; myReaction: Reaction | null }>(`/posts/${id}/reaction`, { reaction }),
       comments: (id: string, q: Q = {}) => http.get<Page<CommentDto>>(`/posts/${id}/comments`, q),
-      comment: (id: string, text: string) => http.post<CommentDto>(`/posts/${id}/comments`, { text }),
+      comment: (id: string, text: string, audio?: CommentDto['audio']) => http.post<CommentDto>(`/posts/${id}/comments`, { text, audio: audio ?? undefined }),
       deleteComment: (id: string, commentId: string) => http.del<Ok>(`/posts/${id}/comments/${commentId}`),
     },
 
@@ -558,8 +558,10 @@ export function createApi(options: ClientOptions) {
         http.post<SubmissionDto>(`/school/assignments/${assignmentId}/submit`, body),
       unsubmit: (assignmentId: string) => http.del<Ok>(`/school/assignments/${assignmentId}/submit`),
       submissions: (assignmentId: string) => http.get<{ items: SubmissionDto[] }>(`/school/assignments/${assignmentId}/submissions`),
-      grade: (submissionId: string, body: { grade: number; feedback?: string; rubricScores?: Record<string, number>; returned?: boolean }) =>
-        http.post<SubmissionDto>(`/school/submissions/${submissionId}/grade`, body),
+      grade: (
+        submissionId: string,
+        body: { grade: number; feedback?: string; feedbackAudio?: SubmissionDto['feedbackAudio']; rubricScores?: Record<string, number>; returned?: boolean },
+      ) => http.post<SubmissionDto>(`/school/submissions/${submissionId}/grade`, body),
       rubrics: (id: string) => http.get<{ items: RubricDto[] }>(`/school/courses/${id}/rubrics`),
       createRubric: (id: string, body: Omit<RubricDto, 'id' | 'courseId'>) => http.post<RubricDto>(`/school/courses/${id}/rubrics`, body),
       deleteRubric: (rubricId: string) => http.del<Ok>(`/school/rubrics/${rubricId}`),

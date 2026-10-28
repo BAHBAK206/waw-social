@@ -1,10 +1,11 @@
-import type { AssignmentDto } from '@qubedu/shared';
+import type { AssignmentDto, Attachment } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Files } from '@/components/Files';
+import { VoiceAttach } from '@/components/Voice';
 import { Screen } from '@/components/Screen';
 import { Badge, DateField, FeatureGate, Row, Segmented, Sheet, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
@@ -20,22 +21,25 @@ function Stream({ courseId, staff }: { courseId: string; staff: boolean }) {
   const tr = useT();
   const q = useQuery({ queryKey: ['course', courseId, 'announcements'], queryFn: () => api.school.announcements(courseId) });
   const [text, setText] = useState('');
+  const [voice, setVoice] = useState<Attachment | null>(null);
   const [busy, setBusy] = useState(false);
   return (
     <View style={{ gap: 12 }}>
       {staff && (
         <Card style={{ gap: 8 }}>
           <Input value={text} onChangeText={setText} placeholder={tr.t('school.announce')} multiline />
+          <VoiceAttach value={voice} onChange={setVoice} purpose="course" label={tr.t('voice.announceByVoice')} />
           <Button
             small
             title={tr.t('feed.post')}
             loading={busy}
-            disabled={!text.trim()}
+            disabled={!text.trim() && !voice}
             onPress={async () => {
               setBusy(true);
               try {
-                await api.school.announce(courseId, { text: text.trim() });
+                await api.school.announce(courseId, { text: text.trim(), attachments: voice ? [voice] : [] });
                 setText('');
+                setVoice(null);
                 await q.refetch();
               } catch (e) {
                 toastError(e);
@@ -62,7 +66,7 @@ function Stream({ courseId, staff }: { courseId: string; staff: boolean }) {
                 </Text>
               </View>
             </View>
-            <Text>{a.text}</Text>
+            {a.text ? <Text>{a.text}</Text> : null}
             <Files files={a.attachments} />
           </Card>
         ))
@@ -84,6 +88,7 @@ function Classwork({ courseId, staff }: { courseId: string; staff: boolean }) {
   const q = useQuery({ queryKey: ['course', courseId, 'assignments'], queryFn: () => api.school.assignments(courseId) });
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', points: '100', dueDay: '', dueTime: '23:59', allowLate: true });
+  const [voice, setVoice] = useState<Attachment | null>(null);
   const [busy, setBusy] = useState(false);
   const create = async () => {
     setBusy(true);
@@ -96,7 +101,9 @@ function Classwork({ courseId, staff }: { courseId: string; staff: boolean }) {
         dueAt,
         allowLate: form.allowLate,
         state: 'published',
+        attachments: voice ? [voice] : [],
       });
+      setVoice(null);
       setOpen(false);
       setForm({ title: '', description: '', points: '100', dueDay: '', dueTime: '23:59', allowLate: true });
       await q.refetch();
@@ -155,6 +162,7 @@ function Classwork({ courseId, staff }: { courseId: string; staff: boolean }) {
           multiline
           style={{ minHeight: 100, textAlignVertical: 'top' }}
         />
+        <VoiceAttach value={voice} onChange={setVoice} purpose="course" label={tr.t('voice.explainByVoice')} />
         <Input
           label={tr.t('school.assignment.points')}
           keyboardType="number-pad"

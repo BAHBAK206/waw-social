@@ -133,6 +133,8 @@ export interface CommentDto {
   /** "Helpful" votes; answers to questions are ranked by them. */
   votes: number;
   myVote: boolean;
+  /** Optional voice note (spoken answer or explanation). */
+  audio: Attachment | null;
 }
 
 export interface NotificationDto {
@@ -476,6 +478,7 @@ export interface SubmissionDto {
   late: boolean;
   grade: number | null;
   feedback: string;
+  feedbackAudio: Attachment | null;
   rubricScores: Record<string, number> | null;
   submittedAt: number;
   gradedAt: number | null;

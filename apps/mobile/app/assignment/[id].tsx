@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Files } from '@/components/Files';
+import { VoiceAttach, VoiceCard } from '@/components/Voice';
 import { Screen } from '@/components/Screen';
 import { Badge, FeatureGate, pickDocument } from '@/components/kit';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
@@ -47,6 +48,7 @@ function StudentPanel({ a, onChanged }: { a: AssignmentDto; onChanged: () => voi
             </Text>
           </Text>
           {sub.feedback ? <Text>{sub.feedback}</Text> : null}
+          {sub.feedbackAudio ? <VoiceCard a={sub.feedbackAudio} label={tr.t('voice.feedback')} /> : null}
         </View>
       )}
       {closed && !sub && <Text color={t.err}>{tr.t('errors.deadline_passed')}</Text>}
@@ -123,13 +125,14 @@ function GradeForm({ s, a, onSaved }: { s: SubmissionDto; a: AssignmentDto; onSa
   const tr = useT();
   const [grade, setGrade] = useState(s.grade !== null ? String(s.grade) : '');
   const [feedback, setFeedback] = useState(s.feedback);
+  const [voice, setVoice] = useState<Attachment | null>(s.feedbackAudio);
   const [busy, setBusy] = useState(false);
   const save = async (returned: boolean) => {
     const g = Number(grade.replace(',', '.'));
     if (!Number.isFinite(g)) return;
     setBusy(true);
     try {
-      await api.school.grade(s.id, { grade: Math.max(0, Math.min(a.points, g)), feedback: feedback.trim(), returned });
+      await api.school.grade(s.id, { grade: Math.max(0, Math.min(a.points, g)), feedback: feedback.trim(), feedbackAudio: voice, returned });
       toast(tr.t('common.saved'));
       onSaved();
     } catch (e) {
@@ -142,6 +145,7 @@ function GradeForm({ s, a, onSaved }: { s: SubmissionDto; a: AssignmentDto; onSa
     <View style={{ gap: 8 }}>
       <Input label={`${tr.t('school.assignment.gradeLabel')} (/${a.points})`} keyboardType="decimal-pad" value={grade} onChangeText={setGrade} />
       <Input label={tr.t('school.assignment.feedback')} value={feedback} onChangeText={setFeedback} multiline />
+      <VoiceAttach value={voice} onChange={setVoice} purpose="assignment" label={tr.t('voice.feedbackByVoice')} />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button small variant="outline" title={tr.t('common.save')} loading={busy} disabled={!grade.trim()} onPress={() => void save(false)} />
         <Button small title={tr.t('school.assignment.return')} loading={busy} disabled={!grade.trim()} onPress={() => void save(true)} />

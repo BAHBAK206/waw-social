@@ -50,6 +50,7 @@ import { body, param, query, requireUser } from '../lib/http';
 import { ms, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
+import { ownAttachment, readableAttachment, type StoredAttachment } from '../lib/attachments';
 import { checkRate } from '../middleware';
 
 const ownerCols = {
@@ -138,6 +139,7 @@ async function submissionDtos(deps: Deps, rows: (typeof submissions.$inferSelect
       late: r.late,
       grade: r.grade,
       feedback: r.feedback,
+      feedbackAudio: await readableAttachment(deps, r.feedbackAudio as StoredAttachment | null),
       rubricScores: r.rubricScores,
       submittedAt: r.submittedAt.getTime(),
       gradedAt: ms(r.gradedAt),
@@ -417,7 +419,7 @@ export const schoolRoutes = new Hono<AppEnv>()
     const input = await body(c, courseAnnouncementSchema);
     const [row] = await deps.db
       .insert(courseAnnouncements)
-      .values({ courseId: id, authorId: user.id, text: input.text, attachments: input.attachments })
+      .values({ courseId: id, authorId: user.id, text: input.text, attachments: attachKeys(input.attachments) })
       .returning();
     const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, id));
     const students = await deps.db
@@ -621,11 +623,14 @@ export const schoolRoutes = new Hono<AppEnv>()
       if (max > 0) grade = Math.round((got / max) * a.points * 10) / 10;
     }
     if (grade > a.points) throw badRequest('grade_exceeds_points');
+    const feedbackAudio =
+      input.feedbackAudio === undefined ? undefined : input.feedbackAudio ? await ownAttachment(deps, user, input.feedbackAudio, 'audio/') : null;
     const [row] = await deps.db
       .update(submissions)
       .set({
         grade,
         feedback: input.feedback,
+        ...(feedbackAudio !== undefined ? { feedbackAudio } : {}),
         rubricScores: input.rubricScores ?? null,
         status: input.returned ? 'returned' : 'graded',
         gradedBy: user.id,

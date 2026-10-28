@@ -33,7 +33,16 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 
 export const updatePostSchema = z.object({ text: trimmed(LIMITS.postText, 1) });
 export const reactSchema = z.object({ reaction: z.enum(REACTIONS).nullable() });
-export const commentSchema = z.object({ text: trimmed(LIMITS.commentText, 1) });
+/** A comment or answer: text, a voice note (e.g. a teacher explaining out loud), or both. */
+export const commentSchema = z
+  .object({
+    text: trimmed(LIMITS.commentText).default(''),
+    audio: attachmentSchema
+      .refine((a) => a.kind === 'audio', { message: 'audio_required' })
+      .nullable()
+      .optional(),
+  })
+  .refine((v) => v.text.length > 0 || !!v.audio, { message: 'empty_comment' });
 export const acceptAnswerSchema = z.object({ commentId: idSchema.nullable() });
 export const commentVoteSchema = z.object({ on: z.boolean() });
 

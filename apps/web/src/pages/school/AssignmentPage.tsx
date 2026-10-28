@@ -9,6 +9,7 @@ import { Input, Textarea } from '@/components/ui/Field';
 import { NoticeCard } from '@/components/layout/Banners';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { UploadButton } from '@/components/ui/Upload';
+import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
 import { api, fileUrl } from '@/lib/api';
 import { cx } from '@/lib/cx';
 import { formatBytes, formatDateTime, relativeTime } from '@/lib/format';
@@ -18,18 +19,28 @@ import { toast, toastError } from '@/lib/ui';
 type Att = SubmissionDto['attachments'][number];
 
 function Files({ files }: { files: Att[] }) {
+  const tr = useT();
   if (!files.length) return null;
+  const voice = files.filter((f) => f.kind === 'audio');
+  const other = files.filter((f) => f.kind !== 'audio');
   return (
-    <ul className="mt-2 flex flex-wrap gap-2">
-      {files.map((f) => (
-        <li key={f.url}>
-          <a className="chip" href={fileUrl(f.url)} target="_blank" rel="noopener noreferrer">
-            <Paperclip className="size-4" />
-            {f.name} · {formatBytes(f.size)}
-          </a>
-        </li>
+    <>
+      {voice.map((f) => (
+        <VoiceNote key={f.url} a={f} className="mt-2" label={tr.t('voice.teacherVoice')} />
       ))}
-    </ul>
+      {other.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {other.map((f) => (
+            <li key={f.url}>
+              <a className="chip" href={fileUrl(f.url)} target="_blank" rel="noopener noreferrer">
+                <Paperclip className="size-4" />
+                {f.name} · {formatBytes(f.size)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -59,6 +70,7 @@ function StudentPanel({ a, onChanged }: { a: AssignmentDto; onChanged: () => voi
               {sub.feedback}
             </p>
           )}
+          {sub.feedbackAudio && <VoiceNote a={sub.feedbackAudio} className="mt-2" label={tr.t('voice.feedback')} />}
         </div>
       )}
       {closed && !sub && <NoticeCard tone="warn">{tr.t('errors.deadline_passed')}</NoticeCard>}
@@ -121,6 +133,7 @@ function GradeForm({ s, a, rubric, onSaved }: { s: SubmissionDto; a: AssignmentD
   const tr = useT();
   const [grade, setGrade] = useState(s.grade ?? 0);
   const [feedback, setFeedback] = useState(s.feedback);
+  const [voice, setVoice] = useState<Att | null>(s.feedbackAudio);
   const [scores, setScores] = useState<Record<string, number>>(s.rubricScores ?? {});
   const [busy, setBusy] = useState(false);
   const rubricTotal = rubric ? rubric.criteria.reduce((sum, c, i) => sum + (scores[String(i)] ?? 0), 0) : null;
@@ -131,6 +144,7 @@ function GradeForm({ s, a, rubric, onSaved }: { s: SubmissionDto; a: AssignmentD
       await api.school.grade(s.id, {
         grade: rubric && rubricTotal !== null && rubricMax ? Math.round((rubricTotal / rubricMax) * a.points * 100) / 100 : grade,
         feedback,
+        feedbackAudio: voice,
         rubricScores: rubric ? scores : undefined,
         returned,
       });
@@ -184,6 +198,11 @@ function GradeForm({ s, a, rubric, onSaved }: { s: SubmissionDto; a: AssignmentD
         />
       )}
       <Textarea label={tr.t('school.assignment.feedback')} value={feedback} onChange={(e) => setFeedback(e.target.value)} />
+      {voice ? (
+        <PendingVoice a={voice} onRemove={() => setVoice(null)} />
+      ) : (
+        <VoiceRecordButton purpose="assignment" label={tr.t('voice.feedbackByVoice')} onRecorded={setVoice} />
+      )}
       <div className="flex gap-2">
         <Button size="sm" variant="outline" loading={busy} onClick={() => void save(false)}>
           {tr.t('common.save')}

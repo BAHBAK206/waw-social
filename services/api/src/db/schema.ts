@@ -349,6 +349,8 @@ export const comments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     text: text('text').notNull(),
+    /** Optional voice note attached to the comment/answer. */
+    audio: jsonb('audio').$type<Record<string, unknown> | null>(),
     /** "Helpful" votes from other learners (answers to questions are ranked by them). */
     votes: integer('votes').notNull().default(0),
     deletedAt: ts('deleted_at'),
@@ -867,6 +869,7 @@ export const submissions = pgTable(
     late: boolean('late').notNull().default(false),
     grade: real('grade'),
     feedback: text('feedback').notNull().default(''),
+    feedbackAudio: jsonb('feedback_audio').$type<Record<string, unknown> | null>(),
     rubricScores: jsonb('rubric_scores').$type<Record<string, number> | null>(),
     gradedBy: uuid('graded_by').references(() => users.id, { onDelete: 'set null' }),
     gradedAt: ts('graded_at'),

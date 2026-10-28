@@ -1,10 +1,11 @@
-import type { CommentDto, PostDto } from '@qubedu/shared';
+import type { Attachment, CommentDto, PostDto } from '@qubedu/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { Award, CheckCircle2, GraduationCap, Send, ThumbsUp, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ReadAloud } from '@/components/common/ReadAloud';
 import { Avatar, UserName } from '@/components/ui/Avatar';
 import { IconButton } from '@/components/ui/Button';
+import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
 import { LoadMore, Spinner } from '@/components/ui/States';
 import { api } from '@/lib/api';
 import { cx } from '@/lib/cx';
@@ -38,6 +39,7 @@ export function CommentsSection({
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [patches, setPatches] = useState<Record<string, Partial<CommentDto>>>({});
   const [text, setText] = useState('');
+  const [audio, setAudio] = useState<Attachment | null>(null);
   const [busy, setBusy] = useState(false);
   const items = [...list.items, ...added.filter((a) => !list.items.some((i) => i.id === a.id))]
     .filter((c) => !removed.has(c.id))
@@ -45,12 +47,13 @@ export function CommentsSection({
 
   const send = async () => {
     const t = text.trim();
-    if (!t) return;
+    if (!t && !audio) return;
     setBusy(true);
     try {
-      const c = await api.posts.comment(post.id, t);
+      const c = await api.posts.comment(post.id, t, audio);
       setAdded((a) => [...a, c]);
       setText('');
+      setAudio(null);
       onCountChange(1);
     } catch (e) {
       toastError(e);
@@ -112,9 +115,12 @@ export function CommentsSection({
                         </span>
                       )}
                     </div>
-                    <p className="text-sm" dir="auto" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
-                      {c.text}
-                    </p>
+                    {c.text && (
+                      <p className="text-sm" dir="auto" style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+                        {c.text}
+                      </p>
+                    )}
+                    {c.audio && <VoiceNote a={c.audio} className="mt-1" label={teacher ? tr.t('voice.teacherVoice') : undefined} />}
                   </div>
                   <div className="muted mt-0.5 flex flex-wrap items-center gap-3 px-2 text-xs">
                     {relativeTime(c.createdAt, tr)}
@@ -202,10 +208,19 @@ export function CommentsSection({
               aria-label={tr.t('feed.writeComment')}
             />
           )}
-          <IconButton type="submit" label={tr.t('common.send')} disabled={busy || !text.trim()} className="bg-soft text-ink">
+          <IconButton type="submit" label={tr.t('common.send')} disabled={busy || (!text.trim() && !audio)} className="bg-soft text-ink">
             <Send className="size-4 flip-rtl" />
           </IconButton>
         </form>
+      )}
+      {me && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 ps-10">
+          {audio ? (
+            <PendingVoice a={audio} onRemove={() => setAudio(null)} />
+          ) : (
+            <VoiceRecordButton purpose="voice" onRecorded={setAudio} label={isQuestion ? tr.t('voice.answerByVoice') : tr.t('voice.record')} />
+          )}
+        </div>
       )}
       {isQuestion && me?.id !== post.author.id && <p className="muted mt-2 text-xs">{tr.t('feed.bestAnswerXp')}</p>}
     </section>

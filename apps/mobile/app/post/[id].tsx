@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { CommentDto } from '@qubedu/shared';
+import type { Attachment, CommentDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { PostCard } from '@/components/PostCard';
 import { ReadAloud } from '@/components/ReadAloud';
+import { VoiceAttach, VoiceCard } from '@/components/Voice';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { relativeTime } from '@/lib/format';
@@ -23,17 +24,19 @@ export default function PostScreen() {
   const comments = useQuery({ queryKey: ['post', id, 'comments'], queryFn: () => api.posts.comments(id!, { limit: 50 }) });
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [audio, setAudio] = useState<Attachment | null>(null);
   const me = useSession((s) => s.me);
 
   if (post.isPending) return <Loading />;
   if (post.error || !post.data) return <ErrorView onRetry={() => void post.refetch()} />;
 
   const send = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() && !audio) return;
     setBusy(true);
     try {
-      await api.posts.comment(id!, text.trim());
+      await api.posts.comment(id!, text.trim(), audio);
       setText('');
+      setAudio(null);
       await Promise.all([comments.refetch(), post.refetch()]);
     } catch (e) {
       toastError(e);
@@ -105,7 +108,8 @@ export default function PostScreen() {
                         {relativeTime(c.createdAt, tr)}
                       </Text>
                     </Text>
-                    <Text>{c.text}</Text>
+                    {c.text ? <Text>{c.text}</Text> : null}
+                    {c.audio ? <VoiceCard a={c.audio} label={teacher ? tr.t('voice.teacherVoice') : tr.t('voice.note')} /> : null}
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
@@ -141,9 +145,10 @@ export default function PostScreen() {
           })
         )}
       </ScrollView>
-      <View
-        style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, backgroundColor: t.cardSolid, borderTopWidth: 1, borderTopColor: t.border }}
-      >
+      <View style={{ paddingHorizontal: 10, paddingTop: 8, backgroundColor: t.cardSolid, borderTopWidth: 1, borderTopColor: t.border }}>
+        <VoiceAttach value={audio} onChange={setAudio} purpose="voice" label={isQuestion ? tr.t('voice.answerByVoice') : tr.t('voice.record')} />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, backgroundColor: t.cardSolid }}>
         <View style={{ flex: 1 }}>
           <Input
             value={text}
@@ -153,7 +158,7 @@ export default function PostScreen() {
             multiline
           />
         </View>
-        <Button title={isQuestion ? tr.t('common.send') : tr.t('feed.comment')} small onPress={send} loading={busy} disabled={!text.trim()} />
+        <Button title={isQuestion ? tr.t('common.send') : tr.t('feed.comment')} small onPress={send} loading={busy} disabled={!text.trim() && !audio} />
       </View>
     </KeyboardAvoidingView>
   );

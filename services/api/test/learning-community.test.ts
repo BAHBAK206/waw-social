@@ -135,3 +135,56 @@ describe('pronunciation lab', () => {
     expect((await call('POST', '/practice/pronunciation', { token: u.token, body: { language: 'de', phrase: 'Hallo', heard: 'hallo' } })).status).toBe(400);
   });
 });
+
+describe('teacher voice', () => {
+  // An "M4A " ftyp box is enough for the server's magic-byte sniffing to accept it as audio/mp4.
+  const M4A = new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20, 0, 0, 2, 0, 0x69, 0x73, 0x6f, 0x6d, 0, 0, 0, 0, 1, 2, 3, 4]);
+  async function voice(token: string, purpose: string) {
+    const form = new FormData();
+    form.set('file', new Blob([M4A], { type: 'audio/mp4' }), 'voice.m4a');
+    form.set('purpose', purpose);
+    const res = await call<{ url: string; mime: string; size: number }>('POST', '/uploads', { token, form });
+    expect(res.status).toBe(201);
+    expect(res.body.mime).toBe('audio/mp4');
+    return { url: res.body.url, name: 'Voice note', mime: res.body.mime, size: res.body.size, kind: 'audio' as const };
+  }
+
+  it('answers by voice, announces and gives spoken feedback', async () => {
+    const teacher = await newUser({ name: 'Voice teacher', accountType: 'teacher' });
+    const student = await newUser({ name: 'Voice student' });
+    const q = await call<PostDto>('POST', '/posts', { token: student.token, body: { kind: 'question', text: 'How do I pronounce photosynthesis?' } });
+    const clip = await voice(teacher.token, 'voice');
+    expect((await call('POST', `/posts/${q.body.id}/comments`, { token: student.token, body: { audio: clip } })).status).toBe(400);
+    expect((await call('POST', `/posts/${q.body.id}/comments`, { token: teacher.token, body: {} })).status).toBe(400);
+    const answer = await call<CommentDto>('POST', `/posts/${q.body.id}/comments`, { token: teacher.token, body: { audio: clip } });
+    expect(answer.status).toBe(201);
+    expect(answer.body.audio?.kind).toBe('audio');
+    const list = await call<Page<CommentDto>>('GET', `/posts/${q.body.id}/comments`, { token: student.token });
+    expect(list.body.items[0]!.audio?.url).toBe(clip.url);
+
+    const course = await call<{ id: string; joinCode: string }>('POST', '/school/courses', { token: teacher.token, body: { title: 'Biology voice' } });
+    expect((await call('POST', '/school/join', { token: student.token, body: { code: course.body.joinCode } })).status).toBe(200);
+    const ann = await call('POST', `/school/courses/${course.body.id}/announcements`, {
+      token: teacher.token,
+      body: { attachments: [await voice(teacher.token, 'course')] },
+    });
+    expect(ann.status).toBe(201);
+    const a = await call<{ id: string }>('POST', `/school/courses/${course.body.id}/assignments`, {
+      token: teacher.token,
+      body: { title: 'Explain osmosis', points: 10, state: 'published', attachments: [await voice(teacher.token, 'course')] },
+    });
+    const sub = await call<{ id: string }>('POST', `/school/assignments/${a.body.id}/submit`, {
+      token: student.token,
+      body: { text: 'Water moves across a membrane' },
+    });
+    const spoken = await voice(teacher.token, 'assignment');
+    const graded = await call<{ feedbackAudio: { url: string } | null }>('POST', `/school/submissions/${sub.body.id}/grade`, {
+      token: teacher.token,
+      body: { grade: 9, feedback: 'Nice', feedbackAudio: spoken },
+    });
+    expect(graded.status).toBe(200);
+    const mine = await call<{ mySubmission: { feedbackAudio: { url: string } | null } }>('GET', `/school/assignments/${a.body.id}`, { token: student.token });
+    // Private recordings come back as signed links.
+    expect(mine.body.mySubmission.feedbackAudio?.url).toMatch(/sig=/);
+  });
+});
