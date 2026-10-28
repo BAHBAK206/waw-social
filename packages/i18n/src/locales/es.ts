@@ -46,6 +46,7 @@ export const es: Dictionary = {
   },
   app: { name: 'Qubedu', tagline: 'Estudia mejor: lecciones, práctica y compañeros en un solo lugar.' },
   common: {
+    opensInBrowser: 'Se abre en el navegador',
     save: 'Guardar',
     saving: 'Guardando…',
     saved: 'Guardado',
@@ -170,6 +171,7 @@ export const es: Dictionary = {
     unmute: 'Activar sonido',
   },
   nav: {
+    stories: 'Consejos de estudio',
     lab: 'Laboratorio de pronunciación',
     menu: 'Menú',
     home: 'Inicio',
@@ -605,6 +607,9 @@ export const es: Dictionary = {
     notHelpful: 'No útil',
   },
   forms: {
+    editOnWeb: 'Crea y edita formularios en la web',
+    openHint: 'Pega el enlace o el código del formulario que compartió tu profesor.',
+    openForm: 'Abrir un formulario',
     title: 'Formularios',
     subtitle: 'Encuestas, inscripciones y cuestionarios calificados con análisis en vivo.',
     newForm: 'Nuevo formulario',

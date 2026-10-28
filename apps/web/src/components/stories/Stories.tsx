@@ -1,4 +1,4 @@
-import { LIMITS, type StoryDto, type StoryGroupDto, type StoryViewerDto } from '@qubedu/shared';
+import { LIMITS, type StoryDto, type StoryGroupDto, type StoryViewerDto, STORY_REACTIONS } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, Image as ImageIcon, Plus, Trash2, Type, Video, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,7 +16,7 @@ import { useFeatureOn } from '@/lib/features';
 import { confirmDialog, toast, toastError } from '@/lib/ui';
 
 const TRAY_KEY = ['stories', 'tray'] as const;
-const EMOJIS = ['👍', '💡', '🙏', '🤯', '👏', '🔥'];
+const EMOJIS = STORY_REACTIONS;
 const BACKGROUNDS = ['#6c5ce7', '#0984e3', '#00b894', '#e17055', '#d63031', '#2d3436', '#e84393', '#fdcb6e'];
 
 function useTray() {

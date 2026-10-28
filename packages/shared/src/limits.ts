@@ -66,3 +66,6 @@ export const REACTION_EMOJI: Record<Reaction, string> = {
   celebrate: '🎉',
 };
 export const MESSAGE_EMOJI = ['👍', '💡', '🙏', '✅', '🤔', '🎉', '❤️', '😂'] as const;
+
+/** Reactions on study tips (encouraging, learning-flavoured). */
+export const STORY_REACTIONS = ['👍', '💡', '🙏', '🤯', '👏', '🔥'] as const;

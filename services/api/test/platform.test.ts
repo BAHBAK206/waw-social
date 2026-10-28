@@ -16,6 +16,7 @@ import type {
   VideoCommentDto,
   VideoDto,
 } from '@qubedu/shared';
+import { STORY_REACTIONS } from '@qubedu/shared';
 import { call, newUser } from './helpers';
 
 // Minimal MP4 header (ftyp box) and PNG signature are enough for the server's magic-byte sniffing.
@@ -280,6 +281,10 @@ describe('stories', () => {
 
     await call('POST', `/stories/${s1.body.id}/view`, { token: friend.token });
     await call('POST', `/stories/${s1.body.id}/view`, { token: friend.token });
+    // Every reaction the apps offer is accepted (the learning set), and the last one wins.
+    for (const emoji of STORY_REACTIONS)
+      expect((await call('PUT', `/stories/${s1.body.id}/reaction`, { token: friend.token, body: { emoji } })).status).toBe(200);
+    expect((await call('PUT', `/stories/${s1.body.id}/reaction`, { token: friend.token, body: { emoji: '😢' } })).status).toBe(400);
     const r = await call('PUT', `/stories/${s1.body.id}/reaction`, { token: friend.token, body: { emoji: '🔥' } });
     expect(r.status).toBe(200);
     const viewers = await call<{ items: { user: { id: string }; reaction: string | null }[] }>('GET', `/stories/${s1.body.id}/viewers`, {

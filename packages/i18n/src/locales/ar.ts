@@ -46,6 +46,7 @@ export const ar: Dictionary = {
   },
   app: { name: 'Qubedu', tagline: 'ذاكر بذكاء: دروس وتدريب وزملاء في مكان واحد.' },
   common: {
+    opensInBrowser: 'يفتح في المتصفح',
     save: 'حفظ',
     saving: 'جارٍ الحفظ…',
     saved: 'تم الحفظ',
@@ -170,6 +171,7 @@ export const ar: Dictionary = {
     unmute: 'إلغاء الكتم',
   },
   nav: {
+    stories: 'ومضات المذاكرة',
     lab: 'معمل النطق',
     menu: 'القائمة',
     home: 'الرئيسية',
@@ -602,6 +604,9 @@ export const ar: Dictionary = {
     notHelpful: 'غير مفيد',
   },
   forms: {
+    editOnWeb: 'أنشئ النماذج وعدّلها من الموقع',
+    openHint: 'الصق رابط النموذج أو الكود الذي شاركه معلمك.',
+    openForm: 'افتح نموذجًا',
     title: 'النماذج',
     subtitle: 'استبيانات ونماذج تسجيل واختبارات مصححة مع تحليلات فورية.',
     newForm: 'نموذج جديد',

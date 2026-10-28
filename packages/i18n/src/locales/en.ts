@@ -44,6 +44,7 @@ export const en = {
   },
   app: { name: 'Qubedu', tagline: 'Study smarter: lessons, practice and classmates in one place.' },
   common: {
+    opensInBrowser: 'Opens in the browser',
     save: 'Save',
     saving: 'Saving…',
     saved: 'Saved',
@@ -168,6 +169,7 @@ export const en = {
     unmute: 'Unmute',
   },
   nav: {
+    stories: 'Study tips',
     lab: 'Pronunciation lab',
     menu: 'Menu',
     home: 'Home',
@@ -598,6 +600,9 @@ export const en = {
     notHelpful: 'Not helpful',
   },
   forms: {
+    editOnWeb: 'Build and edit forms on the web',
+    openHint: 'Paste the form link or code your teacher shared.',
+    openForm: 'Open a form',
     title: 'Forms',
     subtitle: 'Surveys, registrations and graded quizzes with live analytics.',
     newForm: 'New form',

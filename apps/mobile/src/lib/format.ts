@@ -38,3 +38,17 @@ export function formatClock(totalSec: number): string {
   const sec = String(s % 60).padStart(2, '0');
   return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${String(m).padStart(2, '0')}:${sec}`;
 }
+
+/** Formats a "YYYY-MM-DD" day (or a timestamp) in the app language. */
+export function formatDay(
+  day: string | number,
+  tr: Translator,
+  opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' },
+): string {
+  const d = typeof day === 'number' ? new Date(day) : new Date(`${day}T12:00:00`);
+  try {
+    return new Intl.DateTimeFormat(tr.intl, opts).format(d);
+  } catch {
+    return typeof day === 'string' ? day : d.toISOString().slice(0, 10);
+  }
+}

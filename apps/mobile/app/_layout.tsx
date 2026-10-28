@@ -60,6 +60,19 @@ function Shell() {
         <Stack.Screen name="settings" options={{ title: tr.t('settings.title') }} />
         <Stack.Screen name="live" options={{ title: tr.t('live.title') }} />
         <Stack.Screen name="lab" options={{ title: tr.t('lab.title') }} />
+        <Stack.Screen name="study" options={{ title: tr.t('nav.academic') }} />
+        <Stack.Screen name="tutor" options={{ title: tr.t('nav.ai') }} />
+        <Stack.Screen name="assistant" options={{ title: tr.t('nav.assistant') }} />
+        <Stack.Screen name="school" options={{ title: tr.t('nav.school') }} />
+        <Stack.Screen name="course/[id]" options={{ title: tr.t('nav.school') }} />
+        <Stack.Screen name="assignment/[id]" options={{ title: tr.t('school.tabs.assignments') }} />
+        <Stack.Screen name="library" options={{ title: tr.t('nav.library') }} />
+        <Stack.Screen name="events" options={{ title: tr.t('nav.events') }} />
+        <Stack.Screen name="event/[id]" options={{ title: tr.t('nav.events') }} />
+        <Stack.Screen name="tips" options={{ title: tr.t('nav.stories') }} />
+        <Stack.Screen name="forms" options={{ title: tr.t('nav.forms') }} />
+        <Stack.Screen name="form/[slug]" options={{ title: tr.t('nav.forms') }} />
+        <Stack.Screen name="organizer" options={{ title: tr.t('nav.organizer') }} />
       </Stack>
       <ToastHost />
     </View>

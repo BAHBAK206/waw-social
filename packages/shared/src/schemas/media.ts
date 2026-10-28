@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LIMITS } from '../limits';
+import { LIMITS, STORY_REACTIONS } from '../limits';
 import { idSchema, optionalUrl, trimmed, urlSchema } from './common';
 
 export const videoKinds = ['video', 'short'] as const;
@@ -78,7 +78,7 @@ export const storyInputSchema = z
   .refine((v) => v.mediaKind === 'text' || !!v.mediaUrl, { message: 'media_required' })
   .refine((v) => v.mediaKind !== 'text' || v.text.length > 0, { message: 'text_required' });
 export type StoryInput = z.infer<typeof storyInputSchema>;
-export const storyReactSchema = z.object({ emoji: z.enum(['❤️', '😂', '😮', '😢', '👏', '🔥']) });
+export const storyReactSchema = z.object({ emoji: z.enum(STORY_REACTIONS) });
 
 export const eventInputSchema = z
   .object({

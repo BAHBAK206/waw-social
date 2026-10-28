@@ -278,7 +278,7 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
 }
 
 export default function QuizScreen() {
-  const { id, review } = useLocalSearchParams<{ id: string; review?: string }>();
+  const { id, review, topic } = useLocalSearchParams<{ id: string; review?: string; topic?: string }>();
   const [attempt, setAttempt] = useState<QuizAttemptDto | null>(null);
   const [result, setResult] = useState<QuizResultDto | null>(null);
   const [failed, setFailed] = useState(false);
@@ -286,7 +286,7 @@ export default function QuizScreen() {
   const run = useCallback(async () => {
     setFailed(false);
     try {
-      setAttempt(id === 'adaptive' ? await api.quizzes.adaptive({ count: 10 }) : await api.quizzes.start(id!, review === '1'));
+      setAttempt(id === 'adaptive' ? await api.quizzes.adaptive({ count: 10, topic: topic || null }) : await api.quizzes.start(id!, review === '1'));
     } catch (e) {
       setFailed(true);
       toastError(e);
