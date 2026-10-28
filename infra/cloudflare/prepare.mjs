@@ -11,4 +11,4 @@ if (!existsSync(join(dist, 'index.html'))) {
   process.exit(1);
 }
 for (const f of ['_worker.js', '_headers']) copyFileSync(join(here, f), join(dist, f));
-console.log(`Cloudflare Pages files ready in ${dist}`);
+console.info(`Cloudflare Pages files ready in ${dist}`);
