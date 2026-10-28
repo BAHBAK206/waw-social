@@ -46,6 +46,7 @@ export const FEATURES = [
   { id: 'saved', kind: 'page', category: 'personal', route: '/saved', icon: 'bookmark', auth: true },
   { id: 'profile', kind: 'page', category: 'personal', route: '/profile', icon: 'user', auth: true },
   { id: 'organizer', kind: 'page', category: 'personal', route: '/organizer', icon: 'list-todo', auth: true },
+  { id: 'family', kind: 'page', category: 'personal', route: '/family', icon: 'heart-handshake', auth: true },
   { id: 'settings', kind: 'page', category: 'tools', route: '/settings', icon: 'settings', auth: true },
   { id: 'services', kind: 'page', category: 'tools', route: '/services', icon: 'layout-grid' },
   { id: 'help', kind: 'page', category: 'help', route: '/help', icon: 'life-buoy' },

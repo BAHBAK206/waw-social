@@ -10,6 +10,7 @@ import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
+import { CourseInsights } from '@/components/family/Insights';
 import { UploadButton } from '@/components/ui/Upload';
 import { PendingVoice, VoiceNote, VoiceRecordButton } from '@/components/common/Voice';
 import { api, fileUrl } from '@/lib/api';
@@ -21,7 +22,7 @@ import { confirmDialog, promptDialog, toast, toastError } from '@/lib/ui';
 import { ch } from '@/app/channels';
 import { useRealtimeChannel } from '@/lib/useRealtime';
 
-const TABS = ['stream', 'assignments', 'people', 'grades', 'attendance', 'materials', 'analytics', 'settings'] as const;
+const TABS = ['stream', 'assignments', 'people', 'grades', 'attendance', 'materials', 'analytics', 'insights', 'settings'] as const;
 type Tab = (typeof TABS)[number];
 
 function Stream({ course, staff }: { course: CourseDto; staff: boolean }) {
@@ -926,7 +927,9 @@ export default function CoursePage() {
           const staff = course.myRole === 'teacher' || course.myRole === 'assistant';
           const teacher = course.myRole === 'teacher';
           const color = course.color ?? '#6c5ce7';
-          const visible: Tab[] = TABS.filter((t) => (t === 'grades' || t === 'attendance' || t === 'analytics' ? staff : t === 'settings' ? teacher : true));
+          const visible: Tab[] = TABS.filter((t) =>
+            t === 'grades' || t === 'attendance' || t === 'analytics' || t === 'insights' ? staff : t === 'settings' ? teacher : true,
+          );
           return (
             <>
               <Link to="/school" className="link mb-3 inline-flex items-center gap-1">
@@ -964,6 +967,7 @@ export default function CoursePage() {
               {tab === 'attendance' && staff && <Attendance course={course} />}
               {tab === 'materials' && (staff ? <Materials course={course} /> : <MaterialsReadOnly course={course} />)}
               {tab === 'analytics' && staff && <Analytics course={course} />}
+              {tab === 'insights' && staff && <CourseInsights courseId={course.id} />}
               {tab === 'settings' && teacher && <Settings course={course} />}
               <Modal
                 open={liveOpen}

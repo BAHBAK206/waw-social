@@ -89,6 +89,7 @@ export const router = createBrowserRouter([
       { path: 'organizer', ...page(() => import('@/pages/organizer/OrganizerPage'), { auth: true }) },
       { path: 'services', ...page(() => import('@/pages/services/ServicesPage')) },
       { path: 'settings', ...page(() => import('@/pages/settings/SettingsPage'), { auth: true }) },
+      { path: 'family', ...page(() => import('@/pages/family/FamilyPage'), { auth: true }) },
       { path: 'admin', ...page(() => import('@/pages/admin/AdminPage'), { auth: true }) },
       { path: 'help', ...page(() => import('@/pages/info/HelpPage')) },
       { path: 'about', ...page(() => import('@/pages/info/AboutPage')) },

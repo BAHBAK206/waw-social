@@ -1,12 +1,13 @@
 import { DESIGNS, LANGUAGES, LIMITS, SKINS, birthYearChoices, TEXT_SIZES, THEME_MODES, type Me, type NotificationPrefs, type Privacy } from '@qubedu/shared';
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Check, Database, Download, Lock, MonitorSmartphone, Palette, Shield, Trash2, User } from 'lucide-react';
+import { Bell, Check, Database, Download, HeartHandshake, Lock, MonitorSmartphone, Palette, Shield, Trash2, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canInstall, promptInstall } from '@/app/pwa';
+import { FamilyCode } from '@/components/family/FamilyCode';
 import { browserPushState, disableBrowserPush, enableBrowserPush, type BrowserPushState } from '@/lib/push';
 import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
 import { PageHeader, Spinner } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
@@ -21,8 +22,8 @@ import { useSession } from '@/lib/session';
 import { confirmDialog, promptDialog, toast, toastError } from '@/lib/ui';
 import { PasswordInput } from '../auth/AuthLayout';
 
-const TABS = ['profile', 'appearance', 'account', 'privacy', 'notifications', 'data'] as const;
-const TAB_ICONS = { profile: User, appearance: Palette, account: Lock, privacy: Shield, notifications: Bell, data: Database } as const;
+const TABS = ['profile', 'appearance', 'account', 'privacy', 'notifications', 'family', 'data'] as const;
+const TAB_ICONS = { profile: User, appearance: Palette, account: Lock, privacy: Shield, notifications: Bell, family: HeartHandshake, data: Database } as const;
 const LANGUAGE_NAMES: Record<string, string> = { ar: 'العربية', en: 'English', fr: 'Français', es: 'Español' };
 
 function Section({ title, children }: { title?: string; children: React.ReactNode }) {
@@ -43,7 +44,7 @@ function ProfileTab({ me }: { me: Me }) {
     gender: me.gender ?? '',
     educationLevel: me.educationLevel ?? '',
     institution: me.institution ?? '',
-    accountType: me.accountType === 'teacher' ? 'teacher' : 'student',
+    accountType: me.accountType,
     avatarUrl: me.avatarUrl,
     coverUrl: me.coverUrl,
     birthYear: me.birthYear ? String(me.birthYear) : '',
@@ -61,7 +62,7 @@ function ProfileTab({ me }: { me: Me }) {
         gender: (f.gender || null) as 'male' | 'female' | null,
         educationLevel: f.educationLevel.trim() || null,
         institution: f.institution.trim() || null,
-        accountType: f.accountType as 'student' | 'teacher',
+        accountType: f.accountType,
         avatarUrl: f.avatarUrl,
         coverUrl: f.coverUrl,
         ...(f.birthYear && !me.birthYear ? { birthYear: Number(f.birthYear) } : {}),
@@ -134,10 +135,11 @@ function ProfileTab({ me }: { me: Me }) {
         <Select
           label={tr.t('settings.profile.accountType')}
           value={f.accountType}
-          onChange={(e) => setF({ ...f, accountType: e.target.value as 'student' | 'teacher' })}
+          onChange={(e) => setF({ ...f, accountType: e.target.value as Me['accountType'] })}
           options={[
             { value: 'student', label: tr.t('auth.student') },
             { value: 'teacher', label: tr.t('auth.teacher') },
+            { value: 'parent', label: tr.t('auth.parent') },
           ]}
         />
         <Input
@@ -537,6 +539,19 @@ function DevicePush() {
   );
 }
 
+function FamilyTab({ me }: { me: Me }) {
+  const tr = useT();
+  if (me.accountType === 'student') return <FamilyCode />;
+  return (
+    <Section>
+      <p className="muted">{tr.t('family.parentsHint')}</p>
+      <ButtonLink to="/family" variant="soft">
+        {tr.t('family.open')}
+      </ButtonLink>
+    </Section>
+  );
+}
+
 function DataTab() {
   const tr = useT();
   return (
@@ -616,6 +631,7 @@ export default function SettingsPage() {
       {tab === 'account' && <AccountTab me={me} />}
       {tab === 'privacy' && <PrivacyTab me={me} />}
       {tab === 'notifications' && <NotificationsTab me={me} />}
+      {tab === 'family' && <FamilyTab me={me} />}
       {tab === 'data' && <DataTab />}
     </div>
   );

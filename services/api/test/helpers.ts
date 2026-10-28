@@ -115,7 +115,7 @@ export async function call<T = unknown>(method: string, path: string, opts: Req 
 }
 
 let counter = 0;
-export async function newUser(opts: { name?: string; accountType?: 'student' | 'teacher'; email?: string } = {}) {
+export async function newUser(opts: { name?: string; accountType?: 'student' | 'teacher' | 'parent'; email?: string } = {}) {
   counter += 1;
   const email = opts.email ?? `user${Date.now()}${counter}@qubedu.test`;
   const res = await call<AuthResult>('POST', '/auth/register', {

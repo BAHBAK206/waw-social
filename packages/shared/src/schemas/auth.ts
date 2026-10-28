@@ -32,7 +32,7 @@ export const registerSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   displayName: displayNameSchema,
-  accountType: z.enum(['student', 'teacher']).default('student'),
+  accountType: z.enum(['student', 'teacher', 'parent']).default('student'),
   birthYear: birthYearSchema.optional(),
   language: z.enum(LANGUAGES as [string, ...string[]]).optional(),
   timezone: z.string().max(64).optional(),

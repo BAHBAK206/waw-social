@@ -15,7 +15,7 @@ export default function RegisterScreen() {
   const tr = useT();
   const t = useTheme();
   const open = useSession((s) => s.config?.registrationOpen ?? true);
-  const [f, setF] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher', birthYear: '' });
+  const [f, setF] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher' | 'parent', birthYear: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const valid = f.displayName.trim().length >= LIMITS.displayName.min && /.+@.+\..+/.test(f.email) && f.password.length >= LIMITS.password.min;
@@ -75,6 +75,7 @@ export default function RegisterScreen() {
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Chip label={tr.t('auth.student')} active={f.accountType === 'student'} onPress={() => setF({ ...f, accountType: 'student' })} />
               <Chip label={tr.t('auth.teacher')} active={f.accountType === 'teacher'} onPress={() => setF({ ...f, accountType: 'teacher' })} />
+              <Chip label={tr.t('auth.parent')} active={f.accountType === 'parent'} onPress={() => setF({ ...f, accountType: 'parent' })} />
             </View>
           </View>
           <SelectField

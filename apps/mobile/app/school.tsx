@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
+import { AtRiskList } from '@/components/Family';
 import { Screen } from '@/components/Screen';
 import { Badge, FeatureGate, Sheet } from '@/components/kit';
 import { Button, Card, Empty, Input, Loading, Text } from '@/components/ui';
@@ -33,6 +34,7 @@ export default function SchoolScreen() {
           </View>
           {me.accountType === 'teacher' && <Button icon="add" variant="outline" title={tr.t('school.create')} onPress={() => setCreating(true)} />}
         </View>
+        {me.accountType === 'teacher' && <AtRiskList />}
         {q.isPending ? (
           <Loading />
         ) : !q.data?.items.length ? (

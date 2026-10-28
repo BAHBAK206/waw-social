@@ -1,11 +1,27 @@
 import type { DailyChallengeDto } from '@qubedu/shared';
 import { xpProgress } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Brain, Calendar, CheckCircle2, Flame, GraduationCap, Layers, ListChecks, Sparkles, Target, Timer, Trophy, Users } from 'lucide-react';
+import {
+  BookOpen,
+  Brain,
+  Calendar,
+  CheckCircle2,
+  Flame,
+  GraduationCap,
+  HeartHandshake,
+  Layers,
+  ListChecks,
+  Sparkles,
+  Target,
+  Timer,
+  Trophy,
+  Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { AdsStrip } from '@/components/common/Ads';
 import { TrendingWidget } from '@/components/feed/TrendingWidget';
+import { AtRiskSection } from '@/components/family/Insights';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ColumnChart, ProgressBar, ProgressRing } from '@/components/ui/Charts';
 import { Spinner } from '@/components/ui/States';
@@ -95,6 +111,26 @@ function DailyChallengeCard() {
   );
 }
 
+/** Parents land on their children's week. */
+function ParentCard() {
+  const tr = useT();
+  const fam = useQuery({ queryKey: ['family'], queryFn: () => api.family.get() });
+  return (
+    <section className="card flex flex-wrap items-center gap-3 p-4">
+      <HeartHandshake className="size-6 text-ink" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="font-black">{tr.t('family.title')}</p>
+        <p className="muted text-sm">
+          {fam.data?.children.length
+            ? fam.data.children.map((c) => `${c.displayName}: ${tr.t('family.thisWeek', { minutes: c.minutesThisWeek })}`).join(' · ')
+            : tr.t('family.linkHint')}
+        </p>
+      </div>
+      <ButtonLink to="/family">{tr.t('family.open')}</ButtonLink>
+    </section>
+  );
+}
+
 function Dashboard() {
   const tr = useT();
   const me = useSession((s) => s.me)!;
@@ -135,6 +171,8 @@ function Dashboard() {
           </ProgressRing>
         </div>
       </section>
+      {(me.accountType === 'teacher' || me.role !== 'user') && <AtRiskSection limit={3} />}
+      {me.accountType === 'parent' && <ParentCard />}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[

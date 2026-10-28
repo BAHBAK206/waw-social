@@ -4,8 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
+import { useRouter } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, View } from 'react-native';
+import { FamilyCodeCard } from '@/components/Family';
 import { Badge, Segmented, SelectField, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Input, Loading, SectionTitle, Text } from '@/components/ui';
 import { api, uploadFile } from '@/lib/api';
@@ -17,7 +19,7 @@ import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
 
-type Tab = 'profile' | 'appearance' | 'account' | 'privacy' | 'notifications' | 'data';
+type Tab = 'profile' | 'appearance' | 'account' | 'privacy' | 'notifications' | 'family' | 'data';
 
 function Profile() {
   const tr = useT();
@@ -406,10 +408,23 @@ function Data() {
   );
 }
 
+function FamilyTab() {
+  const tr = useT();
+  const router = useRouter();
+  const me = useSession((s) => s.me)!;
+  if (me.accountType === 'student') return <FamilyCodeCard />;
+  return (
+    <Card style={{ gap: 8 }}>
+      <Text muted>{tr.t('family.parentsHint')}</Text>
+      <Button variant="soft" icon="people-outline" title={tr.t('family.open')} onPress={() => router.push('/family' as never)} />
+    </Card>
+  );
+}
+
 export function SettingsTabs({ appearance }: { appearance: ReactNode }) {
   const tr = useT();
   const [tab, setTab] = useState<Tab>('profile');
-  const tabs: Tab[] = ['profile', 'appearance', 'account', 'privacy', 'notifications', 'data'];
+  const tabs: Tab[] = ['profile', 'appearance', 'account', 'privacy', 'notifications', 'family', 'data'];
   return (
     <View style={{ gap: 14 }}>
       <Segmented tabs={tabs.map((k) => ({ key: k, label: tr.t(`settings.tabs.${k}`) }))} value={tab} onChange={setTab} />
@@ -418,6 +433,7 @@ export function SettingsTabs({ appearance }: { appearance: ReactNode }) {
       {tab === 'account' && <Account />}
       {tab === 'privacy' && <Privacy />}
       {tab === 'notifications' && <Notifications />}
+      {tab === 'family' && <FamilyTab />}
       {tab === 'data' && <Data />}
     </View>
   );

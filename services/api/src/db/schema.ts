@@ -23,7 +23,7 @@ const updatedAt = () => ts('updated_at').notNull().defaultNow();
 const id = () => uuid('id').primaryKey().defaultRandom();
 
 export const roleEnum = pgEnum('role', ['user', 'moderator', 'admin', 'root']);
-export const accountTypeEnum = pgEnum('account_type', ['student', 'teacher']);
+export const accountTypeEnum = pgEnum('account_type', ['student', 'teacher', 'parent']);
 export const groupKindEnum = pgEnum('group_kind', ['group', 'community']);
 export const privacyEnum = pgEnum('group_privacy', ['public', 'private']);
 export const groupRoleEnum = pgEnum('group_role', ['owner', 'admin', 'teacher', 'member']);
@@ -393,6 +393,22 @@ export const notifications = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
+);
+
+/** A parent (or guardian) who follows a student's progress. Created with a one-time code from the student. */
+export const guardianLinks = pgTable(
+  'guardian_links',
+  {
+    guardianId: uuid('guardian_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+    lastReportAt: ts('last_report_at'),
+  },
+  (t) => [primaryKey({ columns: [t.guardianId, t.studentId] }), index('guardian_links_student_idx').on(t.studentId)],
 );
 
 /** Captions / transcript of a lesson, one row per language. */

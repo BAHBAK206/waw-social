@@ -1,3 +1,4 @@
+import type { RiskLevel, RiskReason, StudentSignals } from './insights';
 import type { AccountType, AdminPermission, Role } from './roles';
 import type { Appearance } from './appearance';
 import type { FeatureControlMap } from './features';
@@ -1037,4 +1038,49 @@ export interface TeacherAiResultDto {
   keyPoints?: string[];
   chapters?: { at: number; title: string }[];
   ideas?: string[];
+}
+
+export interface StudentInsightDto {
+  student: UserSummary;
+  lastSeenAt: number | null;
+  signals: StudentSignals;
+  risk: { level: RiskLevel; reasons: RiskReason[] };
+}
+
+export interface CourseInsightsDto {
+  courseId: string;
+  title: string;
+  students: StudentInsightDto[];
+}
+
+export interface ChildReportDto {
+  child: UserSummary;
+  streak: number;
+  xp: number;
+  level: number;
+  /** Last 14 days, oldest first. */
+  days: { day: string; minutes: number }[];
+  quizzes: { title: string; pct: number; at: number }[];
+  courses: {
+    id: string;
+    title: string;
+    teacher: string;
+    assignments: {
+      id: string;
+      title: string;
+      dueAt: number | null;
+      status: 'graded' | 'submitted' | 'missing' | 'upcoming';
+      late: boolean;
+      grade: number | null;
+      points: number;
+    }[];
+    attendance: { present: number; absent: number; late: number; excused: number };
+  }[];
+  signals: StudentSignals;
+  risk: { level: RiskLevel; reasons: RiskReason[] };
+}
+
+export interface FamilyDto {
+  children: (UserSummary & { risk: RiskLevel; minutesThisWeek: number })[];
+  guardians: UserSummary[];
 }

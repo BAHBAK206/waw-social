@@ -15,7 +15,7 @@ export const updateProfileSchema = z.object({
   gender: z.enum(['male', 'female']).optional().nullable(),
   educationLevel: trimmed(80).optional().nullable(),
   institution: trimmed(LIMITS.institution).optional().nullable(),
-  accountType: z.enum(['student', 'teacher']).optional(),
+  accountType: z.enum(['student', 'teacher', 'parent']).optional(),
   birthYear: birthYearSchema.optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

@@ -21,6 +21,7 @@ import {
   Globe,
   GraduationCap,
   Hand,
+  HeartHandshake,
   House,
   Info,
   Layers,
@@ -110,6 +111,7 @@ export const ICONS: Record<string, LucideIcon> = {
   'audio-lines': AudioLines,
   aperture: Aperture,
   vote: Vote,
+  'heart-handshake': HeartHandshake,
 };
 
 export interface NavItem {

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { AtRiskList } from '@/components/Family';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Empty, GradientHeader, Loading, SectionTitle, Text } from '@/components/ui';
 import { toast, toastError } from '@/lib/ui';
@@ -92,6 +93,19 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </View>
+        {me.accountType === 'teacher' && <AtRiskList limit={3} />}
+        {me.accountType === 'parent' && (
+          <Card onPress={() => router.push('/family' as never)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="people-circle-outline" size={28} color={t.primary} />
+            <View style={{ flex: 1 }}>
+              <Text weight="black">{tr.t('family.title')}</Text>
+              <Text muted size={13}>
+                {tr.t('family.subtitle')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={t.text3} />
+          </Card>
+        )}
         {daily.data?.challenge && <DailyCard c={daily.data.challenge} onDone={() => void Promise.all([daily.refetch(), dash.refetch()])} />}
         <SectionTitle>{tr.t('home.inbox')}</SectionTitle>
         {dash.isPending ? (

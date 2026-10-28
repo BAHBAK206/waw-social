@@ -21,7 +21,7 @@ export type SummaryRow = {
   displayName: string;
   username: string | null;
   avatarUrl: string | null;
-  accountType: 'student' | 'teacher';
+  accountType: 'student' | 'teacher' | 'parent';
   level: number;
   xp: number;
   badge: Record<string, unknown> | null;
@@ -56,7 +56,7 @@ export function pickSummary(prefix: string, row: Record<string, unknown>): Summa
     displayName: row[`${prefix}DisplayName`] as string,
     username: (row[`${prefix}Username`] as string | null) ?? null,
     avatarUrl: (row[`${prefix}AvatarUrl`] as string | null) ?? null,
-    accountType: row[`${prefix}AccountType`] as 'student' | 'teacher',
+    accountType: row[`${prefix}AccountType`] as 'student' | 'teacher' | 'parent',
     level: row[`${prefix}Level`] as number,
     xp: row[`${prefix}Xp`] as number,
     badge: (row[`${prefix}Badge`] as Record<string, unknown> | null) ?? null,

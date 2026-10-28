@@ -27,7 +27,7 @@ export interface AuthUser {
   role: 'user' | 'moderator' | 'admin' | 'root';
   permissions: string[];
   displayName: string;
-  accountType: 'student' | 'teacher';
+  accountType: 'student' | 'teacher' | 'parent';
   timezone: string;
   sessionId: string;
   emailVerified: boolean;

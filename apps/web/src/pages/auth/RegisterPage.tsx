@@ -1,5 +1,5 @@
 import { LIMITS, birthYearChoices } from '@qubedu/shared';
-import { GraduationCap, School } from 'lucide-react';
+import { GraduationCap, HeartHandshake, School } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { NoticeCard } from '@/components/layout/Banners';
@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const open = useSession((s) => s.config?.registrationOpen ?? true);
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher', birthYear: '' });
+  const [form, setForm] = useState({ displayName: '', email: '', password: '', accountType: 'student' as 'student' | 'teacher' | 'parent', birthYear: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -52,6 +52,7 @@ export default function RegisterPage() {
   const types = [
     { key: 'student' as const, label: tr.t('auth.student'), icon: GraduationCap },
     { key: 'teacher' as const, label: tr.t('auth.teacher'), icon: School },
+    { key: 'parent' as const, label: tr.t('auth.parent'), icon: HeartHandshake },
   ];
 
   return (
@@ -92,7 +93,7 @@ export default function RegisterPage() {
           <PasswordInput label={tr.t('auth.password')} value={form.password} onChange={set('password')} autoComplete="new-password" showStrength />
           <fieldset>
             <legend className="field-label">{tr.t('auth.accountType')}</legend>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {types.map((t) => (
                 <label
                   key={t.key}

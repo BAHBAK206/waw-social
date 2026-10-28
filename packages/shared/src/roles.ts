@@ -1,5 +1,5 @@
-export type AccountType = 'student' | 'teacher';
-export const ACCOUNT_TYPES: readonly AccountType[] = ['student', 'teacher'];
+export type AccountType = 'student' | 'teacher' | 'parent';
+export const ACCOUNT_TYPES: readonly AccountType[] = ['student', 'teacher', 'parent'];
 
 export type Role = 'user' | 'moderator' | 'admin' | 'root';
 export const ROLES: readonly Role[] = ['user', 'moderator', 'admin', 'root'];

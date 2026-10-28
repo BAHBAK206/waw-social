@@ -16,3 +16,4 @@ export * from './quizEditor';
 export * from './formEditor';
 export * from './moderation';
 export * from './captions';
+export * from './insights';

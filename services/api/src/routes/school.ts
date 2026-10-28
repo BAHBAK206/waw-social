@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -23,6 +23,8 @@ import {
   type CourseAnalyticsDto,
   type CourseAnnouncementDto,
   type CourseDto,
+  type CourseInsightsDto,
+  type StudentInsightDto,
   type CourseMaterialDto,
   type RubricDto,
   type SubmissionDto,
@@ -51,6 +53,7 @@ import { ms, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
 import { claimAttachments, ownAttachment, readableAttachment, type StoredAttachment } from '../lib/attachments';
+import { studentRisk } from '../lib/insights';
 import { checkRate } from '../middleware';
 
 const ownerCols = {
@@ -242,7 +245,87 @@ export async function storeChunks(deps: Deps, courseId: string, materialId: stri
   return rows.length;
 }
 
+/** Students sorted by who needs help first (high → watch → ok, then by the number of reasons). */
+const byRisk = (a: StudentInsightDto, b: StudentInsightDto) => {
+  const rank = { high: 0, watch: 1, ok: 2 } as const;
+  return rank[a.risk.level] - rank[b.risk.level] || b.risk.reasons.length - a.risk.reasons.length;
+};
+
 export const schoolRoutes = new Hono<AppEnv>()
+  /* ───── Who needs help ───── */
+  .get('/courses/:id/insights', async (c) => {
+    const user = requireUser(c);
+    const deps = c.get('deps');
+    const id = param(c, 'id');
+    await requireRole(deps, id, user, STAFF);
+    const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, id));
+    const students = await deps.db
+      .select(summaryColumns)
+      .from(courseMembers)
+      .innerJoin(users, eq(users.id, courseMembers.userId))
+      .where(and(eq(courseMembers.courseId, id), eq(courseMembers.role, 'student'), isNull(users.deletedAt)));
+    const out: StudentInsightDto[] = [];
+    for (const s of students) {
+      const r = await studentRisk(deps.db, s.id, [id]);
+      out.push({ student: toSummary(s), lastSeenAt: r.lastSeenAt, signals: r.signals, risk: r.risk });
+    }
+    return c.json({ courseId: id, title: course?.title ?? '', students: out.sort(byRisk) } satisfies CourseInsightsDto);
+  })
+  /** Across every class I teach: only the students to keep an eye on. */
+  .get('/at-risk', async (c) => {
+    const user = requireUser(c);
+    const deps = c.get('deps');
+    const mine = await deps.db
+      .select({ id: courseMembers.courseId, title: courses.title })
+      .from(courseMembers)
+      .innerJoin(courses, eq(courses.id, courseMembers.courseId))
+      .where(and(eq(courseMembers.userId, user.id), inArray(courseMembers.role, STAFF), eq(courses.archived, false)));
+    if (!mine.length) return c.json({ items: [] });
+    const courseIds = mine.map((m) => m.id);
+    const rows = await deps.db
+      .selectDistinct({ ...summaryColumns })
+      .from(courseMembers)
+      .innerJoin(users, eq(users.id, courseMembers.userId))
+      .where(and(inArray(courseMembers.courseId, courseIds), eq(courseMembers.role, 'student'), isNull(users.deletedAt)))
+      .limit(300);
+    const items: (StudentInsightDto & { courses: string[] })[] = [];
+    for (const s of rows) {
+      const r = await studentRisk(deps.db, s.id, courseIds);
+      if (r.risk.level === 'ok') continue;
+      const theirs = await deps.db
+        .select({ title: courses.title })
+        .from(courseMembers)
+        .innerJoin(courses, eq(courses.id, courseMembers.courseId))
+        .where(and(eq(courseMembers.userId, s.id), inArray(courseMembers.courseId, courseIds)));
+      items.push({ student: toSummary(s), lastSeenAt: r.lastSeenAt, signals: r.signals, risk: r.risk, courses: theirs.map((t) => t.title) });
+    }
+    return c.json({ items: items.sort(byRisk) });
+  })
+  /** A short encouraging message to one student (arrives as a notification and on their phone). */
+  .post('/courses/:id/nudge', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'nudge', limit: 60, windowSec: 3600, by: 'user' });
+    const deps = c.get('deps');
+    const id = param(c, 'id');
+    await requireRole(deps, id, user, STAFF);
+    const input = await body(c, z.object({ studentId: z.string().uuid(), message: z.string().trim().min(1).max(500) }));
+    const [m] = await deps.db
+      .select({ role: courseMembers.role })
+      .from(courseMembers)
+      .where(and(eq(courseMembers.courseId, id), eq(courseMembers.userId, input.studentId)));
+    if (m?.role !== 'student') throw notFound('student_not_found');
+    const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, id));
+    await notify(deps, {
+      userId: input.studentId,
+      type: 'teacher_nudge',
+      icon: 'heart',
+      actorId: user.id,
+      link: `/school/${id}`,
+      data: { name: user.displayName, message: input.message, course: course?.title ?? '' },
+      pref: 'school',
+    });
+    return c.json({ ok: true });
+  })
   .get('/courses', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');

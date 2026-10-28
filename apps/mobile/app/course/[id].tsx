@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { Files } from '@/components/Files';
 import { VoiceAttach } from '@/components/Voice';
 import { Screen } from '@/components/Screen';
+import { CourseInsightsTab } from '@/components/Family';
 import { Badge, DateField, FeatureGate, Row, Segmented, Sheet, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -15,7 +16,7 @@ import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { toast, toastError } from '@/lib/ui';
 
-type Tab = 'stream' | 'assignments' | 'people' | 'grades' | 'materials';
+type Tab = 'stream' | 'assignments' | 'people' | 'grades' | 'materials' | 'insights';
 
 function Stream({ courseId, staff }: { courseId: string; staff: boolean }) {
   const tr = useT();
@@ -312,7 +313,10 @@ export default function CourseScreen() {
           )}
         </Card>
         <Segmented
-          tabs={(['stream', 'assignments', 'people', 'grades', 'materials'] as const).map((k) => ({ key: k, label: tr.t(`school.tabs.${k}`) }))}
+          tabs={(staff
+            ? (['stream', 'assignments', 'people', 'grades', 'materials', 'insights'] as const)
+            : (['stream', 'assignments', 'people', 'grades', 'materials'] as const)
+          ).map((k) => ({ key: k, label: tr.t(`school.tabs.${k}`) }))}
           value={tab}
           onChange={setTab}
         />
@@ -321,6 +325,7 @@ export default function CourseScreen() {
         {tab === 'people' && <People courseId={c.id} />}
         {tab === 'grades' && <Grades courseId={c.id} staff={staff} />}
         {tab === 'materials' && <Materials courseId={c.id} />}
+        {tab === 'insights' && staff && <CourseInsightsTab courseId={c.id} />}
       </Screen>
     </FeatureGate>
   );

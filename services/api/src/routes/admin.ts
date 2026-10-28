@@ -197,7 +197,7 @@ export const adminRoutes = new Hono<AppEnv>()
         q: z.string().trim().max(120).default(''),
         role: z.enum(['user', 'moderator', 'admin', 'root']).optional(),
         banned: z.coerce.boolean().optional(),
-        accountType: z.enum(['student', 'teacher']).optional(),
+        accountType: z.enum(['student', 'teacher', 'parent']).optional(),
       }),
     );
     const cursor = decodeCursor(q.cursor);

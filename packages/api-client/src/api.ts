@@ -28,6 +28,10 @@ import type {
   VideoCommentDto,
   VideoDto,
   CaptionTrackDto,
+  ChildReportDto,
+  CourseInsightsDto,
+  FamilyDto,
+  StudentInsightDto,
   TeacherAiResultDto,
   TeacherAiInput,
   VideoNoteDto,
@@ -122,7 +126,7 @@ export function createApi(options: ClientOptions) {
         email: string;
         password: string;
         displayName: string;
-        accountType: 'student' | 'teacher';
+        accountType: 'student' | 'teacher' | 'parent';
         birthYear?: number;
         language?: string;
         timezone?: string;
@@ -547,7 +551,18 @@ export function createApi(options: ClientOptions) {
       studyLog: (days = 90) => http.get<{ items: { day: string; minutes: number; quizzes: number; cards: number }[] }>('/academic/study-log', { days }),
     },
 
+    family: {
+      get: () => http.get<FamilyDto>('/family'),
+      code: () => http.post<{ code: string; expiresAt: number }>('/family/code'),
+      link: (code: string) => http.post<{ child: UserSummary | null }>('/family/link', { code }),
+      unlink: (otherId: string) => http.del<Ok>(`/family/${otherId}`),
+      child: (id: string) => http.get<ChildReportDto>(`/family/children/${id}`),
+    },
+
     school: {
+      insights: (courseId: string) => http.get<CourseInsightsDto>(`/school/courses/${courseId}/insights`),
+      atRisk: () => http.get<{ items: (StudentInsightDto & { courses: string[] })[] }>('/school/at-risk'),
+      nudge: (courseId: string, studentId: string, message: string) => http.post<Ok>(`/school/courses/${courseId}/nudge`, { studentId, message }),
       courses: (archived = false) => http.get<{ items: CourseDto[] }>('/school/courses', { archived }),
       create: (body: { title: string; description?: string; subject?: string | null; coverUrl?: string | null; color?: string | null }) =>
         http.post<CourseDto>('/school/courses', body),

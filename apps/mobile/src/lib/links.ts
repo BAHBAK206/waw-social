@@ -36,6 +36,7 @@ export function appPath(link: string | null | undefined): string | null {
     return a ? `/assignment/${a}` : `/course/${r[1]}`;
   }
   if (path === '/school') return '/school';
+  if (path === '/family') return `/family${qs}`;
   if (path === '/organizer') return '/organizer';
   if ((r = m(/^\/events\/([\w-]+)$/))) return `/event/${r[1]}`;
   if (path === '/events') return '/events';

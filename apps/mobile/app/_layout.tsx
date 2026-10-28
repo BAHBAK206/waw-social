@@ -76,6 +76,7 @@ function Shell() {
         <Stack.Screen name="forms" options={{ title: tr.t('nav.forms') }} />
         <Stack.Screen name="form/[slug]" options={{ title: tr.t('nav.forms') }} />
         <Stack.Screen name="organizer" options={{ title: tr.t('nav.organizer') }} />
+        <Stack.Screen name="family" options={{ title: tr.t('nav.family') }} />
         <Stack.Screen name="studio" options={{ title: tr.t('nav.studio') }} />
         <Stack.Screen name="web" options={{ title: tr.t('nav.services') }} />
         <Stack.Screen name="form-editor" options={{ title: tr.t('forms.newForm') }} />

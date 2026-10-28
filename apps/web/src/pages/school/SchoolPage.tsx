@@ -4,6 +4,7 @@ import { GraduationCap, KeyRound, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Avatar } from '@/components/ui/Avatar';
+import { AtRiskSection } from '@/components/family/Insights';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
@@ -71,6 +72,7 @@ export default function SchoolPage() {
           </>
         }
       />
+      {canCreate && <AtRiskSection />}
       <label className="mb-4 flex items-center gap-2 text-sm">
         <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={archived} onChange={(e) => setArchived(e.target.checked)} />{' '}
         {tr.t('school.archived')}

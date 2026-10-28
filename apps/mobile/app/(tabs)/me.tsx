@@ -48,6 +48,7 @@ const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; it
     key: 'personal',
     items: [
       { id: 'organizer', icon: 'checkbox-outline', href: '/organizer' },
+      { id: 'family', icon: 'people-circle-outline', href: '/family' },
       { id: 'saved', icon: 'bookmark-outline', href: '/saved' },
       { id: 'studio', icon: 'cloud-upload-outline', href: '/studio' },
     ],
