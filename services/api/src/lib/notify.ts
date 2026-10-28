@@ -1,6 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { notifications, users } from '../db/schema';
 import type { Deps } from './context';
+import { deliverPush } from './push';
 import { ch } from './realtime';
 
 export type NotificationPrefKey = 'follows' | 'comments' | 'reactions' | 'messages' | 'groups' | 'school' | 'live' | 'system';
@@ -45,4 +46,21 @@ export async function notify(deps: Deps, input: NotifyInput | NotifyInput[]): Pr
     )
     .returning({ id: notifications.id, userId: notifications.userId, type: notifications.type });
   await Promise.all(rows.map((r) => deps.realtime.publish(ch.user(r.userId), 'notification', { id: r.id, type: r.type })));
+  const actorIds = [...new Set(allowed.map((n) => n.actorId).filter((x): x is string => !!x))];
+  const names = new Map<string, string>();
+  if (actorIds.length) {
+    for (const a of await deps.db.select({ id: users.id, name: users.displayName }).from(users).where(inArray(users.id, actorIds))) names.set(a.id, a.name);
+  }
+  deliverPush(
+    deps,
+    allowed.map((n) => ({
+      userId: n.userId,
+      type: n.type,
+      title: n.title ?? '',
+      body: n.body ?? '',
+      link: n.link ?? null,
+      actorName: n.actorId ? (names.get(n.actorId) ?? null) : null,
+      data: n.data ?? {},
+    })),
+  );
 }

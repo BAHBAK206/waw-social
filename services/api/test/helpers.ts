@@ -5,6 +5,16 @@ import { loadEnv } from '../src/env';
 import { MemoryKv } from '../src/lib/kv';
 import type { Deps } from '../src/lib/context';
 import type { AuthResult } from '@qubedu/shared';
+import type { PushMessage, PushSender, PushTarget } from '../src/lib/push';
+
+/** Records pushes instead of calling Expo / browser push services. Tokens containing "gone" report as uninstalled. */
+export const sentPushes: { targets: PushTarget[]; msg: PushMessage }[] = [];
+export const fakePush: PushSender = {
+  async send(targets, msg) {
+    sentPushes.push({ targets, msg });
+    return { invalid: targets.filter((t) => t.token.includes('gone')).map((t) => t.token) };
+  },
+};
 
 export const fakeAi: AiClient = {
   async solve(input) {
@@ -44,7 +54,7 @@ let shared: { deps: Deps; app: ReturnType<typeof createApp> } | null = null;
 export async function setupApp() {
   if (shared) return shared;
   const env = loadEnv(process.env);
-  const deps = await createDeps(env, { kv: new MemoryKv(), ai: fakeAi });
+  const deps = await createDeps(env, { kv: new MemoryKv(), ai: fakeAi, push: fakePush });
   shared = { deps, app: createApp(deps) };
   return shared;
 }

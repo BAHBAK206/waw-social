@@ -4,14 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
-import { useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Linking, View } from 'react-native';
 import { Badge, Segmented, SelectField, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Input, Loading, SectionTitle, Text } from '@/components/ui';
 import { api, uploadFile } from '@/lib/api';
 import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { queryClient } from '@/lib/query';
+import { phonePushState, registerPhonePush, unregisterPhonePush, type PhonePushState } from '@/lib/push';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
@@ -217,6 +218,7 @@ function Account() {
         onPress={async () => {
           if (!(await confirm(tr.t('settings.account.logoutAll'), { danger: true }))) return;
           try {
+            await unregisterPhonePush();
             await api.auth.logoutAll();
             queryClient.clear();
           } catch (e) {
@@ -231,6 +233,7 @@ function Account() {
         onPress={async () => {
           if (!(await confirm(tr.t('nav.signOut')))) return;
           try {
+            await unregisterPhonePush();
             await api.auth.logout();
             queryClient.clear();
           } catch (e) {
@@ -287,8 +290,46 @@ function Notifications() {
   const me = useSession((s) => s.me)!;
   const patchMe = useSession((s) => s.patchMe);
   const keys = ['follows', 'comments', 'reactions', 'messages', 'groups', 'school', 'live', 'system'] as const;
+  const [device, setDevice] = useState<PhonePushState | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void phonePushState().then(setDevice);
+  }, []);
   return (
     <View style={{ gap: 4 }}>
+      <Card style={{ gap: 8, marginBottom: 8 }}>
+        <Text weight="bold">{tr.t('settings.push.title')}</Text>
+        <Text muted size={13}>
+          {device === 'denied' ? tr.t('settings.push.denied') : device === 'unsupported' ? tr.t('settings.push.unsupported') : tr.t('settings.push.appHint')}
+        </Text>
+        {device === 'off' || device === 'denied' ? (
+          <Button
+            small
+            icon="notifications-outline"
+            title={tr.t('settings.push.enable')}
+            loading={busy}
+            onPress={async () => {
+              setBusy(true);
+              const next = await registerPhonePush(true);
+              setBusy(false);
+              setDevice(next);
+              if (next === 'on') toast(tr.t('settings.push.enabled'));
+              else if (next === 'denied') void Linking.openSettings();
+            }}
+          />
+        ) : null}
+        <SwitchRow
+          label={tr.t('settings.notifications.push')}
+          value={me.notificationPrefs.push}
+          onChange={async (v) => {
+            try {
+              patchMe(await api.me.prefs({ notifications: { push: v } }));
+            } catch (e) {
+              toastError(e);
+            }
+          }}
+        />
+      </Card>
       {keys.map((k) => (
         <SwitchRow
           key={k}

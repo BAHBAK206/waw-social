@@ -37,6 +37,8 @@ export const notificationPrefsSchema = z.object({
   school: z.boolean().default(true),
   live: z.boolean().default(true),
   system: z.boolean().default(true),
+  /** Phone and browser notifications while the app is closed (each device still has to allow them). */
+  push: z.boolean().default(true),
 });
 export type NotificationPrefs = z.infer<typeof notificationPrefsSchema>;
 
@@ -66,3 +68,36 @@ export const reportSchema = z.object({
   details: trimmed(1000).optional(),
 });
 export type ReportInput = z.infer<typeof reportSchema>;
+
+/** Browser push services. The server posts to the endpoint, so anything else (an internal address) is refused. */
+const PUSH_HOSTS = [
+  /^fcm\.googleapis\.com$/,
+  /^updates\.push\.services\.mozilla\.com$/,
+  /(^|\.)push\.apple\.com$/,
+  /\.notify\.windows\.com$/,
+  /^push\.services\.mozilla\.com$/,
+];
+export function isPushEndpoint(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && !u.port && PUSH_HOSTS.some((h) => h.test(u.hostname));
+  } catch {
+    return false;
+  }
+}
+
+/** A phone (Expo push token) or a browser (Web Push subscription) that should receive notifications. */
+export const pushDeviceSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('expo'),
+    token: z.string().regex(/^(Exponent|Expo)PushToken\[[\w-]+\]$/, 'invalid_push_token'),
+    platform: z.enum(['ios', 'android']).default('android'),
+  }),
+  z.object({
+    kind: z.literal('web'),
+    token: z.string().url().max(1024).refine(isPushEndpoint, 'invalid_push_token'),
+    keys: z.object({ p256dh: z.string().min(10).max(200), auth: z.string().min(8).max(100) }),
+    platform: z.literal('web').default('web'),
+  }),
+]);
+export type PushDeviceInput = z.infer<typeof pushDeviceSchema>;

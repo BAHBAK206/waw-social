@@ -395,6 +395,26 @@ export const notifications = pgTable(
   (t) => [index('notifications_user_idx').on(t.userId, t.createdAt)],
 );
 
+/** Phones (Expo push tokens) and browsers (Web Push subscriptions) that receive notifications while the app is closed. */
+export const pushDevices = pgTable(
+  'push_devices',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'expo' | 'web'>().notNull(),
+    /** Expo push token, or the Web Push endpoint URL. */
+    token: text('token').notNull(),
+    /** Web Push encryption keys (p256dh, auth). */
+    keys: jsonb('keys').$type<{ p256dh: string; auth: string } | null>(),
+    platform: text('platform').notNull().default(''),
+    createdAt: createdAt(),
+    lastUsedAt: ts('last_used_at'),
+  },
+  (t) => [uniqueIndex('push_devices_token_uq').on(t.token), index('push_devices_user_idx').on(t.userId)],
+);
+
 export const reports = pgTable(
   'reports',
   {

@@ -1,5 +1,6 @@
 import { api, realtime } from './api';
 import { onAppearanceChange, syncDirection, useAppearance } from './appearance';
+import { wirePushTaps } from './push';
 import { queryClient } from './query';
 import { useSession } from './session';
 import { channels } from './useRealtime';
@@ -36,6 +37,7 @@ export async function boot() {
     syncDirection(me.appearance.language);
     realtime.connect();
   }
+  wirePushTaps();
   await config;
 
   onAppearanceChange((patch) => {

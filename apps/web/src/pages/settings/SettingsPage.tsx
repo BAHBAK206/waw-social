@@ -2,8 +2,9 @@ import { DESIGNS, LANGUAGES, LIMITS, SKINS, birthYearChoices, TEXT_SIZES, THEME_
 import { DESIGN_TOKENS, SKIN_TOKENS } from '@qubedu/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Check, Database, Download, Lock, MonitorSmartphone, Palette, Shield, Trash2, User } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { canInstall, promptInstall } from '@/app/pwa';
+import { browserPushState, disableBrowserPush, enableBrowserPush, type BrowserPushState } from '@/lib/push';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
@@ -467,27 +468,71 @@ function PrivacyTab({ me }: { me: Me }) {
 function NotificationsTab({ me }: { me: Me }) {
   const tr = useT();
   const [n, setN] = useState<NotificationPrefs>(me.notificationPrefs);
-  const keys = Object.keys(n) as (keyof NotificationPrefs)[];
+  const keys = (Object.keys(n) as (keyof NotificationPrefs)[]).filter((k) => k !== 'push');
   return (
-    <Section>
-      {keys.map((k) => (
-        <Switch
-          key={k}
-          checked={n[k]}
-          label={tr.t(`settings.notifications.${k}`)}
-          onChange={async (v) => {
-            const prev = n;
-            const next = { ...n, [k]: v };
-            setN(next);
-            try {
-              useSession.getState().setMe(await api.me.prefs({ notifications: next }));
-            } catch (e) {
-              setN(prev);
-              toastError(e);
-            }
-          }}
-        />
-      ))}
+    <div className="space-y-5">
+      <DevicePush />
+      <Section>
+        {keys.map((k) => (
+          <Switch
+            key={k}
+            checked={n[k]}
+            label={tr.t(`settings.notifications.${k}`)}
+            onChange={async (v) => {
+              const prev = n;
+              const next = { ...n, [k]: v };
+              setN(next);
+              try {
+                useSession.getState().setMe(await api.me.prefs({ notifications: next }));
+              } catch (e) {
+                setN(prev);
+                toastError(e);
+              }
+            }}
+          />
+        ))}
+      </Section>
+    </div>
+  );
+}
+
+/** "Notifications on this browser": permission + subscription for this device. */
+function DevicePush() {
+  const tr = useT();
+  const [state, setState] = useState<BrowserPushState | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void browserPushState().then(setState);
+  }, []);
+  if (state === null) return null;
+  const run = async (fn: () => Promise<BrowserPushState>) => {
+    setBusy(true);
+    try {
+      const next = await fn();
+      setState(next);
+      if (next === 'on') toast(tr.t('settings.push.enabled'));
+      if (next === 'denied') toast(tr.t('settings.push.denied'), 'err');
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title={tr.t('settings.push.title')}>
+      <p className="muted text-sm">
+        {state === 'unsupported' ? tr.t('settings.push.unsupported') : state === 'denied' ? tr.t('settings.push.denied') : tr.t('settings.push.hint')}
+      </p>
+      {state === 'off' && (
+        <Button icon={<Bell className="size-4" />} loading={busy} onClick={() => void run(enableBrowserPush)}>
+          {tr.t('settings.push.enable')}
+        </Button>
+      )}
+      {state === 'on' && (
+        <Button variant="outline" loading={busy} onClick={() => void run(disableBrowserPush)}>
+          {tr.t('settings.push.disable')}
+        </Button>
+      )}
     </Section>
   );
 }

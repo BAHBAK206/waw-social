@@ -6,6 +6,7 @@ import {
   isValidTimeZone,
   normalizeSearch,
   paginationSchema,
+  pushDeviceSchema,
   reportSchema,
   updatePrefsSchema,
   updateProfileSchema,
@@ -13,7 +14,7 @@ import {
   type Page,
   type UserSummary,
 } from '@qubedu/shared';
-import { blocks, exams, flashcards, follows, notes, posts, quizBest, reports, studyLog, tasks, users, xpLedger } from '../db/schema';
+import { blocks, exams, flashcards, follows, notes, posts, pushDevices, quizBest, reports, studyLog, tasks, users, xpLedger } from '../db/schema';
 import type { AppEnv } from '../lib/context';
 import { verifyPassword } from '../lib/crypto';
 import { decodeCursor, pageOf } from '../lib/cursor';
@@ -24,6 +25,7 @@ import { notify } from '../lib/notify';
 import { appearanceOf, buildMe, buildProfile } from '../lib/profile';
 import { checkAchievements, touchStreak } from '../lib/progress';
 import { maybeAutoHide } from '../lib/moderation';
+import { vapidKeys } from '../lib/push';
 import { getSettings } from '../lib/settings';
 import { checkRate } from '../middleware';
 
@@ -94,6 +96,39 @@ export const meRoutes = new Hono<AppEnv>()
     if (input.onboardingDone !== undefined) patch.onboardingDone = input.onboardingDone;
     await deps.db.update(users).set(patch).where(eq(users.id, user.id));
     return c.json(await buildMe(deps, user.id));
+  })
+  /* phones and browsers that receive notifications while the app is closed */
+  .get('/push/key', async (c) => {
+    requireUser(c);
+    const deps = c.get('deps');
+    if (!deps.push) return c.json({ enabled: false, vapidPublicKey: null });
+    return c.json({ enabled: true, vapidPublicKey: (await vapidKeys(deps.db, deps.env)).publicKey });
+  })
+  .post('/push', async (c) => {
+    const user = requireUser(c);
+    await checkRate(c, { bucket: 'push-register', limit: 30, windowSec: 3600, by: 'user' });
+    const deps = c.get('deps');
+    const input = await body(c, pushDeviceSchema);
+    const keys = input.kind === 'web' ? input.keys : null;
+    // A device that signs in to another account now notifies that account only.
+    await deps.db
+      .insert(pushDevices)
+      .values({ userId: user.id, kind: input.kind, token: input.token, keys, platform: input.platform })
+      .onConflictDoUpdate({ target: pushDevices.token, set: { userId: user.id, keys, platform: input.platform, lastUsedAt: new Date() } });
+    const [n] = await deps.db.select({ n: count() }).from(pushDevices).where(eq(pushDevices.userId, user.id));
+    // Keep the newest 10 devices per person.
+    if ((n?.n ?? 0) > 10)
+      await deps.db.execute(sql`
+        delete from push_devices where user_id = ${user.id} and id not in (
+          select id from push_devices where user_id = ${user.id} order by coalesce(last_used_at, created_at) desc limit 10)`);
+    return c.json({ ok: true });
+  })
+  .delete('/push', async (c) => {
+    const user = requireUser(c);
+    const deps = c.get('deps');
+    const { token } = await body(c, z.object({ token: z.string().min(10).max(1024) }));
+    await deps.db.delete(pushDevices).where(and(eq(pushDevices.userId, user.id), eq(pushDevices.token, token)));
+    return c.json({ ok: true });
   })
   .post('/checkin', async (c) => {
     const user = requireUser(c);

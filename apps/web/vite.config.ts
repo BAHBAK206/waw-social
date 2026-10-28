@@ -45,6 +45,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Push notifications (public/push-sw.js) run inside the generated service worker.
+        importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
         // Heavy office-format exporters load on demand; they are cached at runtime instead of precached.
         globIgnores: ['**/exceljs*.js', '**/pptxgen*.js', '**/*.map'],

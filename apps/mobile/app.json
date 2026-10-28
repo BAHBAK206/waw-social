@@ -38,6 +38,12 @@
       "expo-secure-store",
       "expo-video",
       [
+        "expo-notifications",
+        {
+          "color": "#6c5ce7"
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
           "microphonePermission": "Used to hear you in the pronunciation lab.",

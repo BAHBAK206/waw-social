@@ -1170,6 +1170,16 @@ export const es: Dictionary = {
     searchNotes: 'Buscar notas…',
   },
   settings: {
+    push: {
+      title: 'Notificaciones en este dispositivo',
+      hint: 'Recibe mensajes, notas, nuevas lecciones y clases en vivo aunque Qubedu esté cerrado.',
+      enable: 'Activar notificaciones',
+      disable: 'Desactivar en este dispositivo',
+      enabled: 'Notificaciones activadas en este dispositivo.',
+      denied: 'Las notificaciones están bloqueadas. Permítelas en los ajustes del navegador o del teléfono e inténtalo de nuevo.',
+      unsupported: 'Este navegador no puede mostrar notificaciones. Instala Qubedu (pantalla de inicio) o usa la app.',
+      appHint: 'Tu teléfono mostrará mensajes, notas, nuevas lecciones y clases en vivo.',
+    },
     title: 'Ajustes',
     tabs: { profile: 'Perfil', appearance: 'Apariencia', account: 'Cuenta y seguridad', privacy: 'Privacidad', notifications: 'Notificaciones', data: 'Datos' },
     appearance: {
@@ -1223,6 +1233,7 @@ export const es: Dictionary = {
       showOnline: 'Mostrar cuándo estoy en línea',
     },
     notifications: {
+      push: 'Notificaciones con la app cerrada',
       follows: 'Nuevos seguidores',
       comments: 'Comentarios',
       reactions: 'Reacciones',

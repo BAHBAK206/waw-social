@@ -1158,6 +1158,16 @@ export const fr: Dictionary = {
     searchNotes: 'Rechercher dans les notes…',
   },
   settings: {
+    push: {
+      title: 'Notifications sur cet appareil',
+      hint: 'Recevez messages, notes, nouvelles leçons et cours en direct même quand Qubedu est fermé.',
+      enable: 'Activer les notifications',
+      disable: 'Désactiver sur cet appareil',
+      enabled: 'Notifications activées sur cet appareil.',
+      denied: 'Les notifications sont bloquées. Autorisez-les dans les réglages du navigateur ou du téléphone, puis réessayez.',
+      unsupported: 'Ce navigateur ne peut pas afficher de notifications. Installez Qubedu (écran d’accueil) ou utilisez l’appli.',
+      appHint: 'Votre téléphone affichera messages, notes, nouvelles leçons et cours en direct.',
+    },
     title: 'Paramètres',
     tabs: {
       profile: 'Profil',
@@ -1218,6 +1228,7 @@ export const fr: Dictionary = {
       showOnline: 'Afficher quand je suis en ligne',
     },
     notifications: {
+      push: 'Notifications quand l’appli est fermée',
       follows: 'Nouveaux abonnés',
       comments: 'Commentaires',
       reactions: 'Réactions',

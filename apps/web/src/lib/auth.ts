@@ -1,5 +1,6 @@
 import type { Me } from '@qubedu/shared';
 import { api, realtime } from './api';
+import { forgetBrowserPush, refreshBrowserPush } from './push';
 import { queryClient } from './query';
 import { useSession } from './session';
 import { celebrate, useUi } from './ui';
@@ -15,9 +16,11 @@ export async function afterSignIn(me: Me) {
     /* non-critical */
   }
   if (!me.onboardingDone) useUi.getState().set({ onboardingOpen: true });
+  void refreshBrowserPush();
 }
 
 export async function signOut(everywhere = false) {
+  await forgetBrowserPush();
   try {
     if (everywhere) await api.auth.logoutAll();
     else await api.auth.logout();

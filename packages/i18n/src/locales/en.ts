@@ -1150,6 +1150,16 @@ export const en = {
     searchNotes: 'Search notes…',
   },
   settings: {
+    push: {
+      title: 'Notifications on this device',
+      hint: 'Get messages, grades, new lessons and live classes even when Qubedu is closed.',
+      enable: 'Turn on notifications',
+      disable: 'Turn off on this device',
+      enabled: 'Notifications are on for this device.',
+      denied: 'Notifications are blocked. Allow them in your browser or phone settings, then try again.',
+      unsupported: 'This browser can’t show notifications. Install Qubedu (Add to home screen) or use the app.',
+      appHint: 'Your phone will show messages, grades, new lessons and live classes.',
+    },
     title: 'Settings',
     tabs: { profile: 'Profile', appearance: 'Appearance', account: 'Account & security', privacy: 'Privacy', notifications: 'Notifications', data: 'Data' },
     appearance: {
@@ -1203,6 +1213,7 @@ export const en = {
       showOnline: 'Show when I am online',
     },
     notifications: {
+      push: 'Notifications when the app is closed',
       follows: 'New followers',
       comments: 'Comments',
       reactions: 'Reactions',

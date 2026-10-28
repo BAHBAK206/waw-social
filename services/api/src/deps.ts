@@ -5,6 +5,7 @@ import { createAiClient } from './lib/ai';
 import type { Deps } from './lib/context';
 import { createKv } from './lib/kv';
 import { createMailer } from './lib/mailer';
+import { createPushSender, vapidKeys } from './lib/push';
 import { createRealtime } from './lib/realtime';
 import { createStorage } from './lib/storage';
 
@@ -40,5 +41,6 @@ export async function createDeps(env: Env, overrides: Partial<Deps> = {}): Promi
         internalToken: env.INTERNAL_TOKEN,
       }),
     ai: overrides.ai ?? createAiClient(env.AI_SERVICE_URL, env.INTERNAL_TOKEN),
+    push: 'push' in overrides ? overrides.push : createPushSender(env, () => vapidKeys(db, env)),
   };
 }

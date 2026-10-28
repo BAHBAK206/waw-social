@@ -171,6 +171,11 @@ export function createApi(options: ClientOptions) {
         onboardingDone?: boolean;
       }) => http.patch<Me>('/me/prefs', body),
       checkin: () => http.post<{ streak: number; changed: boolean; newAchievements: string[] }>('/me/checkin'),
+      pushKey: () => http.get<{ enabled: boolean; vapidPublicKey: string | null }>('/me/push/key'),
+      registerPush: (
+        body: { kind: 'expo'; token: string; platform: 'ios' | 'android' } | { kind: 'web'; token: string; keys: { p256dh: string; auth: string } },
+      ) => http.post<Ok>('/me/push', body),
+      unregisterPush: (token: string) => http.del<Ok>('/me/push', { token }),
       export: () => http.request<Response>('GET', '/me/export', { raw: true }),
       delete: (password: string) => http.del<Ok>('/me', { password }),
     },

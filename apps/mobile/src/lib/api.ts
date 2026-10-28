@@ -33,9 +33,12 @@ export const api = createApi({
     },
   },
   onAuthChange: (me) => {
+    const wasSignedIn = useSession.getState().status === 'authed';
     useSession.getState().setMe(me);
     if (me) realtime.connect();
     else realtime.disconnect();
+    // A fresh sign-in (not a token refresh) registers this phone for notifications.
+    if (me && !wasSignedIn) void import('./push').then((m) => m.onSignedInPush());
   },
 });
 

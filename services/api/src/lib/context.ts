@@ -1,3 +1,4 @@
+import type { PushSender } from './push';
 import type { Logger } from 'pino';
 import type { Db, Sql } from '../db/client';
 import type { Env } from '../env';
@@ -17,6 +18,8 @@ export interface Deps {
   realtime: Realtime;
   ai: AiClient;
   log: Logger;
+  /** Phone and browser notifications (absent = disabled). */
+  push?: PushSender;
 }
 
 export interface AuthUser {
