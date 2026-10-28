@@ -195,6 +195,49 @@ export const en: GuideBook = {
       parent: 'You see your child’s quiz results on the Family page.',
     },
   },
+  curriculum: {
+    title: 'Curriculum and your plan',
+    summary:
+      'The official curriculum for your school year, subject by subject: units, lessons and the objectives you must master. Qubedu measures your mastery of every objective from your quizzes and builds a personal plan.',
+    steps: [
+      'Open Curriculum, choose the curriculum (for example Egypt) and your school year, then open a subject.',
+      'Take the placement test: two questions per objective, so Qubedu knows what you already master.',
+      'Your plan shows the next objectives to study, weakest first, with the lessons and quizzes linked to them.',
+      'Press Practise on an objective, a lesson or a whole unit to get ten questions on it.',
+      'Every quiz you take updates your mastery: objectives turn green when mastered (80% or more with enough questions).',
+    ],
+    tips: [
+      'Teachers tag their questions with objectives, so the more classes and banks there are, the more practice you get.',
+      'Administrators add or import the official programme; teachers attach lessons and quizzes to it.',
+    ],
+    roles: {
+      student: 'Start with the placement test, then follow “Study next” a little every day.',
+      teacher: 'Tag each question with an objective and attach your lessons and quizzes to the curriculum: your students find them from their plan.',
+      parent: 'Ask your child to show you their plan: it tells you which objectives still need work.',
+    },
+  },
+  banks: {
+    title: 'Question banks and fair exams',
+    summary:
+      'Keep your questions in banks, tagged by objective, difficulty and level of thinking. Build exams from rules so each student gets different questions, then read the analysis of every question.',
+    steps: [
+      'Quizzes → Question banks → New question bank. Add questions and tag each with an objective, a difficulty and a level of thinking (remember, understand, apply…).',
+      'Create an exam and turn on “Build from question banks”. Choose your banks and add rules, for example 5 easy questions on objective A and 3 hard ones from unit 2.',
+      'Turn on “Shuffle the answer choices” so neighbours do not share answer letters.',
+      'Turn on exam mode: students are asked to go full screen, and you see how many times each one left the page.',
+      'After the exam, open its statistics: each question shows how many got it right and whether it separates strong and weak students; fix the ones marked “Review”.',
+    ],
+    tips: [
+      'A student always gets the same questions if they reopen the exam, and can take an exam only once.',
+      'Questions from a bank used by an exam are never shown in practice, so they cannot leak before the exam.',
+      'You can only build exams from your own banks.',
+    ],
+    roles: {
+      student: 'In exam mode, stay on the page until you submit: leaving is recorded.',
+      teacher: 'Reuse the same banks every term: question statistics keep building up.',
+      parent: 'Results appear in the report card when the exam counts in the subject grading.',
+    },
+  },
   catalog: {
     title: 'Course catalog, paid courses and certificates',
     summary:

@@ -713,12 +713,20 @@ export const quizzes = pgTable(
     sectionId: uuid('section_id').references(() => eduSections.id, { onDelete: 'set null' }),
     materialId: uuid('material_id').references(() => eduMaterials.id, { onDelete: 'set null' }),
     courseId: uuid('course_id'),
-    kind: text('kind').$type<'quiz' | 'test' | 'exam'>().notNull().default('quiz'),
+    kind: text('kind').$type<'quiz' | 'test' | 'exam' | 'bank'>().notNull().default('quiz'),
     difficulty: text('difficulty').$type<'easy' | 'medium' | 'hard'>().notNull().default('medium'),
     durationSec: integer('duration_sec').notNull().default(600),
     scheduledAt: ts('scheduled_at'),
     published: boolean('published').notNull().default(true),
     shuffle: boolean('shuffle').notNull().default(false),
+    shuffleOptions: boolean('shuffle_options').notNull().default(false),
+    integrity: boolean('integrity').notNull().default(false),
+    /** Exam built per student from question banks (see blueprintSchema). */
+    blueprint: jsonb('blueprint').$type<{
+      bankIds: string[];
+      rules: { objectiveId?: string | null; difficulty?: 'easy' | 'medium' | 'hard' | null; bloom?: string | null; count: number }[];
+    }>(),
+    curriculumId: uuid('curriculum_id').references((): AnyPgColumn => curriculumNodes.id, { onDelete: 'set null' }),
     questionCount: integer('question_count').notNull().default(0),
     attemptCount: integer('attempt_count').notNull().default(0),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
@@ -749,8 +757,15 @@ export const quizQuestions = pgTable(
     explanation: text('explanation'),
     topic: text('topic'),
     points: integer('points').notNull().default(1),
+    objectiveId: uuid('objective_id').references((): AnyPgColumn => curriculumNodes.id, { onDelete: 'set null' }),
+    bloom: text('bloom'),
+    level: text('level').$type<'easy' | 'medium' | 'hard'>(),
   },
-  (t) => [index('quiz_questions_quiz_idx').on(t.quizId, t.position), index('quiz_questions_topic_idx').on(t.topic)],
+  (t) => [
+    index('quiz_questions_quiz_idx').on(t.quizId, t.position),
+    index('quiz_questions_topic_idx').on(t.topic),
+    index('quiz_questions_objective_idx').on(t.objectiveId),
+  ],
 );
 
 export const quizAttempts = pgTable(
@@ -774,6 +789,12 @@ export const quizAttempts = pgTable(
     timeSec: integer('time_sec'),
     xpEarned: integer('xp_earned').notNull().default(0),
     result: jsonb('result').$type<Record<string, unknown>>(),
+    /** Per question, the order its options are shown in (option shuffling). */
+    optionOrders: jsonb('option_orders').$type<Record<string, number[]>>(),
+    /** How often the student left the page / full screen or pasted text (integrity exams). */
+    integrity: jsonb('integrity').$type<{ blur: number; fullscreenExit: number; paste: number }>(),
+    /** Placement test for a curriculum subject. */
+    placementSubjectId: uuid('placement_subject_id'),
   },
   (t) => [index('quiz_attempts_user_idx').on(t.userId, t.startedAt), index('quiz_attempts_quiz_idx').on(t.quizId)],
 );
@@ -1909,4 +1930,60 @@ export const timetableEntries = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('timetable_user_idx').on(t.userId), index('timetable_course_idx').on(t.courseId)],
+);
+
+/* ───────────────────────── Curriculum ───────────────────────── */
+
+/** Subject → unit → lesson → objective, per curriculum system and school year. */
+export const curriculumNodes = pgTable(
+  'curriculum_nodes',
+  {
+    id: id(),
+    parentId: uuid('parent_id').references((): AnyPgColumn => curriculumNodes.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'subject' | 'unit' | 'lesson' | 'objective'>().notNull(),
+    title: text('title').notNull(),
+    code: text('code'),
+    description: text('description'),
+    system: text('system').notNull().default('general'),
+    gradeLevel: text('grade_level'),
+    sort: integer('sort').notNull().default(0),
+    searchText: text('search_text').notNull().default(''),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('curriculum_parent_idx').on(t.parentId, t.sort), index('curriculum_subject_idx').on(t.kind, t.system, t.gradeLevel)],
+);
+
+/** Resources (quizzes, video lessons, library items) attached to a curriculum node. */
+export const curriculumLinks = pgTable(
+  'curriculum_links',
+  {
+    nodeId: uuid('node_id')
+      .notNull()
+      .references(() => curriculumNodes.id, { onDelete: 'cascade' }),
+    targetType: text('target_type').$type<'quiz' | 'video' | 'library'>().notNull(),
+    targetId: uuid('target_id').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.nodeId, t.targetType, t.targetId] }), index('curriculum_links_target_idx').on(t.targetType, t.targetId)],
+);
+
+/** One student's result on one objective in one attempt (mastery is computed from these). */
+export const objectiveSamples = pgTable(
+  'objective_samples',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    objectiveId: uuid('objective_id')
+      .notNull()
+      .references(() => curriculumNodes.id, { onDelete: 'cascade' }),
+    correct: integer('correct').notNull(),
+    total: integer('total').notNull(),
+    attemptId: uuid('attempt_id').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('objective_samples_user_idx').on(t.userId, t.objectiveId, t.createdAt)],
 );

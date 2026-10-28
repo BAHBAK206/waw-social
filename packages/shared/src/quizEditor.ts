@@ -31,8 +31,17 @@ export function blankQuiz(): QuizDraft {
     scheduledAt: null,
     published: true,
     shuffle: false,
+    shuffleOptions: false,
+    integrity: false,
+    blueprint: null,
+    curriculumId: null,
     questions: [blankQuestion()],
   };
+}
+
+/** A blank question bank (questions only; used to build exams). */
+export function blankBank(): QuizDraft {
+  return { ...blankQuiz(), kind: 'bank', published: false };
 }
 
 /** Every question has text, filled options and a valid correct answer. */
@@ -56,7 +65,8 @@ export function quizBody(form: QuizDraft): QuizDraft {
   return {
     ...form,
     title: form.title.trim(),
-    questions: form.questions.map((q) => ({
+    // An exam built from banks has no questions of its own.
+    questions: (form.blueprint ? [] : form.questions).map((q) => ({
       ...q,
       prompt: q.prompt.trim(),
       options: q.type === 'short' ? [] : q.options.map((o) => o.trim()),
@@ -76,6 +86,9 @@ export function retypeQuestion(q: EditorQuestion, type: QuestionType, trueLabel:
     topic: q.topic,
     points: q.points,
     explanation: q.explanation,
+    objectiveId: q.objectiveId ?? null,
+    bloom: q.bloom ?? null,
+    level: q.level ?? null,
     options: type === 'tf' ? [trueLabel, falseLabel] : type === 'short' ? [] : q.options.length >= 2 ? q.options : fresh.options,
   };
 }

@@ -198,6 +198,49 @@ export const fr: GuideBook = {
       parent: 'Vous voyez les résultats de votre enfant sur la page Famille.',
     },
   },
+  curriculum: {
+    title: 'Programme et plan personnel',
+    summary:
+      'Le programme officiel de votre année, matière par matière : unités, leçons et objectifs à maîtriser. Qubedu mesure votre maîtrise de chaque objectif à partir de vos quiz et construit un plan personnel.',
+    steps: [
+      'Ouvrez Programme, choisissez le programme (par exemple Égypte) et votre année, puis une matière.',
+      'Passez le test de positionnement : deux questions par objectif, pour savoir ce que vous maîtrisez déjà.',
+      'Votre plan montre les prochains objectifs à travailler, les plus faibles d’abord, avec les leçons et quiz liés.',
+      'Appuyez sur S’entraîner sur un objectif, une leçon ou une unité pour dix questions dessus.',
+      'Chaque quiz met à jour votre maîtrise : un objectif passe au vert quand il est maîtrisé (80 % ou plus avec assez de questions).',
+    ],
+    tips: [
+      'Les enseignants associent leurs questions aux objectifs : plus il y a de classes et de banques, plus il y a d’entraînement.',
+      'Les administrateurs ajoutent ou importent le programme officiel ; les enseignants y rattachent leçons et quiz.',
+    ],
+    roles: {
+      student: 'Commencez par le test de positionnement, puis suivez « À étudier ensuite » un peu chaque jour.',
+      teacher: 'Associez chaque question à un objectif et rattachez vos leçons et quiz au programme : vos élèves les trouveront depuis leur plan.',
+      parent: 'Demandez à votre enfant de vous montrer son plan : il indique les objectifs encore à travailler.',
+    },
+  },
+  banks: {
+    title: 'Banques de questions et examens équitables',
+    summary:
+      'Rangez vos questions dans des banques, par objectif, difficulté et niveau de réflexion. Construisez des examens à partir de règles pour que chaque élève ait des questions différentes, puis lisez l’analyse de chaque question.',
+    steps: [
+      'Quiz → Banques de questions → Nouvelle banque. Ajoutez des questions avec un objectif, une difficulté et un niveau de réflexion (se souvenir, comprendre, appliquer…).',
+      'Créez un examen et activez « Construire à partir des banques ». Choisissez les banques et ajoutez des règles, par exemple 5 questions faciles sur l’objectif A et 3 difficiles de l’unité 2.',
+      'Activez « Mélanger les réponses » pour que les voisins n’aient pas les mêmes lettres.',
+      'Activez le mode examen : l’élève passe en plein écran et vous voyez combien de fois il a quitté la page.',
+      'Après l’examen, ouvrez les statistiques : chaque question indique le taux de réussite et si elle sépare bons et faibles élèves ; corrigez celles marquées « À revoir ».',
+    ],
+    tips: [
+      'Un élève retrouve toujours les mêmes questions s’il rouvre l’examen, et ne le passe qu’une fois.',
+      'Les questions d’une banque utilisée par un examen ne servent jamais à l’entraînement : elles ne fuitent pas avant l’examen.',
+      'Vous ne pouvez construire un examen qu’à partir de vos propres banques.',
+    ],
+    roles: {
+      student: 'En mode examen, restez sur la page jusqu’à l’envoi : les sorties sont enregistrées.',
+      teacher: 'Réutilisez les mêmes banques chaque trimestre : les statistiques s’accumulent.',
+      parent: 'Les résultats apparaissent au bulletin quand l’examen compte dans la notation de la matière.',
+    },
+  },
   catalog: {
     title: 'Catalogue, cours payants et certificats',
     summary:

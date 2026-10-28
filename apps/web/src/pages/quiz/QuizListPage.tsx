@@ -54,15 +54,17 @@ export function QuizCard({ quiz, onStart, busy }: { quiz: QuizSummaryDto; onStar
       )}
       {notStarted && <p className="mt-2 text-sm font-bold text-warn">{tr.t('quiz.scheduled', { date: formatDateTime(quiz.scheduledAt!, tr) })}</p>}
       <div className="mt-auto flex flex-wrap gap-2 pt-4">
-        <Button
-          size="sm"
-          icon={quiz.myBest ? <RotateCcw className="size-4" /> : <Play className="size-4" />}
-          loading={busy}
-          disabled={!!notStarted}
-          onClick={() => onStart(false)}
-        >
-          {quiz.myBest ? tr.t('quiz.retake') : tr.t('quiz.start')}
-        </Button>
+        {quiz.kind !== 'bank' && (
+          <Button
+            size="sm"
+            icon={quiz.myBest ? <RotateCcw className="size-4" /> : <Play className="size-4" />}
+            loading={busy}
+            disabled={!!notStarted}
+            onClick={() => onStart(false)}
+          >
+            {quiz.myBest ? tr.t('quiz.retake') : tr.t('quiz.start')}
+          </Button>
+        )}
         {quiz.myBest && quiz.myBest.pct < 100 && (
           <Button size="sm" variant="soft" onClick={() => onStart(true)}>
             {tr.t('quiz.reviewWrong')}
@@ -73,9 +75,11 @@ export function QuizCard({ quiz, onStart, busy }: { quiz: QuizSummaryDto; onStar
             <ButtonLink size="sm" variant="ghost" to={`/quiz/${quiz.id}/edit`} icon={<Pencil className="size-4" />}>
               {tr.t('common.edit')}
             </ButtonLink>
-            <ButtonLink size="sm" variant="ghost" to={`/quiz/${quiz.id}/stats`} icon={<BarChart3 className="size-4" />}>
-              {tr.t('quiz.stats')}
-            </ButtonLink>
+            {quiz.kind !== 'bank' && (
+              <ButtonLink size="sm" variant="ghost" to={`/quiz/${quiz.id}/stats`} icon={<BarChart3 className="size-4" />}>
+                {tr.t('quiz.stats')}
+              </ButtonLink>
+            )}
           </>
         )}
       </div>
@@ -102,6 +106,7 @@ export default function QuizListPage() {
   const material = params.get('material') ?? '';
   const difficulty = params.get('difficulty') ?? '';
   const mine = params.get('mine') === '1';
+  const banks = params.get('tab') === 'banks';
   const set = (k: string, v: string) =>
     setParams(
       (p) => {
@@ -115,14 +120,15 @@ export default function QuizListPage() {
     );
 
   const taxonomy = useQuery({ queryKey: qk.taxonomy, queryFn: () => api.taxonomy(), staleTime: 10 * 60_000 });
-  const filters = { q: debounced, sectionId: section, materialId: material, difficulty, mine };
+  const filters = { q: debounced, sectionId: section, materialId: material, difficulty, mine, banks };
   const list = usePaged<QuizSummaryDto>(qk.quizzes(filters), (cursor) =>
     api.quizzes.list({
       q: debounced || undefined,
       sectionId: section || undefined,
       materialId: material || undefined,
       difficulty: difficulty || undefined,
-      mine: mine || undefined,
+      mine: mine || banks || undefined,
+      kind: banks ? 'bank' : undefined,
       cursor,
       limit: 18,
     }),
@@ -217,21 +223,40 @@ export default function QuizListPage() {
         </select>
       </div>
       {authed && isTeacher && (
-        <div className="mb-4 flex gap-2">
-          <button type="button" className={cx('chip', !mine && 'is-active')} aria-pressed={!mine} onClick={() => set('mine', '')}>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className={cx('chip', !mine && !banks && 'is-active')}
+            aria-pressed={!mine && !banks}
+            onClick={() => setParams({}, { replace: true })}
+          >
             {tr.t('common.all')}
           </button>
-          <button type="button" className={cx('chip', mine && 'is-active')} aria-pressed={mine} onClick={() => set('mine', '1')}>
+          <button type="button" className={cx('chip', mine && 'is-active')} aria-pressed={mine} onClick={() => setParams({ mine: '1' }, { replace: true })}>
             {tr.t('quiz.mine')}
           </button>
+          <button
+            type="button"
+            className={cx('chip', banks && 'is-active')}
+            aria-pressed={banks}
+            onClick={() => setParams({ tab: 'banks' }, { replace: true })}
+          >
+            {tr.t('quiz.bank.banks')}
+          </button>
+          {banks && (
+            <ButtonLink to="/quiz/new?kind=bank" size="sm" variant="outline" icon={<Plus className="size-4" />}>
+              {tr.t('quiz.bank.newBank')}
+            </ButtonLink>
+          )}
         </div>
       )}
+      {banks && <p className="muted mb-3 text-sm">{tr.t('quiz.bank.hint')}</p>}
       {list.isPending ? (
         <CardSkeletons count={6} className="sm:grid-cols-2 lg:grid-cols-3" />
       ) : list.error ? (
         <ErrorState error={list.error} onRetry={() => void list.refetch()} />
       ) : !list.items.length ? (
-        <EmptyState icon={<ListChecks className="size-7" />} title={tr.t('quiz.empty')} />
+        <EmptyState icon={<ListChecks className="size-7" />} title={banks ? tr.t('quiz.bank.empty') : tr.t('quiz.empty')} />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,8 +1,20 @@
-import { and, asc, avg, count, desc, eq, gte, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import {
   adaptiveQuizSchema,
   computeMastery,
+  integrityEventSchema,
+  itemAnalysis,
+  optionPermutation,
+  permuteOptions,
+  pickFromBlueprint,
+  seededRandom,
+  unpermuteAnswer,
+  type BankItem,
+  type BloomLevel,
+  type BlueprintRule,
+  type QuizInput,
+  type QuizStatsDto,
   dayKey,
   hasPermission,
   normalizeSearch,
@@ -21,7 +33,20 @@ import {
   type QuizResultDto,
   type QuizSummaryDto,
 } from '@qubedu/shared';
-import { courseMembers, eduMaterials, eduSections, quizAttempts, quizBest, quizQuestions, quizzes, topicSamples, users, videos } from '../db/schema';
+import {
+  courseMembers,
+  curriculumLinks,
+  eduMaterials,
+  eduSections,
+  objectiveSamples,
+  quizAttempts,
+  quizBest,
+  quizQuestions,
+  quizzes,
+  topicSamples,
+  users,
+  videos,
+} from '../db/schema';
 import { courseRole } from '../lib/access';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { decodeCursor, pageOf } from '../lib/cursor';
@@ -65,7 +90,7 @@ async function canEditQuiz(deps: Deps, user: AuthUser, quiz: QuizRow) {
 async function canSeeQuiz(deps: Deps, user: AuthUser | null, quiz: QuizRow) {
   if (quiz.deletedAt) return false;
   if (user && (await canEditQuiz(deps, user, quiz))) return true;
-  if (!quiz.published) return false;
+  if (!quiz.published || quiz.kind === 'bank') return false;
   if (quiz.courseId) return !!user && !!(await courseRole(deps.db, quiz.courseId, user.id));
   return true;
 }
@@ -109,6 +134,8 @@ async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Pr
       difficulty: r.q.difficulty,
       durationSec: r.q.durationSec,
       questionCount: r.q.questionCount,
+      fromBank: !!r.q.blueprint,
+      integrity: r.q.integrity,
       section: r.s?.id ? { id: r.s.id, name: r.s.name } : null,
       material: r.m?.id ? { id: r.m.id, name: r.m.name } : null,
       courseId: r.q.courseId,
@@ -124,10 +151,89 @@ async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Pr
   return out;
 }
 
-async function saveQuestions(tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0], quizId: string, input: ReturnType<typeof quizInputSchema.parse>) {
-  await tx.delete(quizQuestions).where(eq(quizQuestions.quizId, quizId));
-  await tx.insert(quizQuestions).values(
-    input.questions.map((q, i) => ({
+/** Questions from banks that feed an exam are never used for practice (they would leak the exam). */
+export const notUsedByExam = sql`not exists (select 1 from quizzes e where e.deleted_at is null and e.kind = 'exam' and e.blueprint -> 'bankIds' ? ${quizzes.id}::text)`;
+
+async function linkQuiz(tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0], nodeId: string, quizId: string, userId: string) {
+  await tx.insert(curriculumLinks).values({ nodeId, targetType: 'quiz', targetId: quizId, createdBy: userId }).onConflictDoNothing();
+}
+
+/** Each node with all of its ancestors (so an exam rule on a unit matches the objectives under it). */
+export async function curriculumPaths(deps: Deps, ids: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (!ids.length) return out;
+  const rows = await deps.db.execute<{ start: string; id: string }>(sql`
+    with recursive up(start, id, parent_id) as (
+      select n.id, n.id, n.parent_id from curriculum_nodes n where n.id in (${sql.join(
+        ids.map((i) => sql`${i}::uuid`),
+        sql`, `,
+      )})
+      union all
+      select up.start, p.id, p.parent_id from curriculum_nodes p join up on p.id = up.parent_id
+    )
+    select start, id from up`);
+  for (const r of rows) out.set(r.start, [...(out.get(r.start) ?? []), r.id]);
+  return out;
+}
+
+/** One student's questions for an exam built from banks (the same student always gets the same set). */
+async function blueprintQuestions(deps: Deps, quiz: QuizRow, seed: string): Promise<string[]> {
+  const bp = quiz.blueprint!;
+  const rows = await deps.db
+    .select({ id: quizQuestions.id, objectiveId: quizQuestions.objectiveId, level: quizQuestions.level, bloom: quizQuestions.bloom })
+    .from(quizQuestions)
+    .innerJoin(quizzes, eq(quizzes.id, quizQuestions.quizId))
+    .where(and(inArray(quizQuestions.quizId, bp.bankIds), isNull(quizzes.deletedAt)));
+  const paths = await curriculumPaths(deps, [...new Set(rows.map((r) => r.objectiveId).filter((x): x is string => !!x))]);
+  const items: BankItem[] = rows.map((r) => ({
+    id: r.id,
+    path: r.objectiveId ? (paths.get(r.objectiveId) ?? [r.objectiveId]) : [],
+    difficulty: r.level,
+    bloom: (r.bloom as BloomLevel | null) ?? null,
+  }));
+  return pickFromBlueprint(items, bp.rules as BlueprintRule[], seed).ids;
+}
+
+/** Per question, a random option order (display index → original option). True/false keeps its order. */
+async function optionOrdersFor(deps: Deps, questionIds: string[], seed: string): Promise<Record<string, number[]>> {
+  const qs = await deps.db
+    .select({ id: quizQuestions.id, type: quizQuestions.type, options: quizQuestions.options })
+    .from(quizQuestions)
+    .where(inArray(quizQuestions.id, questionIds));
+  const out: Record<string, number[]> = {};
+  for (const q of qs)
+    if ((q.type === 'mc' || q.type === 'multi') && q.options.length > 1) out[q.id] = optionPermutation(q.options.length, seededRandom(`${seed}:${q.id}`));
+  return out;
+}
+
+/** Records the objectives a graded attempt touched (mastery per curriculum objective). */
+export async function recordObjectives(
+  tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0],
+  userId: string,
+  attemptId: string,
+  questions: { id: string; objectiveId: string | null }[],
+  breakdown: { questionId: string; correct: boolean }[],
+) {
+  const objectiveOf = new Map(questions.filter((q) => q.objectiveId).map((q) => [q.id, q.objectiveId!]));
+  const agg = new Map<string, { correct: number; total: number }>();
+  for (const b of breakdown) {
+    const o = objectiveOf.get(b.questionId);
+    if (!o) continue;
+    const a = agg.get(o) ?? { correct: 0, total: 0 };
+    a.total += 1;
+    if (b.correct) a.correct += 1;
+    agg.set(o, a);
+  }
+  if (agg.size) await tx.insert(objectiveSamples).values([...agg].map(([objectiveId, a]) => ({ userId, objectiveId, attemptId, ...a })));
+}
+
+/** Saves the questions, keeping the ids of existing ones (bank questions build up item statistics across exams). */
+async function saveQuestions(tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0], quizId: string, input: QuizInput) {
+  const existing = await tx.select({ id: quizQuestions.id }).from(quizQuestions).where(eq(quizQuestions.quizId, quizId));
+  const keep = new Set(existing.map((e) => e.id));
+  const kept = new Set<string>();
+  for (const [i, q] of input.questions.entries()) {
+    const values = {
       quizId,
       position: i,
       type: q.type,
@@ -138,12 +244,55 @@ async function saveQuestions(tx: Parameters<Parameters<Deps['db']['transaction']
       explanation: q.explanation ?? null,
       topic: q.topic?.trim() || null,
       points: q.points,
-    })),
-  );
+      objectiveId: q.objectiveId ?? null,
+      bloom: q.bloom ?? null,
+      level: q.level ?? null,
+    };
+    if (q.id && keep.has(q.id) && !kept.has(q.id)) {
+      await tx.update(quizQuestions).set(values).where(eq(quizQuestions.id, q.id));
+      kept.add(q.id);
+    } else await tx.insert(quizQuestions).values(values);
+  }
+  const removed = [...keep].filter((id) => !kept.has(id));
+  if (removed.length) await tx.delete(quizQuestions).where(inArray(quizQuestions.id, removed));
 }
 
-function publicQuestion(q: typeof quizQuestions.$inferSelect): QuizQuestionPublic {
-  return { id: q.id, type: q.type, prompt: q.prompt, imageUrl: q.imageUrl, options: q.options, topic: q.topic, points: q.points };
+/** Banks used by an exam must be banks the author can edit. Returns the number of questions an attempt will have. */
+async function checkBlueprint(deps: Deps, user: AuthUser, input: QuizInput): Promise<number> {
+  if (!input.blueprint) return input.questions.length;
+  const banks = await deps.db
+    .select()
+    .from(quizzes)
+    .where(and(inArray(quizzes.id, input.blueprint.bankIds), isNull(quizzes.deletedAt)));
+  if (banks.length !== new Set(input.blueprint.bankIds).size) throw badRequest('bank_not_found');
+  for (const b of banks) if (b.kind !== 'bank' || !(await canEditQuiz(deps, user, b))) throw forbidden('bank_not_yours');
+  return input.blueprint.rules.reduce((n, r) => n + r.count, 0);
+}
+
+function quizValues(input: QuizInput, questionCount: number) {
+  return {
+    title: input.title,
+    searchTitle: normalizeSearch(`${input.title} ${input.description}`),
+    description: input.description,
+    sectionId: input.sectionId ?? null,
+    materialId: input.materialId ?? null,
+    kind: input.kind,
+    difficulty: input.difficulty,
+    durationSec: input.durationSec,
+    scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
+    // A bank is published only to share its questions for practice; it is never listed as a quiz.
+    published: input.published,
+    shuffle: input.shuffle,
+    shuffleOptions: input.shuffleOptions,
+    integrity: input.integrity,
+    blueprint: input.blueprint ?? null,
+    curriculumId: input.curriculumId ?? null,
+    questionCount,
+  };
+}
+
+function publicQuestion(q: typeof quizQuestions.$inferSelect, order?: number[]): QuizQuestionPublic {
+  return { id: q.id, type: q.type, prompt: q.prompt, imageUrl: q.imageUrl, options: permuteOptions(q.options, order), topic: q.topic, points: q.points };
 }
 
 async function attemptDto(deps: Deps, viewer: AuthUser, attempt: typeof quizAttempts.$inferSelect, quiz: QuizSummaryDto | null): Promise<QuizAttemptDto> {
@@ -157,6 +306,8 @@ async function attemptDto(deps: Deps, viewer: AuthUser, attempt: typeof quizAtte
     difficulty: 'medium',
     durationSec: Math.round((attempt.expiresAt.getTime() - attempt.startedAt.getTime()) / 1000),
     questionCount: attempt.questionIds.length,
+    fromBank: false,
+    integrity: false,
     section: null,
     material: null,
     courseId: null,
@@ -174,11 +325,12 @@ async function attemptDto(deps: Deps, viewer: AuthUser, attempt: typeof quizAtte
     questions: attempt.questionIds
       .map((id) => map.get(id))
       .filter((q): q is NonNullable<typeof q> => !!q)
-      .map(publicQuestion),
+      .map((q) => publicQuestion(q, attempt.optionOrders?.[q.id])),
     startedAt: attempt.startedAt.getTime(),
     expiresAt: attempt.expiresAt.getTime(),
     review: attempt.review,
     adaptive: attempt.adaptive,
+    integrity: !!attempt.integrity,
   };
 }
 
@@ -232,12 +384,16 @@ export const quizRoutes = new Hono<AppEnv>()
       .where(
         and(
           isNull(quizzes.deletedAt),
-          q.mine && viewer ? eq(quizzes.createdBy, viewer.id) : eq(quizzes.published, true),
+          (q.mine || q.kind === 'bank') && viewer ? eq(quizzes.createdBy, viewer.id) : eq(quizzes.published, true),
           courseFilter,
           q.sectionId ? eq(quizzes.sectionId, q.sectionId) : undefined,
           q.materialId ? eq(quizzes.materialId, q.materialId) : undefined,
           q.difficulty ? eq(quizzes.difficulty, q.difficulty) : undefined,
-          q.kind ? eq(quizzes.kind, q.kind) : undefined,
+          q.kind === 'bank'
+            ? and(eq(quizzes.kind, 'bank'), viewer ? eq(quizzes.createdBy, viewer.id) : sql`false`)
+            : q.kind
+              ? eq(quizzes.kind, q.kind)
+              : ne(quizzes.kind, 'bank'),
           term ? or(ilike(quizzes.searchTitle, `%${term}%`), sql`${quizzes.searchTitle} % ${term}`) : undefined,
           cursor ? sql`(${quizzes.createdAt}, ${quizzes.id}) < (to_timestamp(${cursor.t} / 1000.0), ${cursor.id})` : undefined,
         ),
@@ -263,27 +419,14 @@ export const quizRoutes = new Hono<AppEnv>()
       const r = await courseRole(deps.db, input.courseId, viewer.id);
       if (r !== 'teacher' && r !== 'assistant' && !canManageQuizzes(viewer)) throw forbidden('course_staff_only');
     } else if (viewer.accountType !== 'teacher' && !canManageQuizzes(viewer)) throw forbidden('teachers_only');
+    const questionCount = await checkBlueprint(deps, viewer, input);
     const id = await deps.db.transaction(async (tx) => {
       const [row] = await tx
         .insert(quizzes)
-        .values({
-          title: input.title,
-          searchTitle: normalizeSearch(`${input.title} ${input.description}`),
-          description: input.description,
-          sectionId: input.sectionId ?? null,
-          materialId: input.materialId ?? null,
-          courseId: input.courseId ?? null,
-          kind: input.kind,
-          difficulty: input.difficulty,
-          durationSec: input.durationSec,
-          scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
-          published: input.published,
-          shuffle: input.shuffle,
-          questionCount: input.questions.length,
-          createdBy: viewer.id,
-        })
+        .values({ ...quizValues(input, questionCount), courseId: input.courseId ?? null, createdBy: viewer.id })
         .returning({ id: quizzes.id });
       await saveQuestions(tx, row!.id, input);
+      if (input.curriculumId) await linkQuiz(tx, input.curriculumId, row!.id, viewer.id);
       return row!.id;
     });
     return c.json((await summaries(deps, viewer, [id]))[0], 201);
@@ -310,6 +453,7 @@ export const quizRoutes = new Hono<AppEnv>()
           isNull(quizzes.deletedAt),
           eq(quizzes.published, true),
           sql`${quizzes.kind} <> 'exam'`,
+          notUsedByExam,
           input.courseId
             ? eq(quizzes.courseId, input.courseId)
             : or(
@@ -422,7 +566,9 @@ export const quizRoutes = new Hono<AppEnv>()
         prompt: q.prompt,
         options: q.options,
       }));
-      const g = grade(gradable, answers as GivenAnswer[]);
+      const orders = attempt.optionOrders ?? {};
+      const original = (answers as GivenAnswer[]).map((a, i) => unpermuteAnswer(a, orders[attempt.questionIds[i] ?? '']));
+      const g = grade(gradable, original);
       const now = Date.now();
       const timeSec = Math.max(1, Math.round((Math.min(now, attempt.expiresAt.getTime() + GRACE_MS) - attempt.startedAt.getTime()) / 1000));
       const today = dayKey(now, viewer.timezone);
@@ -482,6 +628,7 @@ export const quizRoutes = new Hono<AppEnv>()
           })),
         );
       }
+      if (!attempt.review) await recordObjectives(tx, viewer.id, attemptId, ordered, g.breakdown);
       await touchStreak(tx, viewer.id, viewer.timezone);
       await logStudy(tx, viewer.id, today, { quizzes: 1, minutes: Math.min(180, Math.round(timeSec / 60)) });
       await tx
@@ -521,6 +668,28 @@ export const quizRoutes = new Hono<AppEnv>()
     });
     return c.json({ ...result.result, lessons: await lessonsForQuiz(deps, result.result.quizId) });
   })
+  /** The exam page reports when the student leaves the page or full screen, or pastes (integrity exams only). */
+  .post('/attempts/:attemptId/events', async (c) => {
+    const viewer = requireUser(c);
+    await checkRate(c, { bucket: 'quiz-integrity', limit: 120, windowSec: 600, by: 'user' });
+    const deps = c.get('deps');
+    const { type } = await body(c, integrityEventSchema);
+    const col = type === 'blur' ? 'blur' : type === 'fullscreen_exit' ? 'fullscreenExit' : 'paste';
+    await deps.db
+      .update(quizAttempts)
+      .set({
+        integrity: sql`jsonb_set(${quizAttempts.integrity}, ${`{${col}}`}::text[], to_jsonb(coalesce((${quizAttempts.integrity}->>${col})::int, 0) + 1))`,
+      })
+      .where(
+        and(
+          eq(quizAttempts.id, param(c, 'attemptId')),
+          eq(quizAttempts.userId, viewer.id),
+          isNull(quizAttempts.submittedAt),
+          sql`${quizAttempts.integrity} is not null`,
+        ),
+      );
+    return c.json({ ok: true });
+  })
   .get('/:id', async (c) => {
     const viewer = c.get('user');
     const deps = c.get('deps');
@@ -547,7 +716,15 @@ export const quizRoutes = new Hono<AppEnv>()
       scheduledAt: quiz.scheduledAt?.getTime() ?? null,
       published: quiz.published,
       shuffle: quiz.shuffle,
+      shuffleOptions: quiz.shuffleOptions,
+      integrity: quiz.integrity,
+      blueprint: quiz.blueprint ? { bankIds: quiz.blueprint.bankIds, rules: quiz.blueprint.rules as NonNullable<QuizEditorDto['blueprint']>['rules'] } : null,
+      curriculumId: quiz.curriculumId,
       questions: qs.map((q) => ({
+        id: q.id,
+        objectiveId: q.objectiveId,
+        bloom: q.bloom as BloomLevel | null,
+        level: q.level,
         type: q.type,
         prompt: q.prompt,
         imageUrl: q.imageUrl,
@@ -566,26 +743,14 @@ export const quizRoutes = new Hono<AppEnv>()
     const quiz = await loadQuiz(deps, param(c, 'id'));
     if (!(await canEditQuiz(deps, viewer, quiz))) throw forbidden();
     const input = await body(c, quizInputSchema);
+    const questionCount = await checkBlueprint(deps, viewer, input);
     await deps.db.transaction(async (tx) => {
       await tx
         .update(quizzes)
-        .set({
-          title: input.title,
-          searchTitle: normalizeSearch(`${input.title} ${input.description}`),
-          description: input.description,
-          sectionId: input.sectionId ?? null,
-          materialId: input.materialId ?? null,
-          kind: input.kind,
-          difficulty: input.difficulty,
-          durationSec: input.durationSec,
-          scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
-          published: input.published,
-          shuffle: input.shuffle,
-          questionCount: input.questions.length,
-          updatedAt: new Date(),
-        })
+        .set({ ...quizValues(input, questionCount), updatedAt: new Date() })
         .where(eq(quizzes.id, quiz.id));
       await saveQuestions(tx, quiz.id, input);
+      if (input.curriculumId && input.curriculumId !== quiz.curriculumId) await linkQuiz(tx, input.curriculumId, quiz.id, viewer.id);
     });
     return c.json((await summaries(deps, viewer, [quiz.id]))[0]);
   })
@@ -602,19 +767,36 @@ export const quizRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const quiz = await loadQuiz(deps, param(c, 'id'));
     if (!(await canEditQuiz(deps, viewer, quiz))) throw forbidden();
-    const [agg] = await deps.db
-      .select({ attempts: count(), average: avg(quizAttempts.pct) })
+    const attempts = await deps.db
+      .select({ a: quizAttempts, ...authorCols })
       .from(quizAttempts)
-      .where(and(eq(quizAttempts.quizId, quiz.id), sql`${quizAttempts.submittedAt} is not null`, eq(quizAttempts.review, false)));
-    const perQuestion = await deps.db.execute<{ id: string; prompt: string; correct: number; total: number }>(sql`
-      select q.id, q.prompt,
-        count(*) filter (where (b.elem->>'correct')::boolean) ::int as correct,
-        count(b.elem)::int as total
-      from quiz_questions q
-      left join quiz_attempts a on a.quiz_id = q.quiz_id and a.submitted_at is not null and a.review = false
-      left join lateral jsonb_array_elements(a.result->'breakdown') b(elem) on b.elem->>'questionId' = q.id::text
-      where q.quiz_id = ${quiz.id}
-      group by q.id, q.prompt, q.position order by q.position`);
+      .innerJoin(users, eq(users.id, quizAttempts.userId))
+      .where(and(eq(quizAttempts.quizId, quiz.id), sql`${quizAttempts.submittedAt} is not null`, eq(quizAttempts.review, false)))
+      .orderBy(desc(quizAttempts.submittedAt))
+      .limit(2000);
+    const scored = attempts.map((r) => {
+      const items: Record<string, boolean> = {};
+      for (const b of (r.a.result as { breakdown?: { questionId: string; correct: boolean }[] } | null)?.breakdown ?? []) items[b.questionId] = b.correct;
+      return { pct: r.a.pct ?? 0, items };
+    });
+    // Exams built from banks: the questions are whatever the students got.
+    const own = await deps.db
+      .select({ id: quizQuestions.id, prompt: quizQuestions.prompt })
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, quiz.id))
+      .orderBy(asc(quizQuestions.position));
+    const seen = [...new Set(scored.flatMap((x) => Object.keys(x.items)))];
+    const extra =
+      quiz.blueprint && seen.length
+        ? await deps.db.select({ id: quizQuestions.id, prompt: quizQuestions.prompt }).from(quizQuestions).where(inArray(quizQuestions.id, seen))
+        : [];
+    const questions = quiz.blueprint ? extra : own;
+    const analysis = new Map(
+      itemAnalysis(
+        scored,
+        questions.map((q) => q.id),
+      ).map((x) => [x.questionId, x]),
+    );
     const leaders = await deps.db
       .select({ pct: quizBest.pct, ...authorCols })
       .from(quizBest)
@@ -622,12 +804,36 @@ export const quizRoutes = new Hono<AppEnv>()
       .where(eq(quizBest.quizId, quiz.id))
       .orderBy(desc(quizBest.pct), asc(quizBest.updatedAt))
       .limit(20);
-    return c.json({
-      attempts: agg?.attempts ?? 0,
-      averagePct: agg?.average ? Math.round(Number(agg.average)) : null,
-      questions: perQuestion.map((q) => ({ id: q.id, prompt: q.prompt, correct: Number(q.correct), total: Number(q.total) })),
+    const latest = new Map<string, (typeof attempts)[number]>();
+    for (const r of attempts) if (!latest.has(r.a.userId)) latest.set(r.a.userId, r);
+    const total = scored.length;
+    const dto: QuizStatsDto = {
+      attempts: total,
+      averagePct: total ? Math.round(scored.reduce((n, x) => n + x.pct, 0) / total) : null,
+      questions: questions.map((q) => {
+        const a = analysis.get(q.id)!;
+        const answered = scored.filter((x) => q.id in x.items);
+        return {
+          id: q.id,
+          prompt: q.prompt,
+          correct: answered.filter((x) => x.items[q.id]).length,
+          total: answered.length,
+          p: a.p,
+          discrimination: a.discrimination,
+          difficulty: a.difficulty,
+          quality: a.quality,
+        };
+      }),
       leaderboard: leaders.map((l) => ({ user: toSummary(pickSummary('author', l as unknown as Record<string, unknown>)), pct: l.pct })),
-    });
+      attemptsList: [...latest.values()].map((r) => ({
+        attemptId: r.a.id,
+        user: toSummary(pickSummary('author', r as unknown as Record<string, unknown>)),
+        pct: r.a.pct ?? 0,
+        submittedAt: r.a.submittedAt!.getTime(),
+        integrity: r.a.integrity ?? { blur: 0, fullscreenExit: 0, paste: 0 },
+      })),
+    };
+    return c.json(dto);
   })
   .post('/:id/attempts', async (c) => {
     const viewer = requireUser(c);
@@ -654,22 +860,40 @@ export const quizRoutes = new Hono<AppEnv>()
           .where(and(eq(quizAttempts.quizId, quiz.id), eq(quizAttempts.userId, viewer.id), sql`${quizAttempts.submittedAt} is not null`));
         if ((done?.n ?? 0) > 0) throw conflict('exam_already_taken');
       }
-      const qs = await deps.db
-        .select({ id: quizQuestions.id })
-        .from(quizQuestions)
-        .where(eq(quizQuestions.quizId, quiz.id))
-        .orderBy(asc(quizQuestions.position));
-      questionIds = qs.map((q) => q.id);
+      if (quiz.blueprint) {
+        // Exams keep the same questions for a student; practice quizzes change on every attempt.
+        const [prior] = await deps.db
+          .select({ n: count() })
+          .from(quizAttempts)
+          .where(and(eq(quizAttempts.quizId, quiz.id), eq(quizAttempts.userId, viewer.id)));
+        questionIds = await blueprintQuestions(deps, quiz, quiz.kind === 'exam' ? `${quiz.id}:${viewer.id}` : `${quiz.id}:${viewer.id}:${prior?.n ?? 0}`);
+      } else {
+        const qs = await deps.db
+          .select({ id: quizQuestions.id })
+          .from(quizQuestions)
+          .where(eq(quizQuestions.quizId, quiz.id))
+          .orderBy(asc(quizQuestions.position));
+        questionIds = qs.map((q) => q.id);
+      }
     }
     if (!questionIds.length) throw badRequest('quiz_has_no_questions');
     const seed = `${viewer.id}:${Date.now()}`;
     if (quiz.shuffle) questionIds = seededShuffle(questionIds, seed);
+    const optionOrders = quiz.shuffleOptions ? await optionOrdersFor(deps, questionIds, seed) : null;
     const durationMs = review
       ? Math.max(60, Math.round((quiz.durationSec * questionIds.length) / Math.max(1, quiz.questionCount))) * 1000
       : quiz.durationSec * 1000;
     const [attempt] = await deps.db
       .insert(quizAttempts)
-      .values({ quizId: quiz.id, userId: viewer.id, questionIds, review, expiresAt: new Date(Date.now() + durationMs) })
+      .values({
+        quizId: quiz.id,
+        userId: viewer.id,
+        questionIds,
+        review,
+        expiresAt: new Date(Date.now() + durationMs),
+        optionOrders,
+        integrity: quiz.integrity && !review ? { blur: 0, fullscreenExit: 0, paste: 0 } : null,
+      })
       .returning();
     const [summary] = await summaries(deps, viewer, [quiz.id]);
     return c.json(await attemptDto(deps, viewer, attempt!, summary ?? null), 201);

@@ -4,7 +4,7 @@ import { xpProgress } from '@qubedu/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { AppState, Pressable, ScrollView, View } from 'react-native';
 import { ReadAloud } from '@/components/ReadAloud';
 import { Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -195,6 +195,18 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
     if (left === 0) void submit(true);
   }, [left, submit]);
 
+  // Exam mode: leaving the app (home button, another app, a call) is recorded for the teacher.
+  useEffect(() => {
+    if (!attempt.integrity) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') {
+        void api.quizzes.integrityEvent(attempt.attemptId, 'blur').catch(() => undefined);
+        toast(tr.t('quiz.bank.left'), 'err');
+      }
+    });
+    return () => sub.remove();
+  }, [attempt.attemptId, attempt.integrity, tr]);
+
   const set = (v: Answer) => setAnswers((a) => a.map((x, i) => (i === index ? v : x)));
   const current = answers[index];
 
@@ -202,6 +214,14 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <Stack.Screen options={{ title: attempt.quiz.title, headerBackVisible: false, gestureEnabled: false }} />
       <View style={{ padding: 16, gap: 8 }}>
+        {attempt.integrity ? (
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', borderWidth: 1, borderColor: t.warn, borderRadius: t.radiusControl, padding: 10 }}>
+            <Ionicons name="shield-half-outline" size={18} color={t.warn} />
+            <Text size={13} style={{ flex: 1 }}>
+              {tr.t('quiz.bank.integrityNotice')}
+            </Text>
+          </View>
+        ) : null}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Text weight="bold">{tr.t('quiz.player.questionOf', { n: index + 1, total: attempt.questions.length })}</Text>
           <Text weight="black" color={left < 30 ? t.err : t.text} accessibilityLabel={tr.t('quiz.player.timeLeft')}>
@@ -278,7 +298,8 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
 }
 
 export default function QuizScreen() {
-  const { id, review, topic } = useLocalSearchParams<{ id: string; review?: string; topic?: string }>();
+  // id: a quiz, "adaptive", or "attempt" with ?attempt=<id> (practice and placement tests made on the server).
+  const { id, review, topic, attempt: attemptId } = useLocalSearchParams<{ id: string; review?: string; topic?: string; attempt?: string }>();
   const [attempt, setAttempt] = useState<QuizAttemptDto | null>(null);
   const [result, setResult] = useState<QuizResultDto | null>(null);
   const [failed, setFailed] = useState(false);
@@ -286,12 +307,16 @@ export default function QuizScreen() {
   const run = useCallback(async () => {
     setFailed(false);
     try {
-      setAttempt(id === 'adaptive' ? await api.quizzes.adaptive({ count: 10, topic: topic || null }) : await api.quizzes.start(id!, review === '1'));
+      if (id === 'attempt' && attemptId) {
+        const r = await api.quizzes.attempt(attemptId);
+        if (r.submitted) setResult(r.result);
+        else setAttempt(r.attempt);
+      } else setAttempt(id === 'adaptive' ? await api.quizzes.adaptive({ count: 10, topic: topic || null }) : await api.quizzes.start(id!, review === '1'));
     } catch (e) {
       setFailed(true);
       toastError(e);
     }
-  }, [id, review, topic]);
+  }, [id, review, topic, attemptId]);
   useEffect(() => {
     if (started.current) return;
     started.current = true;

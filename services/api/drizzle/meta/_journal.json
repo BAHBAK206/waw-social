@@ -134,6 +134,13 @@
       "when": 1793207701626,
       "tag": "0018_guardian_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793210705576,
+      "tag": "0019_curriculum_bank",
+      "breakpoints": true
     }
   ]
 }

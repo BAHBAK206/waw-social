@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
+  BLOOM_LEVELS,
+  blankBank,
   blankQuestion,
   blankQuiz,
+  ITEM_DIFFICULTIES,
   LIMITS,
   quizBody,
   retypeQuestion,
@@ -16,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { takeQuizDraft } from '@/components/Captions';
 import { AiGenerateSheet } from '@/components/AiGenerate';
+import { CurriculumPicker } from '@/components/CurriculumPicker';
 import { SubjectPicker } from '@/components/SubjectPicker';
 import { FeatureGate, SelectField, SwitchRow } from '@/components/kit';
 import { Button, Card, Input, Loading, Text } from '@/components/ui';
@@ -141,6 +145,32 @@ function QuestionEditor({
         </View>
       )}
       <Input label={tr.t('quiz.editor.explanation')} value={q.explanation ?? ''} onChangeText={(v) => set({ explanation: v || null })} multiline />
+      <CurriculumPicker
+        label={tr.t('curriculum.objective')}
+        kinds={['objective', 'lesson']}
+        value={q.objectiveId}
+        onChange={(id) => set({ objectiveId: id })}
+      />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <SelectField
+            label={tr.t('quiz.bank.levelLabel')}
+            value={q.level ?? ''}
+            placeholder="—"
+            onChange={(v) => set({ level: v || null })}
+            options={ITEM_DIFFICULTIES.map((d) => ({ value: d, label: tr.t(`quiz.difficulties.${d}`) }))}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <SelectField
+            label={tr.t('quiz.bank.bloomLabel')}
+            value={q.bloom ?? ''}
+            placeholder="—"
+            onChange={(v) => set({ bloom: v || null })}
+            options={BLOOM_LEVELS.map((b) => ({ value: b, label: tr.t(`quiz.bank.bloom.${b}`) }))}
+          />
+        </View>
+      </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 2 }}>
           <Input label={tr.t('quiz.editor.topic')} value={q.topic ?? ''} onChangeText={(v) => set({ topic: v || null })} maxLength={120} />
@@ -159,7 +189,7 @@ function QuestionEditor({
 }
 
 export default function QuizEditorScreen() {
-  const { id, draft: fromDraft } = useLocalSearchParams<{ id?: string; draft?: string }>();
+  const { id, draft: fromDraft, kind: kindParam } = useLocalSearchParams<{ id?: string; draft?: string; kind?: string }>();
   const tr = useT();
   const t = useTheme();
   const router = useRouter();
@@ -172,10 +202,13 @@ export default function QuizEditorScreen() {
   const [form, setForm] = useState<QuizDraft>(() =>
     draft
       ? { ...blankQuiz(), title: draft.title.slice(0, LIMITS.quizTitle), questions: draft.questions.length ? draft.questions : blankQuiz().questions }
-      : blankQuiz(),
+      : kindParam === 'bank'
+        ? blankBank()
+        : blankQuiz(),
   );
   const [busy, setBusy] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const bank = form.kind === 'bank';
   const teacher = useSession((s) => s.me?.accountType === 'teacher' || (s.me?.role ?? 'user') !== 'user');
   useEffect(() => {
     if (existing.data) {
@@ -185,7 +218,9 @@ export default function QuizEditorScreen() {
     }
   }, [existing.data]);
   if (id && existing.isPending) return <Loading />;
-  const valid = form.title.trim().length >= 2 && validQuizQuestions(form.questions);
+  // Exams built from banks keep their rules; the rules are edited on the web.
+  const fromBanks = !!form.blueprint;
+  const valid = form.title.trim().length >= 2 && (fromBanks || validQuizQuestions(form.questions));
   const setQ = (i: number, q: EditorQuestion) => setForm((f) => ({ ...f, questions: f.questions.map((x, k) => (k === i ? q : x)) }));
   const save = async () => {
     setBusy(true);
@@ -208,7 +243,7 @@ export default function QuizEditorScreen() {
   };
   return (
     <FeatureGate id="quiz">
-      <Stack.Screen options={{ title: id ? tr.t('quiz.edit') : tr.t('quiz.create') }} />
+      <Stack.Screen options={{ title: bank ? tr.t('quiz.bank.newBank') : id ? tr.t('quiz.edit') : tr.t('quiz.create') }} />
       <ScrollView
         style={{ flex: 1, backgroundColor: t.bg }}
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 60 }}
@@ -243,7 +278,7 @@ export default function QuizEditorScreen() {
               label={tr.t('quiz.kind')}
               value={form.kind}
               onChange={(v) => v && setForm({ ...form, kind: v })}
-              options={(['quiz', 'test', 'exam'] as const).map((k) => ({ value: k, label: tr.t(`quiz.kinds.${k}`) }))}
+              options={(bank ? (['bank'] as const) : (['quiz', 'test', 'exam'] as const)).map((k) => ({ value: k, label: tr.t(`quiz.kinds.${k}`) }))}
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -270,31 +305,72 @@ export default function QuizEditorScreen() {
             options={courses.data.items.filter((c) => c.myRole === 'teacher' || c.myRole === 'assistant').map((c) => ({ value: c.id, label: c.title }))}
           />
         )}
-        <SwitchRow label={tr.t('quiz.editor.shuffle')} value={form.shuffle} onChange={(v) => setForm({ ...form, shuffle: v })} />
-        <SwitchRow label={tr.t('quiz.editor.publishedLabel')} value={form.published} onChange={(v) => setForm({ ...form, published: v })} />
-        {form.questions.map((q, i) => (
-          <QuestionEditor
-            key={i}
-            q={q}
-            index={i}
-            total={form.questions.length}
-            onChange={(x) => setQ(i, x)}
-            onRemove={async () => {
-              if (form.questions.length > 1 && !(await confirm(tr.t('quiz.editor.removeQuestion'), { danger: true }))) return;
-              setForm((f) => ({ ...f, questions: f.questions.length > 1 ? f.questions.filter((_, k) => k !== i) : [blankQuestion()] }));
-            }}
-            onMove={(d) =>
-              setForm((f) => {
-                const qs = [...f.questions];
-                const j = i + d;
-                if (j < 0 || j >= qs.length) return f;
-                [qs[i], qs[j]] = [qs[j]!, qs[i]!];
-                return { ...f, questions: qs };
-              })
-            }
-          />
-        ))}
-        {form.questions.length < LIMITS.questionsPerQuiz && (
+        {bank ? (
+          <>
+            <Text muted size={13}>
+              {tr.t('quiz.bank.hint')}
+            </Text>
+            <SwitchRow
+              label={tr.t('quiz.bank.share')}
+              hint={tr.t('quiz.bank.shareHint')}
+              value={form.published}
+              onChange={(v) => setForm({ ...form, published: v })}
+            />
+          </>
+        ) : (
+          <>
+            <CurriculumPicker
+              label={tr.t('curriculum.place')}
+              kinds={['unit', 'lesson', 'objective']}
+              value={form.curriculumId}
+              onChange={(curriculumId) => setForm({ ...form, curriculumId })}
+            />
+            <SwitchRow label={tr.t('quiz.editor.shuffle')} value={form.shuffle} onChange={(v) => setForm({ ...form, shuffle: v })} />
+            <SwitchRow label={tr.t('quiz.editor.publishedLabel')} value={form.published} onChange={(v) => setForm({ ...form, published: v })} />
+            <SwitchRow label={tr.t('quiz.bank.shuffleOptions')} value={form.shuffleOptions} onChange={(v) => setForm({ ...form, shuffleOptions: v })} />
+            <SwitchRow label={tr.t('quiz.bank.integrity')} value={form.integrity} onChange={(v) => setForm({ ...form, integrity: v })} />
+          </>
+        )}
+        {fromBanks ? (
+          <Card style={{ gap: 8 }}>
+            <Text weight="black">{tr.t('quiz.bank.fromBanks')}</Text>
+            <Text muted size={13}>
+              {tr.t('quiz.bank.total', { count: form.blueprint!.rules.reduce((n, r) => n + r.count, 0) })}
+            </Text>
+            {id ? (
+              <Button
+                variant="outline"
+                icon="open-outline"
+                title={tr.t('common.edit')}
+                onPress={() => router.push(`/web?path=${encodeURIComponent(`/quiz/${id}/edit`)}&title=${encodeURIComponent(form.title)}` as never)}
+              />
+            ) : null}
+          </Card>
+        ) : null}
+        {!fromBanks &&
+          form.questions.map((q, i) => (
+            <QuestionEditor
+              key={i}
+              q={q}
+              index={i}
+              total={form.questions.length}
+              onChange={(x) => setQ(i, x)}
+              onRemove={async () => {
+                if (form.questions.length > 1 && !(await confirm(tr.t('quiz.editor.removeQuestion'), { danger: true }))) return;
+                setForm((f) => ({ ...f, questions: f.questions.length > 1 ? f.questions.filter((_, k) => k !== i) : [blankQuestion()] }));
+              }}
+              onMove={(d) =>
+                setForm((f) => {
+                  const qs = [...f.questions];
+                  const j = i + d;
+                  if (j < 0 || j >= qs.length) return f;
+                  [qs[i], qs[j]] = [qs[j]!, qs[i]!];
+                  return { ...f, questions: qs };
+                })
+              }
+            />
+          ))}
+        {!fromBanks && form.questions.length < LIMITS.questionsPerQuiz && (
           <Button
             variant="outline"
             icon="add"

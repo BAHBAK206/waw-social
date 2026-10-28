@@ -8,6 +8,7 @@ export * from './features';
 export * from './navigation';
 export * from './guides';
 export * from './studyTools';
+export * from './curriculum';
 export * from './roles';
 export * from './appearance';
 export * from './planner';

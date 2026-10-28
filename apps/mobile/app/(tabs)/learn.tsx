@@ -21,15 +21,23 @@ export default function LearnScreen() {
   const [q, setQ] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('');
   const [mine, setMine] = useState(false);
+  const [banks, setBanks] = useState(false);
   const teacher = useSession((s) => s.me?.accountType === 'teacher');
   useEffect(() => {
     const id = setTimeout(() => setQ(term.trim()), 300);
     return () => clearTimeout(id);
   }, [term]);
   const list = useInfiniteQuery({
-    queryKey: ['quizzes', q, difficulty, mine],
+    queryKey: ['quizzes', q, difficulty, mine, banks],
     queryFn: ({ pageParam }) =>
-      api.quizzes.list({ q: q || undefined, difficulty: difficulty || undefined, mine: mine || undefined, cursor: pageParam, limit: 20 }),
+      api.quizzes.list({
+        q: q || undefined,
+        difficulty: difficulty || undefined,
+        mine: mine || banks || undefined,
+        kind: banks ? 'bank' : undefined,
+        cursor: pageParam,
+        limit: 20,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (l) => l.nextCursor ?? undefined,
   });
@@ -106,9 +114,17 @@ export default function LearnScreen() {
               textAlign: 'auto',
             }}
           />
-          {teacher && <Button icon="add" variant="outline" title={tr.t('quiz.create')} onPress={() => router.push('/quiz-editor' as never)} />}
+          {teacher && (
+            <Button
+              icon="add"
+              variant="outline"
+              title={banks ? tr.t('quiz.bank.newBank') : tr.t('quiz.create')}
+              onPress={() => router.push((banks ? '/quiz-editor?kind=bank' : '/quiz-editor') as never)}
+            />
+          )}
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <Chip label={tr.t('quiz.mine')} active={mine} onPress={() => setMine((m) => !m)} />
+            {teacher ? <Chip label={tr.t('quiz.bank.banks')} active={banks} onPress={() => setBanks((b) => !b)} /> : null}
             <Chip label={tr.t('common.all')} active={!difficulty} onPress={() => setDifficulty('')} />
             {(['easy', 'medium', 'hard'] as const).map((d) => (
               <Chip key={d} label={tr.t(`quiz.difficulties.${d}`)} active={difficulty === d} onPress={() => setDifficulty(d)} />
@@ -119,7 +135,7 @@ export default function LearnScreen() {
       renderItem={({ item }) => (
         <QuizRow
           quiz={item}
-          onPress={() => router.push(`/quiz/${item.id}` as never)}
+          onPress={() => router.push((item.kind === 'bank' ? `/quiz-editor?id=${item.id}` : `/quiz/${item.id}`) as never)}
           onManage={item.canEdit ? () => router.push(`/quiz-stats/${item.id}` as never) : undefined}
         />
       )}

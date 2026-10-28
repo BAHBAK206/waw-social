@@ -102,6 +102,8 @@ function Shell() {
         <Stack.Screen name="channel/[id]" options={{ title: tr.t('nav.watch') }} />
         <Stack.Screen name="shorts" options={{ title: tr.t('nav.shorts'), headerStyle: { backgroundColor: '#000' }, headerTintColor: '#fff' }} />
         <Stack.Screen name="info/[page]" options={{ title: tr.t('nav.help') }} />
+        <Stack.Screen name="curriculum/index" options={{ title: tr.t('nav.curriculum') }} />
+        <Stack.Screen name="curriculum/[id]" options={{ title: tr.t('nav.curriculum') }} />
         <Stack.Screen name="timetable" options={{ title: tr.t('nav.timetable') }} />
         <Stack.Screen name="calculator" options={{ title: tr.t('nav.calculator') }} />
         <Stack.Screen name="help/index" options={{ title: tr.t('helpCenter.title') }} />

@@ -37,6 +37,7 @@ import {
   Hand,
   HeartHandshake,
   Award,
+  Map as MapIcon,
   Medal,
   Store,
   House,
@@ -135,6 +136,7 @@ export const ICONS: Record<string, LucideIcon> = {
   'clipboard-check': ClipboardCheck,
   'calendar-range': CalendarRange,
   calculator: Calculator,
+  map: MapIcon,
 };
 
 export interface NavItem {
@@ -150,7 +152,9 @@ type PageFeature = Extract<(typeof FEATURES)[number], { route: string }>;
 
 /** Navigable pages in menu order, after the root admin's feature controls (hidden items removed) and the account's audience. */
 export function navItems(controls: FeatureControlMap, accountType?: AccountType | null): NavItem[] {
-  const byId = new Map(FEATURES.filter((f): f is PageFeature => f.kind === 'page' && 'route' in f && !f.route.includes(':')).map((f) => [f.id, f]));
+  const byId = new Map<FeatureId, PageFeature>(
+    FEATURES.filter((f): f is PageFeature => f.kind === 'page' && 'route' in f && !f.route.includes(':')).map((f) => [f.id, f]),
+  );
   return NAV_ORDER.map((id) => byId.get(id))
     .filter((f): f is PageFeature => !!f && featureMode(controls, f.id) !== 'hidden' && shownTo(f.id, accountType))
     .map((f) => ({

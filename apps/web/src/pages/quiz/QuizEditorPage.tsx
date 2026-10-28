@@ -1,9 +1,23 @@
-import { blankQuestion, blankQuiz, LIMITS, quizBody, retypeQuestion, validQuizQuestions, type QuestionType, type QuizEditorDto } from '@qubedu/shared';
+import {
+  BLOOM_LEVELS,
+  blankBank,
+  blankQuestion,
+  blankQuiz,
+  ITEM_DIFFICULTIES,
+  LIMITS,
+  quizBody,
+  retypeQuestion,
+  validQuizQuestions,
+  type QuestionType,
+  type QuizEditorDto,
+} from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { CurriculumPicker } from '@/components/curriculum/CurriculumPicker';
 import { AiGenerateDialog } from '@/components/quiz/AiGenerate';
+import { BlueprintEditor } from '@/components/quiz/BlueprintEditor';
 import { QUIZ_DRAFT_KEY } from '@/components/video/Captions';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
@@ -71,6 +85,28 @@ function QuestionEditor({
           label={tr.t('quiz.editor.pointsLabel')}
           value={q.points}
           onChange={(e) => set({ points: Math.max(1, Math.min(100, Number(e.target.value) || 1)) })}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+        <CurriculumPicker
+          label={tr.t('curriculum.objective')}
+          kinds={['objective', 'lesson']}
+          value={q.objectiveId}
+          onChange={(id) => set({ objectiveId: id })}
+        />
+        <Select
+          label={tr.t('quiz.bank.levelLabel')}
+          value={q.level ?? ''}
+          placeholder="—"
+          onChange={(e) => set({ level: (e.target.value || null) as Q['level'] })}
+          options={ITEM_DIFFICULTIES.map((d) => ({ value: d, label: tr.t(`quiz.difficulties.${d}`) }))}
+        />
+        <Select
+          label={tr.t('quiz.bank.bloomLabel')}
+          value={q.bloom ?? ''}
+          placeholder="—"
+          onChange={(e) => set({ bloom: (e.target.value || null) as Q['bloom'] })}
+          options={BLOOM_LEVELS.map((b) => ({ value: b, label: tr.t(`quiz.bank.bloom.${b}`) }))}
         />
       </div>
 
@@ -189,7 +225,9 @@ export default function QuizEditorPage() {
   const [form, setForm] = useState<Omit<QuizEditorDto, 'id'>>(() =>
     draft
       ? { ...blankQuiz(), title: draft.title.slice(0, LIMITS.quizTitle), questions: draft.questions.length ? draft.questions : blankQuiz().questions }
-      : blankQuiz(),
+      : params.get('kind') === 'bank'
+        ? blankBank()
+        : blankQuiz(),
   );
   const [busy, setBusy] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
@@ -211,7 +249,10 @@ export default function QuizEditorPage() {
 
   if (id && existing.isPending) return <Spinner className="py-24" />;
   const materials = taxonomy.data?.sections.find((s) => s.id === form.sectionId)?.materials ?? [];
-  const valid = form.title.trim().length >= 2 && validate(form.questions);
+  const bank = form.kind === 'bank';
+  const fromBanks = !!form.blueprint;
+  const valid =
+    form.title.trim().length >= 2 && (fromBanks ? form.blueprint!.bankIds.length > 0 && form.blueprint!.rules.length > 0 : validate(form.questions));
 
   const importJson = async () => {
     const f = await pickFile('.json,application/json');
@@ -243,7 +284,7 @@ export default function QuizEditorPage() {
         }
       }
       toast(tr.t('common.saved'));
-      navigate('/quiz?mine=1');
+      navigate(bank ? '/quiz?tab=banks' : '/quiz?mine=1');
     } catch (e) {
       toastError(e);
     } finally {
@@ -255,7 +296,8 @@ export default function QuizEditorPage() {
     <div className="page-narrow space-y-5">
       <AiGenerateDialog open={aiOpen} onClose={() => setAiOpen(false)} onAdd={addQuestions} />
       <PageHeader
-        title={id ? tr.t('quiz.edit') : tr.t('quiz.create')}
+        title={bank ? (id ? form.title || tr.t('quiz.bank.banks') : tr.t('quiz.bank.newBank')) : id ? tr.t('quiz.edit') : tr.t('quiz.create')}
+        subtitle={bank ? tr.t('quiz.bank.hint') : undefined}
         actions={
           <>
             {teacher && (
@@ -300,7 +342,7 @@ export default function QuizEditorPage() {
             label={tr.t('quiz.kind')}
             value={form.kind}
             onChange={(e) => setForm({ ...form, kind: e.target.value as typeof form.kind })}
-            options={(['quiz', 'test', 'exam'] as const).map((k) => ({ value: k, label: tr.t(`quiz.kinds.${k}`) }))}
+            options={(bank ? (['bank'] as const) : (['quiz', 'test', 'exam'] as const)).map((k) => ({ value: k, label: tr.t(`quiz.kinds.${k}`) }))}
           />
           <Select
             label={tr.t('quiz.difficulty')}
@@ -332,27 +374,53 @@ export default function QuizEditorPage() {
             options={(courses.data?.items ?? []).filter((c) => c.myRole !== 'student').map((c) => ({ value: c.id, label: c.title }))}
           />
         </div>
-        <div className="grid gap-x-8 sm:grid-cols-2">
-          <Switch checked={form.shuffle} onChange={(v) => setForm({ ...form, shuffle: v })} label={tr.t('quiz.editor.shuffle')} />
-          <Switch checked={form.published} onChange={(v) => setForm({ ...form, published: v })} label={tr.t('quiz.editor.publishedLabel')} />
-        </div>
+        {!bank && (
+          <CurriculumPicker
+            label={tr.t('curriculum.place')}
+            kinds={['unit', 'lesson', 'objective']}
+            value={form.curriculumId}
+            onChange={(curriculumId) => setForm({ ...form, curriculumId })}
+          />
+        )}
+        {bank ? (
+          <Switch
+            checked={form.published}
+            onChange={(v) => setForm({ ...form, published: v })}
+            label={tr.t('quiz.bank.share')}
+            description={tr.t('quiz.bank.shareHint')}
+          />
+        ) : (
+          <div className="grid gap-x-8 sm:grid-cols-2">
+            <Switch checked={form.shuffle} onChange={(v) => setForm({ ...form, shuffle: v })} label={tr.t('quiz.editor.shuffle')} />
+            <Switch checked={form.published} onChange={(v) => setForm({ ...form, published: v })} label={tr.t('quiz.editor.publishedLabel')} />
+            <Switch checked={form.shuffleOptions} onChange={(v) => setForm({ ...form, shuffleOptions: v })} label={tr.t('quiz.bank.shuffleOptions')} />
+            <Switch checked={form.integrity} onChange={(v) => setForm({ ...form, integrity: v })} label={tr.t('quiz.bank.integrity')} />
+            <Switch
+              checked={fromBanks}
+              onChange={(v) => setForm({ ...form, blueprint: v ? { bankIds: [], rules: [{ count: 10 }] } : null })}
+              label={tr.t('quiz.bank.fromBanks')}
+            />
+          </div>
+        )}
       </section>
-      {form.questions.map((q, i) => (
-        <QuestionEditor
-          key={i}
-          q={q}
-          index={i}
-          total={form.questions.length}
-          onChange={(nq) => setForm({ ...form, questions: form.questions.map((x, k) => (k === i ? nq : x)) })}
-          onRemove={() => setForm({ ...form, questions: form.questions.length > 1 ? form.questions.filter((_, k) => k !== i) : [blank()] })}
-          onMove={(d) => {
-            const arr = [...form.questions];
-            [arr[i], arr[i + d]] = [arr[i + d]!, arr[i]!];
-            setForm({ ...form, questions: arr });
-          }}
-        />
-      ))}
-      {form.questions.length < LIMITS.questionsPerQuiz && (
+      {fromBanks && <BlueprintEditor value={form.blueprint!} onChange={(blueprint) => setForm({ ...form, blueprint })} />}
+      {!fromBanks &&
+        form.questions.map((q, i) => (
+          <QuestionEditor
+            key={i}
+            q={q}
+            index={i}
+            total={form.questions.length}
+            onChange={(nq) => setForm({ ...form, questions: form.questions.map((x, k) => (k === i ? nq : x)) })}
+            onRemove={() => setForm({ ...form, questions: form.questions.length > 1 ? form.questions.filter((_, k) => k !== i) : [blank()] })}
+            onMove={(d) => {
+              const arr = [...form.questions];
+              [arr[i], arr[i + d]] = [arr[i + d]!, arr[i]!];
+              setForm({ ...form, questions: arr });
+            }}
+          />
+        ))}
+      {!fromBanks && form.questions.length < LIMITS.questionsPerQuiz && (
         <Button variant="soft" block icon={<Plus className="size-4" />} onClick={() => setForm({ ...form, questions: [...form.questions, blank()] })}>
           {tr.t('quiz.editor.addQuestion')}
         </Button>

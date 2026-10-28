@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { LIMITS } from '../limits';
 import { FLASHCARD_RATINGS } from '../flashcards';
+import { BLOOM_LEVELS, CURRICULUM_SYSTEMS, ITEM_DIFFICULTIES } from '../curriculum';
 import { daySchema, idSchema, optionalUrl, timeSchema, trimmed } from './common';
 
 export const questionTypeSchema = z.enum(['mc', 'tf', 'multi', 'short']);
@@ -8,6 +9,8 @@ export type QuestionType = z.infer<typeof questionTypeSchema>;
 
 export const questionInputSchema = z
   .object({
+    /** Existing question (kept so its statistics carry on). */
+    id: idSchema.optional(),
     type: questionTypeSchema,
     prompt: trimmed(LIMITS.questionText, 1),
     imageUrl: optionalUrl,
@@ -17,6 +20,10 @@ export const questionInputSchema = z
     explanation: trimmed(LIMITS.explanation).optional().nullable(),
     topic: trimmed(120).optional().nullable(),
     points: z.number().int().min(1).max(100).default(1),
+    /** Curriculum node (usually an objective) this question checks. */
+    objectiveId: idSchema.optional().nullable(),
+    bloom: z.enum(BLOOM_LEVELS).optional().nullable(),
+    level: z.enum(ITEM_DIFFICULTIES).optional().nullable(),
   })
   .superRefine((q, ctx) => {
     if (q.type === 'tf' && q.options.length !== 2) ctx.addIssue({ code: 'custom', message: 'tf_needs_two_options' });
@@ -33,25 +40,56 @@ export const questionInputSchema = z
   });
 export type QuestionInput = z.infer<typeof questionInputSchema>;
 
-export const quizInputSchema = z.object({
-  title: trimmed(LIMITS.quizTitle, 2),
-  description: trimmed(2000).default(''),
-  sectionId: idSchema.optional().nullable(),
-  materialId: idSchema.optional().nullable(),
-  courseId: idSchema.optional().nullable(),
-  kind: z.enum(['quiz', 'test', 'exam']).default('quiz'),
-  difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
-  durationSec: z
-    .number()
-    .int()
-    .min(30)
-    .max(6 * 3600)
-    .default(600),
-  scheduledAt: z.number().int().optional().nullable(),
-  published: z.boolean().default(true),
-  shuffle: z.boolean().default(false),
-  questions: z.array(questionInputSchema).min(1).max(LIMITS.questionsPerQuiz),
+/** Exam rules: each student gets `count` random questions per rule, from the chosen question banks. */
+export const blueprintSchema = z.object({
+  bankIds: z.array(idSchema).min(1).max(20),
+  rules: z
+    .array(
+      z.object({
+        objectiveId: idSchema.optional().nullable(),
+        difficulty: z.enum(ITEM_DIFFICULTIES).optional().nullable(),
+        bloom: z.enum(BLOOM_LEVELS).optional().nullable(),
+        count: z.number().int().min(1).max(100),
+      }),
+    )
+    .min(1)
+    .max(30),
 });
+export type BlueprintInput = z.infer<typeof blueprintSchema>;
+
+export const quizInputSchema = z
+  .object({
+    title: trimmed(LIMITS.quizTitle, 2),
+    description: trimmed(2000).default(''),
+    sectionId: idSchema.optional().nullable(),
+    materialId: idSchema.optional().nullable(),
+    courseId: idSchema.optional().nullable(),
+    /** "bank" = a question bank: never listed or taken directly, used to build exams. */
+    kind: z.enum(['quiz', 'test', 'exam', 'bank']).default('quiz'),
+    difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+    durationSec: z
+      .number()
+      .int()
+      .min(30)
+      .max(6 * 3600)
+      .default(600),
+    scheduledAt: z.number().int().optional().nullable(),
+    published: z.boolean().default(true),
+    shuffle: z.boolean().default(false),
+    /** Each student sees the options of a question in a different order. */
+    shuffleOptions: z.boolean().default(false),
+    /** Ask for full screen and log when the student leaves the page during the attempt. */
+    integrity: z.boolean().default(false),
+    /** Build each student's questions from question banks instead of the questions below. */
+    blueprint: blueprintSchema.optional().nullable(),
+    /** Curriculum node the whole quiz belongs to (shown on the curriculum page). */
+    curriculumId: idSchema.optional().nullable(),
+    questions: z.array(questionInputSchema).max(LIMITS.questionsPerQuiz).default([]),
+  })
+  .superRefine((q, ctx) => {
+    if (!q.blueprint && q.questions.length < 1) ctx.addIssue({ code: 'custom', path: ['questions'], message: 'needs_questions' });
+    if (q.blueprint && q.kind === 'bank') ctx.addIssue({ code: 'custom', path: ['blueprint'], message: 'bank_cannot_use_blueprint' });
+  });
 export type QuizInput = z.infer<typeof quizInputSchema>;
 
 export const quizListQuerySchema = z.object({
@@ -60,7 +98,7 @@ export const quizListQuerySchema = z.object({
   materialId: idSchema.optional(),
   courseId: idSchema.optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
-  kind: z.enum(['quiz', 'test', 'exam']).optional(),
+  kind: z.enum(['quiz', 'test', 'exam', 'bank']).optional(),
   mine: z.coerce.boolean().optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(24),
@@ -70,6 +108,7 @@ export const answerValueSchema = z.union([z.number().int().min(0), z.array(z.num
 export const submitAttemptSchema = z.object({ answers: z.array(answerValueSchema).max(LIMITS.questionsPerQuiz) });
 export type SubmitAttemptInput = z.infer<typeof submitAttemptSchema>;
 export const startAttemptSchema = z.object({ review: z.boolean().default(false) });
+export const integrityEventSchema = z.object({ type: z.enum(['blur', 'fullscreen_exit', 'paste']) });
 export const adaptiveQuizSchema = z.object({
   courseId: idSchema.optional().nullable(),
   topic: trimmed(120).optional().nullable(),
@@ -173,4 +212,51 @@ export const pronunciationAttemptSchema = z.object({
   phrase: trimmed(300, 1),
   /** What the browser's speech recognition heard; the server re-scores it. */
   heard: trimmed(600).default(''),
+});
+
+/* ───────────── Curriculum ───────────── */
+
+export const curriculumNodeSchema = z.object({
+  parentId: idSchema.optional().nullable(),
+  kind: z.enum(['subject', 'unit', 'lesson', 'objective']),
+  title: trimmed(200, 1),
+  code: trimmed(40).optional().nullable(),
+  description: trimmed(2000).optional().nullable(),
+  system: z.enum(CURRICULUM_SYSTEMS).default('general'),
+  gradeLevel: z.string().max(10).optional().nullable(),
+  sort: z.number().int().min(0).max(100000).default(0),
+});
+export type CurriculumNodeInput = z.infer<typeof curriculumNodeSchema>;
+
+export interface CurriculumImportNode {
+  title: string;
+  code?: string | null;
+  description?: string | null;
+  children?: CurriculumImportNode[];
+}
+const importNode: z.ZodType<CurriculumImportNode> = z.lazy(() =>
+  z.object({
+    title: trimmed(200, 1),
+    code: trimmed(40).optional().nullable(),
+    description: trimmed(2000).optional().nullable(),
+    children: z.array(importNode).max(200).optional(),
+  }),
+);
+
+/** A whole subject at once: units → lessons → objectives (paste the official programme as JSON). */
+export const curriculumImportSchema = z.object({
+  system: z.enum(CURRICULUM_SYSTEMS).default('general'),
+  gradeLevel: z.string().max(10).optional().nullable(),
+  subject: importNode,
+});
+
+export const curriculumLinkSchema = z.object({
+  targetType: z.enum(['quiz', 'video', 'library']),
+  targetId: idSchema,
+});
+
+export const curriculumQuerySchema = z.object({
+  system: z.enum(CURRICULUM_SYSTEMS).optional(),
+  gradeLevel: z.string().max(10).optional(),
+  q: z.string().trim().max(120).optional(),
 });

@@ -3,6 +3,7 @@ import type { RiskLevel, RiskReason, StudentSignals } from './insights';
 import type { LeagueTier } from './leagues';
 import type { AgeTier, GradeLevel, ParentalControls } from './stages';
 import type { AccountType, AdminPermission, Role } from './roles';
+import type { BloomLevel, CurriculumKind, CurriculumSystem, ItemDifficulty, ObjectiveStatus } from './curriculum';
 import type { Appearance } from './appearance';
 import type { FeatureControlMap } from './features';
 import type { NotificationPrefs, Privacy } from './schemas/users';
@@ -240,10 +241,14 @@ export interface QuizSummaryDto {
   id: string;
   title: string;
   description: string;
-  kind: 'quiz' | 'test' | 'exam';
+  kind: 'quiz' | 'test' | 'exam' | 'bank';
   difficulty: 'easy' | 'medium' | 'hard';
   durationSec: number;
   questionCount: number;
+  /** Built per student from question banks. */
+  fromBank: boolean;
+  /** Full screen is requested and leaving the page is recorded. */
+  integrity: boolean;
   section: { id: string; name: string } | null;
   material: { id: string; name: string } | null;
   courseId: string | null;
@@ -274,6 +279,16 @@ export interface QuizAttemptDto {
   expiresAt: number;
   review: boolean;
   adaptive: boolean;
+  /** Full screen + leaving-the-page log are on for this attempt. */
+  integrity: boolean;
+}
+
+export type IntegrityEvent = 'blur' | 'fullscreen_exit' | 'paste';
+
+export interface IntegrityCounts {
+  blur: number;
+  fullscreenExit: number;
+  paste: number;
 }
 
 export interface QuestionReview {
@@ -311,13 +326,21 @@ export interface QuizEditorDto {
   sectionId: string | null;
   materialId: string | null;
   courseId: string | null;
-  kind: 'quiz' | 'test' | 'exam';
+  kind: 'quiz' | 'test' | 'exam' | 'bank';
   difficulty: 'easy' | 'medium' | 'hard';
   durationSec: number;
   scheduledAt: number | null;
   published: boolean;
   shuffle: boolean;
+  shuffleOptions: boolean;
+  integrity: boolean;
+  blueprint: {
+    bankIds: string[];
+    rules: { objectiveId?: string | null; difficulty?: ItemDifficulty | null; bloom?: BloomLevel | null; count: number }[];
+  } | null;
+  curriculumId: string | null;
   questions: {
+    id?: string;
     type: QuestionType;
     prompt: string;
     imageUrl: string | null;
@@ -326,7 +349,75 @@ export interface QuizEditorDto {
     explanation: string | null;
     topic: string | null;
     points: number;
+    objectiveId?: string | null;
+    bloom?: BloomLevel | null;
+    level?: ItemDifficulty | null;
   }[];
+}
+
+export interface QuizStatsDto {
+  attempts: number;
+  averagePct: number | null;
+  questions: {
+    id: string;
+    prompt: string;
+    correct: number;
+    total: number;
+    /** Item analysis (null until enough answers). */
+    p: number | null;
+    discrimination: number | null;
+    difficulty: ItemDifficulty | null;
+    quality: 'good' | 'fair' | 'poor' | null;
+  }[];
+  leaderboard: { user: UserSummary; pct: number }[];
+  /** Each student's submitted attempt, with how often they left the page (integrity exams). */
+  attemptsList: { attemptId: string; user: UserSummary; pct: number; submittedAt: number; integrity: IntegrityCounts }[];
+}
+
+/* ───────────── Curriculum ───────────── */
+
+export interface CurriculumNodeDto {
+  id: string;
+  parentId: string | null;
+  kind: CurriculumKind;
+  title: string;
+  code: string | null;
+  description: string | null;
+  system: CurriculumSystem;
+  gradeLevel: string | null;
+  sort: number;
+}
+
+export interface CurriculumResourceDto {
+  type: 'quiz' | 'video' | 'library';
+  id: string;
+  title: string;
+}
+
+export interface CurriculumTreeDto {
+  subject: CurriculumNodeDto;
+  /** Every node under the subject in curriculum order (parents before children). */
+  nodes: CurriculumNodeDto[];
+  /** Per objective, for the signed-in student. */
+  mastery: Record<string, { mastery: number | null; evidence: number; status: ObjectiveStatus }>;
+  resources: Record<string, CurriculumResourceDto[]>;
+  /** Practice questions available per node (including its children). */
+  questionCounts: Record<string, number>;
+  canEdit: boolean;
+}
+
+export interface LearningPlanDto {
+  subject: CurriculumNodeDto;
+  progress: { mastered: number; learning: number; weak: number; new: number; total: number };
+  next: {
+    objective: CurriculumNodeDto;
+    lesson: CurriculumNodeDto | null;
+    status: ObjectiveStatus;
+    mastery: number | null;
+    resources: CurriculumResourceDto[];
+    questions: number;
+  }[];
+  placementDone: boolean;
 }
 
 export interface TaxonomyDto {

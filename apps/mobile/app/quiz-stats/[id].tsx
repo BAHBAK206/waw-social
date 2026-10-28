@@ -44,7 +44,10 @@ export default function QuizStatsScreen() {
           </Text>
         </Card>
       </View>
-      <SectionTitle>{tr.t('quiz.questionAccuracy')}</SectionTitle>
+      <SectionTitle>{tr.t('quiz.bank.itemAnalysis')}</SectionTitle>
+      <Text muted size={12}>
+        {tr.t('quiz.bank.itemHint')}
+      </Text>
       {s.questions.map((x, i) => {
         const pct = x.total ? Math.round((x.correct / x.total) * 100) : 0;
         return (
@@ -54,7 +57,7 @@ export default function QuizStatsScreen() {
             </Text>
             <Progress value={pct} color={pct >= 60 ? t.ok : t.err} />
             <Text muted size={12}>
-              {x.correct}/{x.total} · {pct}%
+              {x.correct}/{x.total} · {pct}% · {x.quality ? `${tr.t(`quiz.bank.quality.${x.quality}`)} (${x.discrimination})` : tr.t('quiz.bank.notEnough')}
             </Text>
           </Card>
         );
@@ -72,6 +75,22 @@ export default function QuizStatsScreen() {
           <Text weight="black">{l.pct}%</Text>
         </Card>
       ))}
+      {s.attemptsList.length > 0 && <SectionTitle>{tr.t('quiz.bank.students')}</SectionTitle>}
+      {s.attemptsList.map((a) => {
+        const left = a.integrity.blur + a.integrity.fullscreenExit;
+        return (
+          <Card key={a.attemptId} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Avatar name={a.user.displayName} url={a.user.avatarUrl} size={32} />
+            <View style={{ flex: 1 }}>
+              <Text weight="bold">{a.user.displayName}</Text>
+              <Text size={12} color={left ? t.warn : t.text3}>
+                {tr.t('quiz.bank.leftPage', { count: left })}
+              </Text>
+            </View>
+            <Text weight="black">{a.pct}%</Text>
+          </Card>
+        );
+      })}
       <Button variant="outline" icon="create-outline" title={tr.t('quiz.edit')} onPress={() => router.push(`/quiz-editor?id=${id}` as never)} />
     </Screen>
   );

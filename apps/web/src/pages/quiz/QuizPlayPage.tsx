@@ -13,6 +13,7 @@ import { useT } from '@/lib/i18n';
 import { celebrate, confirmDialog, toastError } from '@/lib/ui';
 import { QuizResultView } from './QuizResultView';
 import { ReadAloud } from '@/components/common/ReadAloud';
+import { ExamIntegrity } from '@/components/quiz/ExamIntegrity';
 
 type Answer = number | number[] | string | null;
 
@@ -114,6 +115,7 @@ function Player({ attempt, onDone }: { attempt: QuizAttemptDto; onDone: (r: Quiz
 
   return (
     <div className="page-narrow">
+      {attempt.integrity && <ExamIntegrity attemptId={attempt.attemptId} />}
       <div className="card sticky top-[4.25rem] z-20 mb-4 p-3 lg:top-2">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">

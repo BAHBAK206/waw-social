@@ -195,6 +195,49 @@ export const es: GuideBook = {
       parent: 'Ves los resultados de tu hijo en la página Familia.',
     },
   },
+  curriculum: {
+    title: 'Temario y tu plan',
+    summary:
+      'El temario oficial de tu curso, materia por materia: unidades, lecciones y los objetivos que debes dominar. Qubedu mide tu dominio de cada objetivo con tus cuestionarios y crea un plan personal.',
+    steps: [
+      'Abre Temario, elige el temario (por ejemplo Egipto) y tu curso, y abre una materia.',
+      'Haz la prueba de nivel: dos preguntas por objetivo, para saber lo que ya dominas.',
+      'Tu plan muestra los próximos objetivos, los más débiles primero, con las lecciones y cuestionarios vinculados.',
+      'Pulsa Practicar en un objetivo, una lección o una unidad para recibir diez preguntas.',
+      'Cada cuestionario actualiza tu dominio: un objetivo se pone verde al dominarlo (80 % o más con suficientes preguntas).',
+    ],
+    tips: [
+      'Los docentes etiquetan sus preguntas con objetivos: cuantas más clases y bancos, más práctica.',
+      'Los administradores añaden o importan el temario oficial; los docentes le vinculan lecciones y cuestionarios.',
+    ],
+    roles: {
+      student: 'Empieza por la prueba de nivel y sigue «Estudia a continuación» un poco cada día.',
+      teacher: 'Etiqueta cada pregunta con un objetivo y vincula tus lecciones y cuestionarios al temario: tus estudiantes los verán en su plan.',
+      parent: 'Pide a tu hijo que te enseñe su plan: indica qué objetivos aún necesita trabajar.',
+    },
+  },
+  banks: {
+    title: 'Bancos de preguntas y exámenes justos',
+    summary:
+      'Guarda tus preguntas en bancos, etiquetadas por objetivo, dificultad y nivel de pensamiento. Crea exámenes con reglas para que cada estudiante reciba preguntas distintas y lee el análisis de cada pregunta.',
+    steps: [
+      'Cuestionarios → Bancos de preguntas → Nuevo banco. Añade preguntas con un objetivo, una dificultad y un nivel de pensamiento (recordar, comprender, aplicar…).',
+      'Crea un examen y activa «Crear desde bancos de preguntas». Elige los bancos y añade reglas, por ejemplo 5 fáciles del objetivo A y 3 difíciles de la unidad 2.',
+      'Activa «Mezclar las respuestas» para que los compañeros no compartan letras.',
+      'Activa el modo examen: se pide pantalla completa y ves cuántas veces cada uno salió de la página.',
+      'Después, abre las estadísticas: cada pregunta muestra cuántos acertaron y si distingue a fuertes de débiles; corrige las marcadas «A revisar».',
+    ],
+    tips: [
+      'Un estudiante recibe siempre las mismas preguntas si reabre el examen, y solo puede hacerlo una vez.',
+      'Las preguntas de un banco usado por un examen nunca aparecen en la práctica, así no se filtran antes.',
+      'Solo puedes crear exámenes desde tus propios bancos.',
+    ],
+    roles: {
+      student: 'En modo examen, quédate en la página hasta entregar: las salidas quedan registradas.',
+      teacher: 'Reutiliza los mismos bancos cada periodo: las estadísticas se acumulan.',
+      parent: 'Los resultados aparecen en el boletín cuando el examen cuenta en la calificación de la materia.',
+    },
+  },
   catalog: {
     title: 'Catálogo, cursos de pago y certificados',
     summary:

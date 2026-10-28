@@ -15,6 +15,7 @@ export const NAV_ORDER: readonly FeatureId[] = [
   'classes',
   'catalog',
   'certificates',
+  'curriculum',
   'academic',
   'exams',
   'quiz',

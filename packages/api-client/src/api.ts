@@ -1,4 +1,11 @@
 import type {
+  CurriculumImportNode,
+  CurriculumKind,
+  CurriculumNodeDto,
+  CurriculumTreeDto,
+  IntegrityEvent,
+  LearningPlanDto,
+  QuizStatsDto,
   TimetableEntryDto,
   TimetableEntryInput,
   AssistantGapDto,
@@ -506,13 +513,8 @@ export function createApi(options: ClientOptions) {
       create: (body: Omit<QuizEditorDto, 'id'>) => http.post<QuizSummaryDto>('/quizzes', body),
       update: (id: string, body: Omit<QuizEditorDto, 'id'>) => http.put<QuizSummaryDto>(`/quizzes/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/quizzes/${id}`),
-      stats: (id: string) =>
-        http.get<{
-          attempts: number;
-          averagePct: number | null;
-          questions: { id: string; prompt: string; correct: number; total: number }[];
-          leaderboard: { user: UserSummary; pct: number }[];
-        }>(`/quizzes/${id}/stats`),
+      stats: (id: string) => http.get<QuizStatsDto>(`/quizzes/${id}/stats`),
+      integrityEvent: (attemptId: string, type: IntegrityEvent) => http.post<Ok>(`/quizzes/attempts/${attemptId}/events`, { type }),
       start: (id: string, review = false) => http.post<QuizAttemptDto>(`/quizzes/${id}/attempts`, { review }),
       adaptive: (body: { courseId?: string | null; topic?: string | null; count?: number }) => http.post<QuizAttemptDto>('/quizzes/adaptive', body),
       attempt: (attemptId: string) =>
@@ -628,6 +630,37 @@ export function createApi(options: ClientOptions) {
       acceptInvite: (token: string) => http.post<{ child: UserSummary | null; held: boolean }>('/family/invite/accept', { token }),
       setControls: (childId: string, body: Partial<ParentalControls> & { gradeLevel?: GradeLevel }) =>
         http.put<{ tier: AgeTier; controls: ParentalControls; gradeLevel: GradeLevel | null }>(`/family/children/${childId}/controls`, body),
+    },
+
+    curriculum: {
+      subjects: (q: { system?: string; gradeLevel?: string; q?: string } = {}) => http.get<{ items: CurriculumNodeDto[] }>('/curriculum', q),
+      search: (q: string) => http.get<{ items: { node: CurriculumNodeDto; path: string }[] }>('/curriculum/search', { q }),
+      nodes: (ids: string[]) => http.get<{ items: { node: CurriculumNodeDto; path: string }[] }>('/curriculum/nodes', { ids: ids.join(',') }),
+      tree: (id: string) => http.get<CurriculumTreeDto>(`/curriculum/${id}`),
+      plan: (subjectId: string) => http.get<LearningPlanDto>(`/curriculum/${subjectId}/plan`),
+      practice: (nodeId: string) => http.post<{ attemptId: string }>(`/curriculum/${nodeId}/practice`),
+      placement: (subjectId: string) => http.post<{ attemptId: string }>(`/curriculum/${subjectId}/placement`),
+      create: (body: {
+        parentId?: string | null;
+        kind: CurriculumKind;
+        title: string;
+        code?: string | null;
+        description?: string | null;
+        system?: string;
+        gradeLevel?: string | null;
+        sort?: number;
+      }) => http.post<CurriculumNodeDto>('/curriculum', body),
+      update: (
+        id: string,
+        body: Partial<{ title: string; code: string | null; description: string | null; sort: number; gradeLevel: string | null; system: string }>,
+      ) => http.put<CurriculumNodeDto>(`/curriculum/${id}`, body),
+      remove: (id: string) => http.del<Ok>(`/curriculum/${id}`),
+      importSubject: (body: { system: string; gradeLevel?: string | null; subject: CurriculumImportNode }) =>
+        http.post<{ subjectId: string; nodes: number }>('/curriculum/import', body),
+      link: (nodeId: string, targetType: 'quiz' | 'video' | 'library', targetId: string) =>
+        http.post<Ok>(`/curriculum/${nodeId}/links`, { targetType, targetId }),
+      unlink: (nodeId: string, targetType: 'quiz' | 'video' | 'library', targetId: string) =>
+        http.del<Ok>(`/curriculum/${nodeId}/links/${targetType}/${targetId}`),
     },
 
     school: {

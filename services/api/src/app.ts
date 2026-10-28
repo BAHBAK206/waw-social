@@ -21,6 +21,7 @@ import { catalogRoutes, stripeWebhook, voucherRoutes } from './routes/catalog';
 import { gradebookRoutes } from './routes/gradebook';
 import { courseKnowledgeRoutes } from './routes/knowledge';
 import { timetableRoutes } from './routes/timetable';
+import { curriculumRoutes } from './routes/curriculum';
 import { myVerificationRoutes, verificationAdminRoutes } from './routes/verification';
 import { certificateRoutes } from './routes/certificates';
 import { leagueRoutes } from './routes/leagues';
@@ -129,6 +130,7 @@ export function createApp(deps: Deps) {
   api.route('/calendar', calendarRoutes);
   api.route('/me/calendar', myCalendarRoutes);
   api.route('/me/timetable', timetableRoutes);
+  api.route('/curriculum', curriculumRoutes);
   api.route('/playlists', playlistRoutes);
   api.route('/channels', channelRoutes);
   api.route('/studio', studioRoutes);

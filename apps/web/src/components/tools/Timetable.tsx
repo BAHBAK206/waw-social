@@ -93,7 +93,7 @@ export function TodayClasses() {
   );
 }
 
-type Draft = Omit<TimetableEntryInput, 'color' | 'courseId'> & { id?: string; color: string; courseId: string };
+type Draft = Omit<TimetableEntryInput, 'color' | 'courseId' | 'day'> & { id?: string; day: Weekday; color: string; courseId: string };
 
 export function emptyDraft(day: Weekday = new Date().getDay() as Weekday): Draft {
   return { day, start: '08:00', end: '08:45', title: '', room: '', color: COLORS[0]!, courseId: '' };
