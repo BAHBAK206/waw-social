@@ -14,6 +14,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "assistant_fallback": "لست متأكدًا من الإجابة. يمكنني مساعدتك في التنقل داخل Qubedu أو شرح محتوى مقرراتك. جرّب صياغة السؤال بشكل آخر.",
         "greeting": "أهلًا {name}! كيف أقدر أساعدك في مذاكرتك اليوم؟",
         "open": "افتح",
+        "read_guide": "اقرأ الدليل",
         "math_steps": "خطوات الحل",
     },
     "en": {
@@ -27,6 +28,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "assistant_fallback": "I'm not sure about that. I can help you navigate Qubedu or explain your course content — try rephrasing.",
         "greeting": "Hi {name}! How can I help you study today?",
         "open": "Open",
+        "read_guide": "Read the guide",
         "math_steps": "Steps",
     },
     "fr": {
@@ -40,6 +42,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "assistant_fallback": "Je ne suis pas sûr. Je peux vous aider à naviguer dans Qubedu ou expliquer vos cours — reformulez la question.",
         "greeting": "Bonjour {name} ! Comment puis-je vous aider à réviser aujourd'hui ?",
         "open": "Ouvrir",
+        "read_guide": "Lire le guide",
         "math_steps": "Étapes",
     },
     "es": {
@@ -53,6 +56,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "assistant_fallback": "No estoy seguro. Puedo ayudarte a navegar por Qubedu o explicar tu material — intenta reformular.",
         "greeting": "¡Hola {name}! ¿Cómo te ayudo a estudiar hoy?",
         "open": "Abrir",
+        "read_guide": "Leer la guía",
         "math_steps": "Pasos",
     },
 }

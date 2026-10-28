@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState, QueryState } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { CourseInsights } from '@/components/family/Insights';
+import { ClassAiKnowledge } from '@/components/school/ClassAiKnowledge';
 import { RosterImport } from '@/components/school/RosterImport';
 import { ClassGradebook, GradingSettings, MyCourseResult } from '@/components/school/Gradebook';
 import { CatalogSettings, CourseCertificates, Vouchers } from '@/components/school/CourseCommerce';
@@ -724,6 +725,7 @@ function Materials({ course }: { course: CourseDto }) {
           ))}
         </ul>
       </section>
+      <ClassAiKnowledge course={course} />
       <Modal
         open={adding}
         onClose={() => setAdding(false)}

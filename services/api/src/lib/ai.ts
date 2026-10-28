@@ -1,5 +1,6 @@
 import type { AiAnswerDto, AiSource, EssayGradeDto } from '@qubedu/shared';
 import { AppError } from './errors';
+import type { AiGuide } from './guides';
 
 export interface AiChunk {
   id: string;
@@ -31,6 +32,7 @@ export interface AiClient {
     history: { role: 'user' | 'assistant'; content: string }[];
     knowledge: { question: string; answer: string; link: string | null }[];
     chunks: AiChunk[];
+    guides?: AiGuide[];
     language: string;
     userName: string;
   }): Promise<{ content: string; sources: AiSource[]; actions: { label: string; link: string }[]; provider: string }>;

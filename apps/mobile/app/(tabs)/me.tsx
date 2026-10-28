@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { isStaff, xpProgress, type FeatureId } from '@qubedu/shared';
+import { FEATURE_CATEGORIES, isStaff, sectionItems, xpProgress, type AccountType, type FeatureCategory, type FeatureId } from '@qubedu/shared';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { Screen } from '@/components/Screen';
@@ -21,64 +21,67 @@ interface HubItem {
   labelKey?: string;
 }
 
-const SECTIONS: { key: 'learning' | 'social' | 'personal' | 'tools' | 'help'; items: HubItem[] }[] = [
-  {
-    key: 'learning',
-    items: [
-      { id: 'academic', icon: 'school-outline', href: '/study' },
-      { id: 'school', icon: 'easel-outline', href: '/school' },
-      { id: 'grades', icon: 'ribbon-outline', href: '/grades' },
-      { id: 'catalog', icon: 'storefront-outline', href: '/courses' },
-      { id: 'lab', icon: 'mic-outline', href: '/lab' },
-      { id: 'ai', icon: 'sparkles-outline', href: '/tutor' },
-      { id: 'assistant', icon: 'chatbubble-ellipses-outline', href: '/assistant' },
-      { id: 'library', icon: 'library-outline', href: '/library' },
-      { id: 'events', icon: 'calendar-outline', href: '/events' },
-      { id: 'classes', icon: 'videocam-outline', href: '/live' },
-      { id: 'forms', icon: 'clipboard-outline', href: '/forms' },
-      { id: 'workspace', icon: 'document-text-outline', href: '/workspace' },
-    ],
-  },
-  {
-    key: 'social',
-    items: [
-      { id: 'explore', icon: 'compass-outline', href: '/explore' },
-      { id: 'groups', icon: 'people-outline', href: '/groups' },
-      { id: 'people', icon: 'person-add-outline', href: '/people' },
-      { id: 'stories', icon: 'flash-outline', href: '/tips' },
-    ],
-  },
-  {
-    key: 'personal',
-    items: [
-      { id: 'organizer', icon: 'checkbox-outline', href: '/organizer' },
-      { id: 'family', icon: 'people-circle-outline', href: '/family' },
-      { id: 'certificates', icon: 'ribbon-outline', href: '/certificates' },
-      { id: 'league', icon: 'medal-outline', href: '/league' },
-      { id: 'saved', icon: 'bookmark-outline', href: '/saved' },
-      { id: 'watch', icon: 'download-outline', href: '/downloads', labelKey: 'nav.downloads' },
-      { id: 'studio', icon: 'cloud-upload-outline', href: '/studio' },
-    ],
-  },
-  {
-    key: 'tools',
-    items: [
-      { id: 'search', icon: 'search-outline', href: '/search' },
-      { id: 'notifications', icon: 'notifications-outline', href: '/notifications' },
-      { id: 'settings', icon: 'settings-outline', href: '/settings' },
-    ],
-  },
-  {
-    key: 'help',
-    items: [
-      { id: 'help', icon: 'help-buoy-outline', href: '/info/help' },
-      { id: 'about', icon: 'information-circle-outline', href: '/info/about' },
-      { id: 'privacy', icon: 'shield-checkmark-outline', href: '/info/privacy' },
-      { id: 'terms', icon: 'document-outline', href: '/info/terms' },
-      { id: 'contact', icon: 'mail-outline', href: '/info/contact' },
-    ],
-  },
-];
+/** Where each feature opens on the phone (a native screen, or a web page for web-only tools). */
+const MOBILE: Partial<Record<FeatureId, Omit<HubItem, 'id'>>> = {
+  school: { icon: 'easel-outline', href: '/school' },
+  grades: { icon: 'ribbon-outline', href: '/grades' },
+  classes: { icon: 'videocam-outline', href: '/live' },
+  catalog: { icon: 'storefront-outline', href: '/courses' },
+  certificates: { icon: 'medal-outline', href: '/certificates' },
+  academic: { icon: 'school-outline', href: '/study' },
+  exams: { icon: 'hourglass-outline', href: '/study?tab=exams' },
+  library: { icon: 'library-outline', href: '/library' },
+  shorts: { icon: 'film-outline', href: '/shorts' },
+  lab: { icon: 'mic-outline', href: '/lab' },
+  events: { icon: 'calendar-outline', href: '/events' },
+  assistant: { icon: 'chatbubble-ellipses-outline', href: '/assistant' },
+  ai: { icon: 'sparkles-outline', href: '/tutor' },
+  groups: { icon: 'people-outline', href: '/groups' },
+  communities: { icon: 'globe-outline', web: '/communities' },
+  people: { icon: 'person-add-outline', href: '/people' },
+  explore: { icon: 'compass-outline', href: '/explore' },
+  league: { icon: 'trophy-outline', href: '/league' },
+  timetable: { icon: 'calendar-number-outline', href: '/timetable' },
+  calculator: { icon: 'calculator-outline', href: '/calculator' },
+  workspace: { icon: 'document-text-outline', href: '/workspace' },
+  forms: { icon: 'clipboard-outline', href: '/forms' },
+  organizer: { icon: 'checkbox-outline', href: '/organizer' },
+  settings: { icon: 'settings-outline', href: '/settings' },
+  family: { icon: 'people-circle-outline', href: '/family' },
+  saved: { icon: 'bookmark-outline', href: '/saved' },
+  studio: { icon: 'cloud-upload-outline', href: '/studio' },
+  help: { icon: 'help-buoy-outline', href: '/help' },
+  about: { icon: 'information-circle-outline', href: '/info/about' },
+  privacy: { icon: 'shield-checkmark-outline', href: '/info/privacy' },
+  terms: { icon: 'document-outline', href: '/info/terms' },
+  contact: { icon: 'mail-outline', href: '/info/contact' },
+};
+
+/** Phone-only rows that are not pages of their own on the web. */
+const EXTRAS: Partial<Record<FeatureCategory, HubItem[]>> = {
+  study: [{ id: 'watch', icon: 'download-outline', href: '/downloads', labelKey: 'nav.downloads' }],
+  community: [{ id: 'stories', icon: 'flash-outline', href: '/tips' }],
+  tools: [
+    { id: 'search', icon: 'search-outline', href: '/search' },
+    { id: 'notifications', icon: 'notifications-outline', href: '/notifications' },
+  ],
+};
+
+/** Same sections and order as the web menu, filtered for the account type. Tabs (home, feed, quiz, watch, chat) are left out. */
+function hubSections(accountType: AccountType): { key: FeatureCategory; items: HubItem[] }[] {
+  return FEATURE_CATEGORIES.filter((c) => c !== 'main')
+    .map((key) => ({
+      key,
+      items: [
+        ...sectionItems(key, accountType).flatMap((id) => {
+          const m = MOBILE[id];
+          return m ? [{ id, ...m }] : [];
+        }),
+        ...(EXTRAS[key] ?? []),
+      ],
+    }))
+    .filter((s) => s.items.length > 0);
+}
 
 function HubRow({ item, badge }: { item: HubItem; badge?: number }) {
   const tr = useT();
@@ -146,7 +149,7 @@ export default function MeScreen() {
         </View>
         <Ionicons name="chevron-forward" size={20} color={t.text3} style={{ transform: [{ scaleX: tr.dir === 'rtl' ? -1 : 1 }] }} />
       </Card>
-      {SECTIONS.map((s) => (
+      {hubSections(me.accountType).map((s) => (
         <View key={s.key} style={{ gap: 8 }}>
           <Text weight="black" size={15} muted style={{ marginTop: 6 }}>
             {tr.t(`nav.categories.${s.key}`)}

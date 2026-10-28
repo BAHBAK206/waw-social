@@ -156,3 +156,23 @@ export const componentMarksSchema = z.object({
     .min(1)
     .max(3000),
 });
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'time_format');
+
+/** One weekly class in the timetable (a course id makes it the class schedule, visible to its members). */
+export const timetableEntrySchema = z
+  .object({
+    day: z.number().int().min(0).max(6),
+    start: hhmm,
+    end: hhmm,
+    title: z.string().trim().min(1).max(80),
+    room: z.string().trim().max(60).default(''),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullable()
+      .optional(),
+    courseId: idSchema.nullable().optional(),
+  })
+  .refine((v) => v.end > v.start, { message: 'end_before_start', path: ['end'] });
+export type TimetableEntryInput = z.infer<typeof timetableEntrySchema>;

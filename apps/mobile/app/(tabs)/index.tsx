@@ -7,6 +7,7 @@ import { Pressable, View } from 'react-native';
 import { AtRiskList } from '@/components/Family';
 import { LeagueCard } from '../league';
 import { Screen } from '@/components/Screen';
+import { TodayClassesCard } from '@/components/Timetable';
 import { Button, Card, Empty, GradientHeader, Loading, SectionTitle, Text } from '@/components/ui';
 import { toast, toastError } from '@/lib/ui';
 import { api } from '@/lib/api';
@@ -66,6 +67,7 @@ export default function HomeScreen() {
         </View>
       </GradientHeader>
       <View style={{ padding: 16, gap: 12 }}>
+        <TodayClassesCard />
         <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
             <Text weight="bold">{tr.t('home.dailyGoal')}</Text>

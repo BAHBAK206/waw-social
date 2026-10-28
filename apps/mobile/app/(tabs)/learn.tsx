@@ -9,6 +9,7 @@ import { useSession } from '@/lib/session';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { FONT, useTheme } from '@/lib/theme';
+import { GuideHint } from '@/components/Guide';
 
 type Difficulty = '' | 'easy' | 'medium' | 'hard';
 
@@ -45,6 +46,7 @@ export default function LearnScreen() {
       onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && void list.fetchNextPage()}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
+          <GuideHint id="quiz" />
           <Pressable
             onPress={() => router.push('/quiz/adaptive' as never)}
             accessibilityRole="button"

@@ -7,6 +7,7 @@ import { Input, Select, Textarea } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { CardSkeletons, EmptyState, ErrorState, LoadMore } from '@/components/ui/States';
 import { pickFile } from '@/components/ui/Upload';
+import { AssistantGaps, AssistantTester } from './AssistantTools';
 import { api } from '@/lib/api';
 import { formatDateTime, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
@@ -105,6 +106,8 @@ export function AssistantTab() {
   };
   return (
     <div className="space-y-8">
+      <AssistantTester />
+      <AssistantGaps />
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="flex-1 text-lg font-black">{tr.t('admin.assistant.knowledge')}</h2>

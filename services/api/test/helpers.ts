@@ -18,6 +18,9 @@ export const fakePush: PushSender = {
   },
 };
 
+/** The last payload the fake assistant received (tests check what the API feeds the AI). */
+export let lastAssistantInput: Parameters<AiClient['assistant']>[0] | null = null;
+
 export const fakeAi: AiClient = {
   async solve(input) {
     const m = input.question.match(/^\s*(\d+)\s*\+\s*(\d+)\s*$/);
@@ -43,8 +46,11 @@ export const fakeAi: AiClient = {
     return { text, chunks: [{ heading: 'Section', page: 1, text }] };
   },
   async assistant(input) {
+    lastAssistantInput = input;
     const hit = input.knowledge[0];
-    return { content: hit ? hit.answer : `echo: ${input.message}`, sources: [], actions: [], provider: 'fake' };
+    if (hit) return { content: hit.answer, sources: [], actions: [], provider: 'qubedu:kb' };
+    if (input.message.startsWith('??')) return { content: 'not sure', sources: [], actions: [], provider: 'qubedu:none' };
+    return { content: `echo: ${input.message}`, sources: [], actions: [], provider: 'fake' };
   },
   async teacher(input) {
     if (input.task === 'translate') return { provider: 'fake', cues: (input.cues ?? []).map((c) => ({ ...c, text: `[${input.targetLanguage}] ${c.text}` })) };

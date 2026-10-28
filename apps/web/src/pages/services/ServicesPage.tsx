@@ -11,7 +11,7 @@ export default function ServicesPage() {
   const tr = useT();
   const config = useSession((s) => s.config);
   const me = useSession((s) => s.me);
-  const items = navItems(config?.features ?? {}).filter((i) => i.id !== 'services' && (me || !i.auth));
+  const items = navItems(config?.features ?? {}, me?.accountType).filter((i) => i.id !== 'services' && (me || !i.auth));
   return (
     <div className="page space-y-8">
       <PageHeader title={tr.t('nav.services')} subtitle={tr.t('features.services')} icon={<LayoutGrid className="size-6" />} />

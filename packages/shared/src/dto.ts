@@ -882,6 +882,30 @@ export interface AssistantKnowledgeDto {
   createdAt: number;
 }
 
+export interface CourseKnowledgeDto {
+  id: string;
+  question: string;
+  answer: string;
+  link: string | null;
+  createdAt: number;
+}
+
+/** A question the assistant could not answer, grouped by wording. */
+export interface AssistantGapDto {
+  id: string;
+  question: string;
+  language: 'ar' | 'en' | 'fr' | 'es';
+  count: number;
+  lastAskedAt: number;
+}
+
+export interface AssistantTestDto {
+  content: string;
+  provider: string;
+  sources: AiSource[];
+  actions: { label: string; link: string }[];
+}
+
 export interface LeaderboardEntry {
   rank: number;
   user: UserSummary;
@@ -1222,4 +1246,18 @@ export interface TeacherVerificationDto {
   reason: string;
   createdAt: number;
   reviewedAt: number | null;
+}
+
+export interface TimetableEntryDto {
+  id: string;
+  day: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  start: string;
+  end: string;
+  title: string;
+  room: string;
+  color: string | null;
+  courseId: string | null;
+  courseTitle: string | null;
+  /** The viewer can edit or delete it (their own row). */
+  mine: boolean;
 }

@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import { relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
+import { GuideHint } from '@/components/Guide';
 
 /**
  * Live classes: rooms are listed and created natively; the room itself (camera, mic, screen share, whiteboard, chat,
@@ -34,6 +35,7 @@ export default function LiveScreen() {
   return (
     <FeatureGate id="classes">
       <Screen refreshing={rooms.isRefetching} onRefresh={() => void Promise.all([rooms.refetch(), classes.refetch()])}>
+        <GuideHint id="classes" />
         {teacher && <Button icon="add" title={tr.t('live.create')} onPress={() => setOpen2(true)} />}
         {!rooms.data.items.length && !classes.data?.items.length ? <Empty title={tr.t('common.empty')} icon="videocam-outline" /> : null}
         {rooms.data.items.map((r) => (

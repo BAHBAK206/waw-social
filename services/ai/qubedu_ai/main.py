@@ -71,11 +71,23 @@ class KnowledgeIn(BaseModel):
     link: str | None = None
 
 
+class GuideIn(BaseModel):
+    id: str = Field(max_length=60)
+    title: str = Field(max_length=200)
+    summary: str = Field(max_length=2000)
+    steps: list[str] = Field(default_factory=list, max_length=20)
+    tips: list[str] = Field(default_factory=list, max_length=10)
+    note: str | None = Field(default=None, max_length=1000)
+    link: str | None = Field(default=None, max_length=300)
+    guide: str | None = Field(default=None, max_length=300)
+
+
 class AssistantIn(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: list[HistoryItem] = Field(default_factory=list, max_length=20)
     knowledge: list[KnowledgeIn] = Field(default_factory=list, max_length=20)
     chunks: list[ChunkIn] = Field(default_factory=list, max_length=30)
+    guides: list[GuideIn] = Field(default_factory=list, max_length=60)
     language: str = "ar"
     userName: str = ""
 

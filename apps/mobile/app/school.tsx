@@ -12,6 +12,7 @@ import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { toastError } from '@/lib/ui';
+import { GuideHint } from '@/components/Guide';
 
 export default function SchoolScreen() {
   const tr = useT();
@@ -27,6 +28,7 @@ export default function SchoolScreen() {
   return (
     <FeatureGate id="school">
       <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
+        <GuideHint id="school" />
         <Text muted>{tr.t('school.subtitle')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <View style={{ flex: 1 }}>

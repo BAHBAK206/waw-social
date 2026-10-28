@@ -40,3 +40,4 @@ export function keyPaths(obj: unknown, prefix = ''): string[] {
 }
 
 export { createTranslator, interpolate, messageVariables, type TKey, type TVars, type Translator } from './translate';
+export { GUIDES, type GuideBook, type GuideText } from './guides';

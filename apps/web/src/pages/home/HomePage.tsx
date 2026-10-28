@@ -23,6 +23,7 @@ import { AdsStrip } from '@/components/common/Ads';
 import { TrendingWidget } from '@/components/feed/TrendingWidget';
 import { AtRiskSection } from '@/components/family/Insights';
 import { LeagueCard } from '@/pages/league/LeaguePage';
+import { TodayClasses } from '@/components/tools/Timetable';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ColumnChart, ProgressBar, ProgressRing } from '@/components/ui/Charts';
 import { Spinner } from '@/components/ui/States';
@@ -208,6 +209,7 @@ function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
+          <TodayClasses />
           <DailyChallengeCard />
           <section className="card p-4" aria-label={tr.t('home.inbox')}>
             <h2 className="mb-3 flex items-center gap-2 font-black">

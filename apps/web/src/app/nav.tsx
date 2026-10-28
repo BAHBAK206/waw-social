@@ -1,4 +1,15 @@
-import { FEATURES, featureMode, type FeatureCategory, type FeatureControlMap, type FeatureId } from '@qubedu/shared';
+import {
+  BOTTOM_NAV_BY_ACCOUNT,
+  FEATURE_CATEGORIES,
+  FEATURES,
+  NAV_ORDER,
+  featureMode,
+  shownTo,
+  type AccountType,
+  type FeatureCategory,
+  type FeatureControlMap,
+  type FeatureId,
+} from '@qubedu/shared';
 import {
   AudioLines,
   Bell,
@@ -13,6 +24,8 @@ import {
   Film,
   Vote,
   CalendarClock,
+  CalendarRange,
+  Calculator,
   Camera,
   CircleDot,
   ClipboardList,
@@ -120,6 +133,8 @@ export const ICONS: Record<string, LucideIcon> = {
   medal: Medal,
   store: Store,
   'clipboard-check': ClipboardCheck,
+  'calendar-range': CalendarRange,
+  calculator: Calculator,
 };
 
 export interface NavItem {
@@ -133,10 +148,11 @@ export interface NavItem {
 
 type PageFeature = Extract<(typeof FEATURES)[number], { route: string }>;
 
-/** Navigable pages after applying the root admin's feature controls (hidden items are removed). */
-export function navItems(controls: FeatureControlMap): NavItem[] {
-  return FEATURES.filter((f): f is PageFeature => f.kind === 'page' && 'route' in f && !f.route.includes(':'))
-    .filter((f) => featureMode(controls, f.id) !== 'hidden')
+/** Navigable pages in menu order, after the root admin's feature controls (hidden items removed) and the account's audience. */
+export function navItems(controls: FeatureControlMap, accountType?: AccountType | null): NavItem[] {
+  const byId = new Map(FEATURES.filter((f): f is PageFeature => f.kind === 'page' && 'route' in f && !f.route.includes(':')).map((f) => [f.id, f]));
+  return NAV_ORDER.map((id) => byId.get(id))
+    .filter((f): f is PageFeature => !!f && featureMode(controls, f.id) !== 'hidden' && shownTo(f.id, accountType))
     .map((f) => ({
       id: f.id,
       route: f.route,
@@ -147,10 +163,12 @@ export function navItems(controls: FeatureControlMap): NavItem[] {
     }));
 }
 
-export const NAV_CATEGORIES: FeatureCategory[] = ['main', 'learning', 'social', 'personal', 'tools', 'help'];
+export const NAV_CATEGORIES: readonly FeatureCategory[] = FEATURE_CATEGORIES;
 
-/** The five bottom-bar destinations on phones. */
-export const BOTTOM_NAV: FeatureId[] = ['home', 'quiz', 'academic', 'chat', 'profile'];
+/** The five bottom-bar destinations on phones, per account type. */
+export function bottomNav(accountType?: AccountType | null): readonly FeatureId[] {
+  return BOTTOM_NAV_BY_ACCOUNT[accountType ?? 'guest'];
+}
 
 export function actionVisible(controls: FeatureControlMap, id: FeatureId) {
   return featureMode(controls, id) === 'enabled';

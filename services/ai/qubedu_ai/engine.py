@@ -9,7 +9,7 @@ from .i18n import t
 from .llm import ClaudeProvider
 from .mathsolver import option_matches, solve_math
 from .retrieval import Chunk, best_sentences, coverage, rank
-from .text import is_arabic, normalize, sentences
+from .text import is_arabic, normalize, sentences, tokens
 
 _NAV = [
     (("اختبار", "اختبارات", "كويز", "quiz", "test", "examen"), "/quiz", {"ar": "الاختبارات", "en": "Quizzes", "fr": "Quiz", "es": "Cuestionarios"}),
@@ -110,8 +110,52 @@ def _sources(hits) -> list[dict]:
     return out[:4]
 
 
-def _context(hits, knowledge: list[dict] | None = None) -> str:
+def _guide_match(message: str, guides: list[dict]) -> dict | None:
+    """The site guide that answers a "how do I…" question, if one clearly does."""
+    if not guides:
+        return None
+    chunks = [
+        Chunk(
+            id=str(i),
+            title=str(g.get("title", "")),
+            text=" ".join([str(g.get("summary", "")), *map(str, g.get("steps") or []), *map(str, g.get("tips") or [])]),
+        )
+        for i, g in enumerate(guides)
+    ]
+    hits = rank(message, chunks, top=1)
+    if not hits:
+        return None
+    best = hits[0].chunk
+    q = set(tokens(message))
+    overlap = len(q & set(tokens(f"{best.title} {best.text}")))
+    if coverage(message, best.title) >= 0.5 or (len(q) and overlap / len(q) >= 0.6 and overlap >= 2):
+        return guides[int(best.id)]
+    return None
+
+
+def _guide_reply(g: dict, lang: str, actions: list[dict]) -> dict:
+    steps = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(g.get("steps") or []))
+    parts = [f"{g.get('title', '')}", str(g.get("summary", "")), steps]
+    if g.get("note"):
+        parts.append(f"💡 {g['note']}")
+    links = []
+    if g.get("link"):
+        links.append({"label": t(lang, "open"), "link": g["link"]})
+    if g.get("guide"):
+        links.append({"label": t(lang, "read_guide"), "link": g["guide"]})
+    seen = {a["link"] for a in links}
+    return {
+        "content": "\n\n".join(p for p in parts if p),
+        "sources": [{"title": g.get("title", ""), "heading": None, "page": None, "snippet": str(g.get("summary", ""))[:220], "materialId": None}],
+        "actions": links + [a for a in actions if a["link"] not in seen],
+        "provider": "qubedu:guide",
+    }
+
+
+def _context(hits, knowledge: list[dict] | None = None, guide: dict | None = None) -> str:
     parts = []
+    if guide:
+        parts.append(f"[Qubedu guide] {guide.get('title', '')}\n{guide.get('summary', '')}\n" + "\n".join(guide.get("steps") or []))
     for k in (knowledge or [])[:3]:
         parts.append(f"[FAQ] {k.get('question', '')}\n{k.get('answer', '')}")
     for h in hits[:5]:
@@ -223,7 +267,7 @@ async def assistant(payload: dict, provider: ClaudeProvider | None) -> dict:
     actions = _nav_actions(message, lang)
 
     if _GREETING.match(message):
-        return {"content": t(lang, "greeting", name=payload.get("userName", "")), "sources": [], "actions": actions, "provider": "qubedu"}
+        return {"content": t(lang, "greeting", name=payload.get("userName", "")), "sources": [], "actions": actions, "provider": "qubedu:greeting"}
 
     if knowledge:
         kb_chunks = [
@@ -235,14 +279,18 @@ async def assistant(payload: dict, provider: ClaudeProvider | None) -> dict:
             link_actions = [{"label": t(lang, "open"), "link": k["link"]}] if k.get("link") else []
             return {"content": str(k.get("answer", "")), "sources": [], "actions": link_actions + actions, "provider": "qubedu:kb"}
 
+    guide = _guide_match(message, payload.get("guides") or [])
     math = solve_math(message)
+    if guide is not None and math is None:
+        return _guide_reply(guide, lang, actions)
+
     if math is not None:
         steps = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(math.steps))
         return {"content": f"{math.answer}\n\n{t(lang, 'math_steps')}:\n{steps}", "sources": [], "actions": actions, "provider": "qubedu:math"}
 
     hits = rank(message, chunks, top=6)
     if provider is not None:
-        reply = await provider.reply(message, payload.get("history") or [], _context(hits, knowledge), lang)
+        reply = await provider.reply(message, payload.get("history") or [], _context(hits, knowledge, guide), lang)
         if reply:
             return {"content": reply.text, "sources": _sources(hits), "actions": actions, "provider": reply.provider}
 
@@ -256,4 +304,4 @@ async def assistant(payload: dict, provider: ClaudeProvider | None) -> dict:
             "provider": "qubedu:retrieval",
         }
 
-    return {"content": t(lang, "assistant_fallback"), "sources": [], "actions": actions, "provider": "qubedu"}
+    return {"content": t(lang, "assistant_fallback"), "sources": [], "actions": actions, "provider": "qubedu:none"}

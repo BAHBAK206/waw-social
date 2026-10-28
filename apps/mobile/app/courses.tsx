@@ -8,6 +8,7 @@ import { Avatar, Card, Empty, ErrorView, Input, Loading, Text } from '@/componen
 import { api } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { useT } from '@/lib/i18n';
+import { GuideHint } from '@/components/Guide';
 
 export default function CoursesScreen() {
   const tr = useT();
@@ -17,6 +18,7 @@ export default function CoursesScreen() {
   return (
     <FeatureGate id="catalog">
       <Screen refreshing={list.isRefetching} onRefresh={() => void list.refetch()}>
+        <GuideHint id="catalog" />
         <Text muted>{tr.t('catalog.subtitle')}</Text>
         <Input placeholder={tr.t('catalog.search')} value={q} onChangeText={setQ} accessibilityLabel={tr.t('catalog.search')} />
         {list.isPending ? (

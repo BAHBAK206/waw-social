@@ -182,3 +182,39 @@ def test_extract_docx_pptx_xlsx_and_text():
 
 def test_tokens_drop_stopwords():
     assert "the" not in tokens("the cell and the nucleus")
+
+
+GUIDES = [
+    {
+        "id": "family",
+        "title": "حساب ولي الأمر",
+        "summary": "حساب ولي الأمر يُربط بطالب أو أكثر ويتابع الواجبات والحضور والشهادة.",
+        "steps": ["أنشئ حسابًا واختر نوع الحساب ولي أمر.", "اربط ابنك من صفحة العائلة بالبريد الإلكتروني."],
+        "tips": [],
+        "note": "ترى التقدم لا المحادثات الخاصة.",
+        "link": "/family",
+        "guide": "/help/family",
+    },
+    {
+        "id": "grades",
+        "title": "Subject grading and report card",
+        "summary": "Each class can be graded like a real subject: a subject code, a total out of 60 or 80, a pass mark and parts.",
+        "steps": ["Open the class settings.", "Type the subject code and the total marks."],
+        "tips": [],
+        "link": "/grades",
+        "guide": "/help/grades",
+    },
+]
+
+
+def test_assistant_answers_site_questions_from_guides():
+    r = run(engine.assistant({"message": "كيف أربط حساب ولي الأمر بابني؟", "guides": GUIDES, "language": "ar"}, None))
+    assert r["provider"] == "qubedu:guide"
+    assert "1." in r["content"] and any(a["link"] == "/help/family" for a in r["actions"])
+    e = run(engine.assistant({"message": "How do I set the subject code and total marks?", "guides": GUIDES, "language": "en"}, None))
+    assert e["provider"] == "qubedu:guide" and e["actions"][0]["link"] == "/grades"
+    # Subject questions and math do not get hijacked by a guide.
+    m = run(engine.assistant({"message": "solve 2x + 3 = 11", "guides": GUIDES, "language": "en"}, None))
+    assert m["provider"] == "qubedu:math"
+    o = run(engine.assistant({"message": "What is photosynthesis?", "guides": GUIDES, "language": "en"}, None))
+    assert o["provider"] != "qubedu:guide"

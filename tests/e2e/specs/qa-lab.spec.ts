@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { newUser, register, trackErrors, uid } from './helpers';
+import { newUser, register, trackErrors, uid, verifyTeacherAccount } from './helpers';
 
-test('ask a question, a teacher answers, the asker marks the best answer', async ({ browser }) => {
+test('ask a question, a teacher answers, the asker marks the best answer', async ({ browser, request }) => {
   const student = newUser('curious');
   const teacher = newUser('mentor');
   const ctxS = await browser.newContext({ locale: 'en-US' });
@@ -11,6 +11,7 @@ test('ask a question, a teacher answers, the asker marks the best answer', async
   const errors = [...trackErrors(pageS), ...trackErrors(pageT)];
   await register(pageS, student);
   await register(pageT, teacher, 'teacher');
+  await verifyTeacherAccount(request, teacher);
 
   const question = `Why do we divide by 2 in the area of a triangle? ${uid()}`;
   await pageS.goto('/feed?scope=questions');

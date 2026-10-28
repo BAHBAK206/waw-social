@@ -113,6 +113,20 @@
       "when": 1793192278759,
       "tag": "0015_teacher_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793205557344,
+      "tag": "0016_ai_knowledge",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793206002453,
+      "tag": "0017_timetable",
+      "breakpoints": true
     }
   ]
 }

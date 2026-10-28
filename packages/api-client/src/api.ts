@@ -1,4 +1,9 @@
 import type {
+  TimetableEntryDto,
+  TimetableEntryInput,
+  AssistantGapDto,
+  AssistantTestDto,
+  CourseKnowledgeDto,
   AcademicDashboardDto,
   AdDto,
   AdminOverviewDto,
@@ -208,6 +213,10 @@ export function createApi(options: ClientOptions) {
       }) => http.patch<Me>('/me/prefs', body),
       checkin: () => http.post<{ streak: number; changed: boolean; newAchievements: string[] }>('/me/checkin'),
       blocks: () => http.get<{ items: UserSummary[] }>('/me/blocks'),
+      timetable: (studentId?: string) => http.get<{ items: TimetableEntryDto[] }>('/me/timetable', studentId ? { studentId } : {}),
+      addTimetable: (body: TimetableEntryInput) => http.post<TimetableEntryDto>('/me/timetable', body),
+      updateTimetable: (id: string, body: TimetableEntryInput) => http.put<TimetableEntryDto>(`/me/timetable/${id}`, body),
+      removeTimetable: (id: string) => http.del<Ok>(`/me/timetable/${id}`),
       teacherVerification: () => http.get<{ verified: boolean; request: TeacherVerificationDto | null }>('/me/teacher-verification'),
       requestVerification: (body: { institution: string; subject: string; note?: string; proofUrl?: string | null }) =>
         http.post<TeacherVerificationDto>('/me/teacher-verification', body),
@@ -634,6 +643,12 @@ export function createApi(options: ClientOptions) {
         http.put<{ ok: true; saved: number }>(`/school/courses/${courseId}/marks`, { marks }),
       gradebook: (courseId: string) => http.get<CourseGradebookDto>(`/school/courses/${courseId}/gradebook`),
       reportCard: (q: { studentId?: string; term?: string } = {}) => http.get<ReportCardDto>('/school/report-card', q),
+      knowledge: (courseId: string) => http.get<{ items: CourseKnowledgeDto[] }>(`/school/courses/${courseId}/knowledge`),
+      addKnowledge: (courseId: string, body: { question: string; answer: string; link?: string | null }) =>
+        http.post<CourseKnowledgeDto>(`/school/courses/${courseId}/knowledge`, body),
+      updateKnowledge: (courseId: string, id: string, body: { question: string; answer: string; link?: string | null }) =>
+        http.put<CourseKnowledgeDto>(`/school/courses/${courseId}/knowledge/${id}`, body),
+      removeKnowledge: (courseId: string, id: string) => http.del<Ok>(`/school/courses/${courseId}/knowledge/${id}`),
       roster: (courseId: string, emails: string[]) =>
         http.post<{ added: number; already: number; invited: number }>(`/school/courses/${courseId}/roster`, { emails }),
       nudge: (courseId: string, studentId: string, message: string) => http.post<Ok>(`/school/courses/${courseId}/nudge`, { studentId, message }),
@@ -927,6 +942,10 @@ export function createApi(options: ClientOptions) {
         http.get<{ up: number; down: number; items: { id: string; content: string; rating: 'up' | 'down'; feedback: string | null; createdAt: number }[] }>(
           '/admin/assistant-feedback',
         ),
+      assistantGaps: () => http.get<{ items: AssistantGapDto[] }>('/admin/assistant-gaps'),
+      answerGap: (id: string, body: { answer: string; link?: string | null }) => http.post<Ok>(`/admin/assistant-gaps/${id}/answer`, body),
+      dismissGap: (id: string) => http.del<Ok>(`/admin/assistant-gaps/${id}`),
+      testAssistant: (question: string, language: 'ar' | 'en' | 'fr' | 'es') => http.post<AssistantTestDto>('/admin/assistant-test', { question, language }),
       cleanup: () => http.post<{ sessions: number; tokens: number; notifications: number; abandonedAttempts: number }>('/admin/maintenance/cleanup'),
       recomputeLevels: () => http.post<{ checked: number; fixed: number }>('/admin/maintenance/recompute-levels'),
     },

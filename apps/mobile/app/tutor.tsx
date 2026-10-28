@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { toast, toastError } from '@/lib/ui';
+import { GuideHint } from '@/components/Guide';
 
 type Mode = 'solve' | 'explain' | 'summarize' | 'quiz';
 
@@ -253,6 +254,7 @@ export default function TutorScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text muted>{tr.t('ai.subtitle')}</Text>
+        <GuideHint id="assistant" />
         <Segmented
           tabs={[
             { key: 'tutor', label: tr.t('ai.title') },

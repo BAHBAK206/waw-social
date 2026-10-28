@@ -1440,9 +1440,27 @@ export const assistantKnowledge = pgTable(
     language: text('language').notNull().default('ar'),
     link: text('link'),
     searchText: text('search_text').notNull().default(''),
+    /** Null = everyone (written by administrators); otherwise only members of this class see it (written by its teachers). */
+    courseId: uuid('course_id').references((): AnyPgColumn => courses.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
   },
-  (t) => [index('assistant_knowledge_trgm').using('gin', sql`${t.searchText} gin_trgm_ops`)],
+  (t) => [index('assistant_knowledge_trgm').using('gin', sql`${t.searchText} gin_trgm_ops`), index('assistant_knowledge_course_idx').on(t.courseId)],
+);
+
+/** Questions the assistant could not answer (grouped by normalized text) so administrators can add the missing knowledge. */
+export const assistantGaps = pgTable(
+  'assistant_gaps',
+  {
+    id: id(),
+    question: text('question').notNull(),
+    normalized: text('normalized').notNull(),
+    language: text('language').notNull().default('ar'),
+    count: integer('count').notNull().default(1),
+    lastAskedAt: timestamp('last_asked_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('assistant_gaps_normalized_uq').on(t.normalized), index('assistant_gaps_count_idx').on(t.count)],
 );
 
 export const aiUsage = pgTable(
@@ -1869,4 +1887,24 @@ export const pronunciationAttempts = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('pron_user_idx').on(t.userId, t.createdAt)],
+);
+
+/** Weekly timetable. A row with a course is that class's schedule (set by its teachers) and every member sees it. */
+export const timetableEntries = pgTable(
+  'timetable_entries',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }),
+    day: integer('day').notNull(),
+    start: text('start').notNull(),
+    end: text('end').notNull(),
+    title: text('title').notNull(),
+    room: text('room').notNull().default(''),
+    color: text('color'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('timetable_user_idx').on(t.userId), index('timetable_course_idx').on(t.courseId)],
 );

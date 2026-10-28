@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { newUser, register, trackErrors, uid } from './helpers';
+import { newUser, register, trackErrors, uid, verifyTeacherAccount } from './helpers';
 
 test.use({
   launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
   permissions: ['microphone'],
 });
 
-test('a teacher answers a question by voice and the student can play it', async ({ browser }) => {
+test('a teacher answers a question by voice and the student can play it', async ({ browser, request }) => {
   const student = newUser('listener');
   const teacher = newUser('speaker');
   const ctxS = await browser.newContext({ locale: 'en-US' });
@@ -16,6 +16,7 @@ test('a teacher answers a question by voice and the student can play it', async 
   const errors = [...trackErrors(pageS), ...trackErrors(pageT)];
   await register(pageS, student);
   await register(pageT, teacher, 'teacher');
+  await verifyTeacherAccount(request, teacher);
 
   const question = `How do you pronounce "photosynthesis"? ${uid()}`;
   await pageS.goto('/feed?scope=questions');

@@ -17,6 +17,7 @@ import {
 } from '@qubedu/shared';
 import {
   aiUsage,
+  assistantGaps,
   assistantKnowledge,
   assistantMessages,
   assistantThreads,
@@ -35,6 +36,7 @@ import type { AppEnv, AuthUser, Deps } from '../lib/context';
 import { AppError, forbidden, notFound } from '../lib/errors';
 import { body, param, requireUser } from '../lib/http';
 import { requireControl } from '../lib/minors';
+import { guideKnowledge } from '../lib/guides';
 import { getSettings } from '../lib/settings';
 import { checkRate } from '../middleware';
 
@@ -51,6 +53,19 @@ export async function consumeQuota(deps: Deps, user: AuthUser): Promise<number> 
   const used = row?.count ?? 1;
   if (used > settings.ai.dailyQuota) throw new AppError(429, 'ai_quota_exceeded', 'ai_quota_exceeded', { limit: settings.ai.dailyQuota });
   return Math.max(0, settings.ai.dailyQuota - used);
+}
+
+/** Remembers a question the assistant could not answer, so administrators can add the answer. */
+export async function recordGap(deps: Deps, question: string, language: string) {
+  const normalized = normalizeSearch(question).slice(0, 300);
+  if (normalized.length < 4) return;
+  await deps.db
+    .insert(assistantGaps)
+    .values({ question: question.slice(0, 1000), normalized, language })
+    .onConflictDoUpdate({
+      target: assistantGaps.normalized,
+      set: { count: sql`${assistantGaps.count} + 1`, lastAskedAt: new Date(), question: question.slice(0, 1000) },
+    });
 }
 
 /** Candidate chunks from the user's authorized courses (trigram + keyword pre-filter; the AI service re-ranks). */
@@ -301,20 +316,29 @@ export const assistantRoutes = new Hono<AppEnv>()
       deps.db
         .select({ question: assistantKnowledge.question, answer: assistantKnowledge.answer, link: assistantKnowledge.link })
         .from(assistantKnowledge)
-        .where(sql`similarity(${assistantKnowledge.searchText}, ${term}) > 0.08 or ${assistantKnowledge.searchText} ilike ${`%${term.slice(0, 40)}%`}`)
+        .where(
+          and(
+            // Site-wide answers, plus the class answers written by the teachers of the user's classes.
+            sql`(${assistantKnowledge.courseId} is null or ${assistantKnowledge.courseId} in (select course_id from course_members where user_id = ${user.id}))`,
+            sql`(similarity(${assistantKnowledge.searchText}, ${term}) > 0.08 or ${assistantKnowledge.searchText} ilike ${`%${term.slice(0, 40)}%`})`,
+          ),
+        )
         .orderBy(desc(sql`similarity(${assistantKnowledge.searchText}, ${term})`))
         .limit(6),
       retrieveChunks(deps, user.id, input.text, null, 8),
     ]);
     const [userMsg] = await deps.db.insert(assistantMessages).values({ threadId: thread.id, role: 'user', content: input.text }).returning();
+    const language = input.language ?? languageOf(c);
     const reply = await deps.ai.assistant({
       message: input.text,
       history: history.reverse().map((h) => ({ role: h.role, content: h.content })),
       knowledge,
       chunks,
-      language: input.language ?? languageOf(c),
+      guides: guideKnowledge(language, user.accountType),
+      language,
       userName: user.displayName,
     });
+    if (reply.provider === 'qubedu:none') await recordGap(deps, input.text, language);
     const [assistantMsg] = await deps.db
       .insert(assistantMessages)
       .values({

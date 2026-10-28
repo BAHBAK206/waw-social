@@ -7,6 +7,7 @@ import { FlashcardsTab } from '@/study/Flashcards';
 import { ExamsTab, FocusTab, MasteryTab, PlanTab, SessionsTab, TodayTab } from '@/study/Tabs';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
+import { GuideHint } from '@/components/Guide';
 
 const TABS = ['today', 'plan', 'sessions', 'exams', 'cards', 'mastery', 'focus'] as const;
 type Tab = (typeof TABS)[number];
@@ -37,6 +38,7 @@ export default function StudyScreen() {
           />
         }
       >
+        <GuideHint id="academic" />
         <Segmented
           tabs={TABS.map((k) => ({ key: k, label: tr.t(`academic.tabs.${k}`) }))}
           value={tab}

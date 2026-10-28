@@ -13,7 +13,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const tr = useT();
   const config = useSession((s) => s.config);
   const me = useSession((s) => s.me);
-  const items = navItems(config?.features ?? {});
+  const items = navItems(config?.features ?? {}, me?.accountType);
   const location = useLocation();
   const isActive = (route: string) => {
     const [path, query] = route.split('?');

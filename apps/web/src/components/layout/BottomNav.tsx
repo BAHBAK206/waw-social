@@ -1,6 +1,6 @@
 import { FEATURES, featureMode, type FeatureId } from '@qubedu/shared';
 import { NavLink } from 'react-router';
-import { BOTTOM_NAV, ICONS } from '@/app/nav';
+import { ICONS, bottomNav } from '@/app/nav';
 import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
@@ -10,7 +10,7 @@ export function BottomNav() {
   const tr = useT();
   const me = useSession((s) => s.me);
   const controls = useSession((s) => s.config?.features ?? {});
-  const ids = BOTTOM_NAV.filter((id) => featureMode(controls, id) !== 'hidden');
+  const ids = bottomNav(me?.accountType).filter((id) => featureMode(controls, id) !== 'hidden');
   return (
     <nav
       aria-label={tr.t('nav.menu')}

@@ -17,6 +17,7 @@ import { formatDay, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
+import { ClassAiKnowledge } from '@/components/ClassAiKnowledge';
 
 type Tab = 'stream' | 'assignments' | 'people' | 'grades' | 'materials' | 'insights';
 
@@ -375,6 +376,7 @@ export default function CourseScreen() {
             </View>
           ))}
         {tab === 'materials' && <Materials courseId={c.id} />}
+        {tab === 'materials' && staff && <ClassAiKnowledge courseId={c.id} />}
         {tab === 'insights' && staff && <CourseInsightsTab courseId={c.id} />}
       </Screen>
     </FeatureGate>

@@ -102,3 +102,10 @@ export async function verifyTeacher(request: APIRequestContext, teacherToken: st
   const ok = await request.post(`/api/v1/admin/teacher-verifications/${req.id}/approve`, { headers: { authorization: `Bearer ${admin}` } });
   expect(ok.ok(), await ok.text()).toBeTruthy();
 }
+
+/** Verifies a teacher who signed up through the UI (signs in via the API to send the request). */
+export async function verifyTeacherAccount(request: APIRequestContext, user: TestUser) {
+  const login = await request.post('/api/v1/auth/login', { data: { email: user.email, password: user.password } });
+  expect(login.ok(), await login.text()).toBeTruthy();
+  await verifyTeacher(request, ((await login.json()) as { accessToken: string }).accessToken);
+}

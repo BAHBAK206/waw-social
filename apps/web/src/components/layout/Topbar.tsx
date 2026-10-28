@@ -2,6 +2,7 @@ import { Bell, LogOut, Menu as MenuIcon, MessageCircle, Moon, Search, Settings, 
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { actionVisible } from '@/app/nav';
+import { PageHelpButton } from '@/components/help/PageHelp';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonLink } from '@/components/ui/Button';
 import { resolvedMode, useAppearance } from '@/lib/appearance';
@@ -110,6 +111,7 @@ export function Topbar() {
             <Search className="size-5" />
           </button>
         )}
+        <PageHelpButton className={btn} />
         {actionVisible(controls, 'theme') && (
           <button
             type="button"

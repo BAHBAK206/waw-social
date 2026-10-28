@@ -12,6 +12,7 @@ import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { toast, toastError } from '@/lib/ui';
+import { GuideHint } from '@/components/Guide';
 
 export default function FamilyScreen() {
   const tr = useT();
@@ -31,6 +32,7 @@ export default function FamilyScreen() {
   return (
     <FeatureGate id="family">
       <Screen refreshing={fam.isRefetching} onRefresh={() => void Promise.all([fam.refetch(), report.refetch()])}>
+        <GuideHint id="family" />
         <Text muted>{tr.t('family.subtitle')}</Text>
         <FamilyRequestsCard />
         {me.accountType === 'student' ? (

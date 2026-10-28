@@ -13,6 +13,7 @@ import { appPath } from '@/lib/links';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 import { confirm, toastError } from '@/lib/ui';
+import { GuideHint } from '@/components/Guide';
 
 function Bubble({ m }: { m: AssistantMessageDto }) {
   const tr = useT();
@@ -163,6 +164,9 @@ export default function AssistantScreen() {
               <Text muted style={{ textAlign: 'center' }}>
                 {tr.t('assistant.subtitle')}
               </Text>
+              <View style={{ alignSelf: 'stretch' }}>
+                <GuideHint id="assistant" />
+              </View>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
                 {tr.dict.assistant.suggestions.map((s) => (
                   <Chip key={s} label={s} onPress={() => void send(s)} />

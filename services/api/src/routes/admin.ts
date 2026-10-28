@@ -4,7 +4,9 @@ import { z } from 'zod';
 import {
   adSchema,
   announcementSchema,
+  answerGapSchema,
   assistantKnowledgeSchema,
+  assistantTestSchema,
   badgeSchema,
   birthYearSchema,
   banSchema,
@@ -22,7 +24,9 @@ import {
   siteSettingsSchema,
   type AdminOverviewDto,
   type AdminUserDto,
+  type AssistantGapDto,
   type AssistantKnowledgeDto,
+  type AssistantTestDto,
   type AuditEntryDto,
   type ClientErrorDto,
   type ReportDto,
@@ -30,6 +34,7 @@ import {
 import {
   ads,
   announcements,
+  assistantGaps,
   assistantKnowledge,
   assistantMessages,
   auditLog,
@@ -62,7 +67,8 @@ import { audit } from '../lib/audit';
 import type { AppEnv } from '../lib/context';
 import { decodeCursor, pageOf } from '../lib/cursor';
 import { badRequest, forbidden, notFound } from '../lib/errors';
-import { body, param, query, requirePerm } from '../lib/http';
+import { guideKnowledge } from '../lib/guides';
+import { body, param, query, requirePerm, requireUser } from '../lib/http';
 import { ms, onlineKey, pickSummary, summaryColumns, toSummary } from '../lib/mappers';
 import { notify } from '../lib/notify';
 import { ch } from '../lib/realtime';
@@ -793,7 +799,7 @@ export const adminRoutes = new Hono<AppEnv>()
   .get('/assistant-knowledge', async (c) => {
     requirePerm(c, 'assistant.manage');
     const { db } = c.get('deps');
-    const rows = await db.select().from(assistantKnowledge).orderBy(desc(assistantKnowledge.createdAt)).limit(1000);
+    const rows = await db.select().from(assistantKnowledge).where(isNull(assistantKnowledge.courseId)).orderBy(desc(assistantKnowledge.createdAt)).limit(1000);
     return c.json({
       items: rows.map((k): AssistantKnowledgeDto => ({
         id: k.id,
@@ -833,6 +839,78 @@ export const adminRoutes = new Hono<AppEnv>()
     const { db } = c.get('deps');
     await db.delete(assistantKnowledge).where(eq(assistantKnowledge.id, param(c, 'id')));
     return c.json({ ok: true });
+  })
+  /* questions the assistant could not answer */
+  .get('/assistant-gaps', async (c) => {
+    requirePerm(c, 'assistant.manage');
+    const { db } = c.get('deps');
+    const rows = await db.select().from(assistantGaps).orderBy(desc(assistantGaps.count), desc(assistantGaps.lastAskedAt)).limit(200);
+    return c.json({
+      items: rows.map((g): AssistantGapDto => ({
+        id: g.id,
+        question: g.question,
+        language: g.language as AssistantGapDto['language'],
+        count: g.count,
+        lastAskedAt: g.lastAskedAt.getTime(),
+      })),
+    });
+  })
+  .post('/assistant-gaps/:id/answer', async (c) => {
+    requirePerm(c, 'assistant.manage');
+    const { db } = c.get('deps');
+    const input = await body(c, answerGapSchema);
+    const [gap] = await db
+      .select()
+      .from(assistantGaps)
+      .where(eq(assistantGaps.id, param(c, 'id')));
+    if (!gap) throw notFound();
+    const actor = requireUser(c);
+    await db.insert(assistantKnowledge).values({
+      question: gap.question,
+      answer: input.answer,
+      language: gap.language,
+      link: input.link ?? null,
+      createdBy: actor.id,
+      searchText: normalizeSearch(`${gap.question} ${input.answer.slice(0, 300)}`),
+    });
+    await db.delete(assistantGaps).where(eq(assistantGaps.id, gap.id));
+    await audit(db, actor.id, 'assistant.gap_answered', 'assistant_gap', gap.id, { question: gap.question });
+    return c.json({ ok: true }, 201);
+  })
+  .delete('/assistant-gaps/:id', async (c) => {
+    requirePerm(c, 'assistant.manage');
+    const { db } = c.get('deps');
+    await db.delete(assistantGaps).where(eq(assistantGaps.id, param(c, 'id')));
+    return c.json({ ok: true });
+  })
+  /* try the assistant as a student would see it (site knowledge and guides; no class materials) */
+  .post('/assistant-test', async (c) => {
+    requirePerm(c, 'assistant.manage');
+    const deps = c.get('deps');
+    const input = await body(c, assistantTestSchema);
+    const term = normalizeSearch(input.question).slice(0, 300);
+    const knowledge = await deps.db
+      .select({ question: assistantKnowledge.question, answer: assistantKnowledge.answer, link: assistantKnowledge.link })
+      .from(assistantKnowledge)
+      .where(
+        and(
+          isNull(assistantKnowledge.courseId),
+          sql`(similarity(${assistantKnowledge.searchText}, ${term}) > 0.08 or ${assistantKnowledge.searchText} ilike ${`%${term.slice(0, 40)}%`})`,
+        ),
+      )
+      .orderBy(desc(sql`similarity(${assistantKnowledge.searchText}, ${term})`))
+      .limit(6);
+    const reply = await deps.ai.assistant({
+      message: input.question,
+      history: [],
+      knowledge,
+      chunks: [],
+      guides: guideKnowledge(input.language, 'student'),
+      language: input.language,
+      userName: '',
+    });
+    const out: AssistantTestDto = { content: reply.content, provider: reply.provider, sources: reply.sources, actions: reply.actions };
+    return c.json(out);
   })
   .get('/assistant-feedback', async (c) => {
     requirePerm(c, 'assistant.manage');

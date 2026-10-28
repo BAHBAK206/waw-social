@@ -91,6 +91,24 @@ export const assistantKnowledgeSchema = z.object({
   link: optionalUrl,
 });
 
+/** A teacher's question-and-answer for their class (only members of the class get it from the assistant). */
+export const courseKnowledgeSchema = z.object({
+  question: trimmed(500, 3),
+  answer: trimmed(4000, 1),
+  link: optionalUrl,
+});
+export type CourseKnowledgeInput = z.infer<typeof courseKnowledgeSchema>;
+
+export const assistantTestSchema = z.object({
+  question: trimmed(1000, 1),
+  language: z.enum(['ar', 'en', 'fr', 'es']).default('ar'),
+});
+
+export const answerGapSchema = z.object({
+  answer: trimmed(8000, 1),
+  link: optionalUrl,
+});
+
 export const clientErrorSchema = z.object({
   message: trimmed(1000, 1),
   stack: trimmed(8000).optional(),
