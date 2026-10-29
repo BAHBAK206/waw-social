@@ -332,3 +332,13 @@ export const surveyInputSchema = z.object({
     .max(15),
 });
 export const surveyAnswerSchema = z.object({ answers: z.record(z.string().max(20), z.union([z.number().int().min(1).max(5), trimmed(1000)])) });
+
+/* ───────── Parents and communication ───────── */
+
+export const meetingSlotsSchema = z
+  .object({ startsAt: z.number().int(), endsAt: z.number().int(), slotMinutes: z.number().int().min(10).max(60).default(15) })
+  .refine((v) => v.endsAt > v.startsAt && v.startsAt > Date.now() - 60_000, { message: 'invalid_window' })
+  .refine((v) => (v.endsAt - v.startsAt) / 60_000 / v.slotMinutes <= 24, { message: 'too_many_slots' });
+export const meetingBookSchema = z.object({ studentId: idSchema, note: trimmed(300).default('') });
+export const behaviorNoteSchema = z.object({ courseId: idSchema, studentId: idSchema, kind: z.enum(['positive', 'concern']), text: trimmed(600, 3) });
+export const homeworkAckSchema = z.object({ studentId: idSchema });

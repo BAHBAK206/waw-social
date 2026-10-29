@@ -14,6 +14,7 @@ export const NAV_ORDER: readonly FeatureId[] = [
   'schools',
   'grades',
   'fees',
+  'meetings',
   'classes',
   'teacher-tools',
   'catalog',
@@ -64,6 +65,7 @@ export const NAV_ORDER: readonly FeatureId[] = [
 const AUDIENCE: Partial<Record<FeatureId, readonly AccountType[]>> = {
   grades: ['student', 'parent'],
   fees: ['student', 'parent'],
+  meetings: ['teacher', 'parent'],
   certificates: ['student'],
   academic: ['student', 'teacher'],
   review: ['student'],

@@ -1,4 +1,8 @@
 import type {
+  BehaviorNoteDto,
+  HomeworkAckItemDto,
+  MeetingSlotDto,
+  VoiceSummaryDto,
   FeeDto,
   InvoiceDto,
   MyInvoicesDto,
@@ -641,6 +645,32 @@ export function createApi(options: ClientOptions) {
       focus: () => http.get<FocusStatusDto>('/study/focus'),
       startFocus: (minutes: number) => http.post<FocusStatusDto>('/study/focus/start', { minutes }),
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
+    },
+
+    parentComms: {
+      publishSlots: (body: { startsAt: number; endsAt: number; slotMinutes: number }) => http.post<{ created: number }>('/meetings/slots', body),
+      myMeetings: () => http.get<{ items: MeetingSlotDto[] }>('/meetings/mine'),
+      meetingTeachers: () =>
+        http.get<{
+          items: {
+            teacher: { id: string; displayName: string };
+            children: { id: string; displayName: string }[];
+            courses: string[];
+            slots: MeetingSlotDto[];
+          }[];
+        }>('/meetings/teachers'),
+      bookSlot: (id: string, studentId: string, note: string) => http.post<MeetingSlotDto>(`/meetings/slots/${id}/book`, { studentId, note }),
+      cancelSlot: (id: string) => http.post<Ok>(`/meetings/slots/${id}/cancel`),
+      addBehavior: (body: { courseId: string; studentId: string; kind: 'positive' | 'concern'; text: string }) => http.post<{ id: string }>('/behavior', body),
+      behavior: () => http.get<{ items: BehaviorNoteDto[] }>('/behavior'),
+      removeBehavior: (id: string) => http.del<Ok>(`/behavior/${id}`),
+      homework: () => http.get<{ items: HomeworkAckItemDto[] }>('/parent/homework'),
+      ackHomework: (assignmentId: string, studentId: string) => http.post<Ok>(`/parent/homework/${assignmentId}/ack`, { studentId }),
+      homeworkAcks: (assignmentId: string) =>
+        http.get<{ items: { student: { id: string; displayName: string }; acked: boolean }[]; acked: number; total: number }>(
+          `/parent/homework/${assignmentId}/acks`,
+        ),
+      summary: (studentId: string) => http.get<VoiceSummaryDto>('/parent/summary', { studentId }),
     },
 
     schoolAdmin: {

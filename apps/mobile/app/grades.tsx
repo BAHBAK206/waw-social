@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { GuideHint } from '@/components/Guide';
 import { FeatureGate } from '@/components/kit';
 import { ReportCard } from '@/components/Gradebook';
+import { BehaviorList } from '@/components/ParentTools';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Chip, Empty, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -23,6 +24,7 @@ export default function GradesScreen() {
           {tr.t('features.grades')}
         </Text>
         <TeacherNotes />
+        {!parent ? <BehaviorList /> : null}
         {parent ? <ChildrenReportCards /> : <ReportCard />}
         {!parent ? <CalculatorLink /> : null}
       </Screen>

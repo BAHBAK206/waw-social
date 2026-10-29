@@ -469,6 +469,26 @@ export const en: GuideBook = {
       'Surveys: ask students, parents or teachers a few questions (ratings and comments). Answers are anonymous and only the averages and comments are shown to the school.',
     ],
   },
+  meetings: {
+    title: 'Parent–teacher meetings',
+    summary: 'Teachers publish free time slots; parents book one for a child.',
+    steps: [
+      'Teacher: choose a start and end time and the length of each slot, then publish. Free slots appear to the parents of your students.',
+      'Parent: open Meetings, pick a teacher of your child, choose a free slot and the child, add what you want to talk about, and book.',
+      'Both of you are reminded a day before and an hour before; parents can also get the reminder on WhatsApp.',
+      'Either side can cancel; the other one is told, and a parent’s cancellation frees the slot again.',
+    ],
+  },
+  'parent-tools': {
+    title: 'Staying in touch with school',
+    summary: 'Early warnings, behavior notes, “I saw the homework” and a spoken weekly summary for parents.',
+    steps: [
+      'Early warning: when a child falls behind (missing homework, low grades, absences, not active), parents and the teachers are told, at most once a week.',
+      'Homework: on the Family page tap “I saw it” on each assignment; the teacher can see which parents have seen it.',
+      'Behavior notes: teachers can praise or flag a concern; the student and parents are told and can read the notes on Grades and Family.',
+      'Weekly summary: tap Listen on the Family page and your phone reads the week out loud in your language.',
+    ],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

@@ -1,3 +1,4 @@
+import { BehaviorList, HomeworkCheck, VoiceSummary } from '@/components/parents/ParentTools';
 import type { ChildReportDto } from '@qubedu/shared';
 import { ReportCard } from '@/components/school/Gradebook';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -58,6 +59,9 @@ function ChildReport({ report }: { report: ChildReportDto }) {
           <ReasonChips reasons={report.risk.reasons} />
         </div>
       </section>
+      <VoiceSummary studentId={report.child.id} />
+      <HomeworkCheck studentId={report.child.id} />
+      <BehaviorList studentId={report.child.id} />
       <ControlsEditor key={report.child.id} report={report} />
       <section className="card p-4">
         <ColumnChart

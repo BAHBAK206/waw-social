@@ -461,6 +461,26 @@ export const es: GuideBook = {
       'Encuestas: haz unas preguntas a alumnos, familias o profesores (valoraciones y comentarios). Las respuestas son anónimas y el centro solo ve medias y comentarios.',
     ],
   },
+  meetings: {
+    title: 'Reuniones familia-profesor',
+    summary: 'Los profesores publican franjas libres; las familias reservan una para un hijo.',
+    steps: [
+      'Profesor: elige el inicio, el final y la duración de cada franja y publica. Las franjas libres aparecen a las familias de tus alumnos.',
+      'Familia: abre Reuniones, elige un profesor de tu hijo, una franja libre y el hijo, escribe de qué quieres hablar y reserva.',
+      'Os avisamos un día y una hora antes; las familias también pueden recibir el recordatorio por WhatsApp.',
+      'Cualquiera puede cancelar; el otro recibe un aviso, y si cancela la familia la franja vuelve a quedar libre.',
+    ],
+  },
+  'parent-tools': {
+    title: 'En contacto con el colegio',
+    summary: 'Alerta temprana, notas de conducta, «vi la tarea» y un resumen semanal hablado para las familias.',
+    steps: [
+      'Alerta temprana: cuando un hijo se queda atrás (tareas pendientes, notas bajas, faltas, inactividad), la familia y los profesores reciben un aviso, como máximo una vez por semana.',
+      'Tareas: en la página Familia pulsa «Ya la vi» en cada tarea; el profesor ve qué familias la vieron.',
+      'Conducta: los profesores pueden felicitar o señalar una preocupación; el alumno y la familia reciben un aviso y leen las notas en Notas y Familia.',
+      'Resumen semanal: pulsa Escuchar en la página Familia y el teléfono lee la semana en voz alta en tu idioma.',
+    ],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

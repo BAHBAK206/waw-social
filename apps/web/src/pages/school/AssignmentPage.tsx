@@ -1,3 +1,4 @@
+import { ParentAcks } from '@/components/parents/ParentTools';
 import type { AssignmentDto, RubricDto, RubricFeedbackDto, SubmissionDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, FileText, Paperclip, Sparkles } from 'lucide-react';
@@ -349,6 +350,7 @@ export default function AssignmentPage() {
               </header>
               {staff ? (
                 <>
+                  <ParentAcks assignmentId={a.id} />
                   <SimilarityPanel assignmentId={a.id} />
                   <Submissions a={a} />
                 </>

@@ -33,6 +33,7 @@ import { quizRoutes, taxonomyRoutes } from './routes/quizzes';
 import { schoolRoutes } from './routes/school';
 import { classRoutes, liveRoutes } from './routes/live';
 import { formRoutes } from './routes/forms';
+import { behaviorRoutes, meetingRoutes, parentRoutes } from './routes/parentcomms';
 import { schoolAdminRoutes, schoolFeeRoutes } from './routes/schooladmin';
 import { schoolTemplateRoutes, teacherToolRoutes } from './routes/teachertools';
 import { collabRoutes, groupStudyRoutes } from './routes/collab';
@@ -139,6 +140,9 @@ export function createApp(deps: Deps) {
   api.route('/teacher', teacherToolRoutes);
   api.route('/schools', schoolTemplateRoutes);
   api.route('/family', familyRoutes);
+  api.route('/meetings', meetingRoutes);
+  api.route('/behavior', behaviorRoutes);
+  api.route('/parent', parentRoutes);
   api.route('/catalog', catalogRoutes);
   api.route('/school', voucherRoutes);
   api.route('/school', gradebookRoutes);

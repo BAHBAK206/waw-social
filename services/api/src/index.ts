@@ -4,6 +4,7 @@ import { runMigrations } from './db/migrate';
 import { createDeps } from './deps';
 import { loadEnv } from './env';
 import { startLeagueWorker } from './lib/leagues';
+import { startParentWorkers } from './lib/earlyWarning';
 import { startFeeReminders } from './lib/feeReminders';
 import { startSavedReminders } from './lib/savedReminders';
 import { startTranscodeWorker } from './lib/transcode';
@@ -19,6 +20,7 @@ const stopReports = startWeeklyReports(deps);
 const stopLeagues = startLeagueWorker(deps);
 const stopSaved = startSavedReminders(deps);
 const stopFees = startFeeReminders(deps);
+const stopParent = startParentWorkers(deps);
 
 const server = serve({ fetch: app.fetch, port: env.PORT, hostname: env.HOST }, (info) => {
   deps.log.info(`Qubedu API listening on http://${info.address}:${info.port}`);
@@ -31,6 +33,7 @@ const shutdown = async () => {
   stopLeagues();
   stopSaved();
   stopFees();
+  stopParent();
   server.close();
   await Promise.allSettled([deps.sql.end({ timeout: 5 }), deps.kv.close()]);
   process.exit(0);

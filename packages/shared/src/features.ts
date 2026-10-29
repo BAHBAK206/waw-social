@@ -44,6 +44,7 @@ export const FEATURES = [
   { id: 'teacher-tools', kind: 'page', category: 'classroom', route: '/teacher-tools', icon: 'clipboard-pen', auth: true },
   { id: 'schools', kind: 'page', category: 'classroom', route: '/schools', icon: 'building', auth: true },
   { id: 'grades', kind: 'page', category: 'classroom', route: '/grades', icon: 'clipboard-check', auth: true },
+  { id: 'meetings', kind: 'page', category: 'classroom', route: '/meetings', icon: 'calendar-check', auth: true },
   { id: 'fees', kind: 'page', category: 'classroom', route: '/fees', icon: 'wallet', auth: true },
   { id: 'catalog', kind: 'page', category: 'classroom', route: '/courses', icon: 'store' },
   { id: 'classes', kind: 'page', category: 'classroom', route: '/classes', icon: 'video', auth: true },

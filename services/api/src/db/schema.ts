@@ -2416,3 +2416,76 @@ export const surveyResponses = pgTable(
   },
   (t) => [uniqueIndex('survey_responses_uq').on(t.surveyId, t.respondentKey)],
 );
+
+/** An "needs help" warning sent to a student's parents and teachers (at most one per week per student). */
+export const earlyWarnings = pgTable(
+  'early_warnings',
+  {
+    id: id(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    level: text('level').notNull(),
+    reasons: jsonb('reasons').$type<string[]>().notNull().default([]),
+    createdAt: createdAt(),
+  },
+  (t) => [index('early_warnings_idx').on(t.studentId, t.createdAt)],
+);
+
+/** A parent-teacher meeting slot: published by the teacher, booked by a parent for one of their children. */
+export const meetingSlots = pgTable(
+  'meeting_slots',
+  {
+    id: id(),
+    teacherId: uuid('teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    startsAt: ts('starts_at').notNull(),
+    endsAt: ts('ends_at').notNull(),
+    status: text('status').$type<'open' | 'booked' | 'cancelled'>().notNull().default('open'),
+    bookedBy: uuid('booked_by').references(() => users.id, { onDelete: 'set null' }),
+    studentId: uuid('student_id').references(() => users.id, { onDelete: 'set null' }),
+    note: text('note').notNull().default(''),
+    remindedDayAt: ts('reminded_day_at'),
+    remindedHourAt: ts('reminded_hour_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('meeting_slots_teacher_idx').on(t.teacherId, t.startsAt), index('meeting_slots_booked_idx').on(t.bookedBy, t.startsAt)],
+);
+
+/** A teacher's note about a student's behavior (praise or a concern), shown to the student and their parents. */
+export const behaviorNotes = pgTable(
+  'behavior_notes',
+  {
+    id: id(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    teacherId: uuid('teacher_id').references(() => users.id, { onDelete: 'set null' }),
+    kind: text('kind').$type<'positive' | 'concern'>().notNull(),
+    text: text('text').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('behavior_notes_student_idx').on(t.studentId, t.createdAt)],
+);
+
+/** "I saw the homework": a parent's one-tap acknowledgement that they know about an assignment. */
+export const homeworkAcks = pgTable(
+  'homework_acks',
+  {
+    assignmentId: uuid('assignment_id')
+      .notNull()
+      .references(() => assignments.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    guardianId: uuid('guardian_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    ackedAt: ts('acked_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.assignmentId, t.studentId, t.guardianId] })],
+);

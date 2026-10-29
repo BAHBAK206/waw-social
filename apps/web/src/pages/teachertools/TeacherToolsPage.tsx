@@ -14,7 +14,7 @@ import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { toast, toastError } from '@/lib/ui';
 
-const TABS = ['plan', 'paper', 'compare', 'worksheet', 'templates', 'comments'] as const;
+const TABS = ['plan', 'paper', 'compare', 'worksheet', 'templates', 'comments', 'behavior'] as const;
 
 function useCourses() {
   return useQuery({ queryKey: ['teacher-courses'], queryFn: () => api.school.courses(false) });
@@ -648,6 +648,75 @@ function Comments() {
   );
 }
 
+/* ───────── Behavior notes ───────── */
+function Behavior() {
+  const tr = useT();
+  const qc = useQueryClient();
+  const [courseId, setCourse] = useState('');
+  const [studentId, setStudent] = useState('');
+  const [kind, setKind] = useState<'positive' | 'concern'>('positive');
+  const [text, setText] = useState('');
+  const history = useQuery({ queryKey: ['behavior'], queryFn: () => api.parentComms.behavior() });
+  const add = useMutation({
+    mutationFn: () => api.parentComms.addBehavior({ courseId, studentId, kind, text: text.trim() }),
+    onSuccess: () => {
+      toast(tr.t('parentComms.behavior.saved'));
+      setText('');
+      void qc.invalidateQueries({ queryKey: ['behavior'] });
+    },
+    onError: toastError,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.parentComms.removeBehavior(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['behavior'] }),
+    onError: toastError,
+  });
+  return (
+    <div className="grid gap-5 lg:grid-cols-2">
+      <section className="card space-y-3 self-start p-4">
+        <h3 className="font-black">{tr.t('parentComms.behavior.add')}</h3>
+        <CourseAndStudent courseId={courseId} studentId={studentId} setCourse={setCourse} setStudent={setStudent} />
+        <Select
+          label={tr.t('parentComms.behavior.kind')}
+          value={kind}
+          onChange={(e) => setKind(e.target.value as 'positive' | 'concern')}
+          options={[
+            { value: 'positive', label: tr.t('parentComms.behavior.positive') },
+            { value: 'concern', label: tr.t('parentComms.behavior.concern') },
+          ]}
+        />
+        <Textarea label={tr.t('parentComms.behavior.text')} value={text} rows={4} maxLength={600} onChange={(e) => setText(e.target.value)} dir="auto" />
+        <Button loading={add.isPending} disabled={!courseId || !studentId || text.trim().length < 3} onClick={() => add.mutate()}>
+          {tr.t('parentComms.behavior.save')}
+        </Button>
+      </section>
+      <section className="card space-y-2 p-4">
+        <h3 className="font-black">{tr.t('parentComms.behavior.history')}</h3>
+        {!history.data?.items.length ? (
+          <p className="muted text-sm">{tr.t('parentComms.behavior.empty')}</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {history.data.items.map((n) => (
+              <li key={n.id} className="flex items-start gap-3 py-2">
+                <span className={`badge ${n.kind === 'positive' ? 'badge-ok' : 'badge-warn'}`}>{tr.t(`parentComms.behavior.${n.kind}`)}</span>
+                <div className="min-w-0 flex-1" dir="auto">
+                  <p>{n.text}</p>
+                  <p className="muted text-xs">
+                    {n.student.displayName} · {n.courseTitle}
+                  </p>
+                </div>
+                <IconButton label={tr.t('parentComms.behavior.remove')} size="sm" onClick={() => remove.mutate(n.id)}>
+                  <Trash2 className="size-4" />
+                </IconButton>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export default function TeacherToolsPage() {
   const tr = useT();
   const [tab, setTab] = useTabParam(TABS, 'plan');
@@ -661,6 +730,7 @@ export default function TeacherToolsPage() {
       {tab === 'worksheet' && <Worksheets />}
       {tab === 'templates' && <Templates />}
       {tab === 'comments' && <Comments />}
+      {tab === 'behavior' && <Behavior />}
     </div>
   );
 }

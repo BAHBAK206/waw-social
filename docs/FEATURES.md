@@ -73,3 +73,8 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | School announcements by audience (optionally also to parents' phones) and a school calendar merged with homework due | ✅ | ✅ (browser view) |
 | School timetable with clash detection (teacher, room, section) and handing a class to another teacher | ✅ | ✅ (browser view) |
 | Anonymous satisfaction surveys (ratings and comments) for students, parents or teachers | ✅ | ✅ (browser view) |
+| Early warning: parents and the student's teachers are told once a week when a child needs help (missing homework, low grades, absences, inactivity), in the app and on parents' phones | ✅ | ✅ |
+| Parent–teacher meetings: teachers publish slots, parents book one for a child, reminders a day and an hour before, either side can cancel | ✅ | ✅ (browser view) |
+| Behavior notes (praise or concern) from teachers, shown to the student and the parents | ✅ | ✅ |
+| "I saw the homework": one-tap acknowledgement by parents; teachers see how many parents saw an assignment | ✅ | ✅ (parents) |
+| Spoken weekly summary for parents, read aloud by the device in their language | ✅ | ✅ |

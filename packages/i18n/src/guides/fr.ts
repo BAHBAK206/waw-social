@@ -479,6 +479,26 @@ export const fr: GuideBook = {
       'Sondages : posez quelques questions aux élèves, parents ou enseignants (notes et commentaires). Les réponses sont anonymes ; l’école ne voit que les moyennes et les commentaires.',
     ],
   },
+  meetings: {
+    title: 'Rencontres parents-enseignants',
+    summary: 'Les enseignants publient des créneaux libres ; les parents en réservent un pour un enfant.',
+    steps: [
+      'Enseignant : choisissez le début, la fin et la durée de chaque créneau, puis publiez. Les créneaux libres apparaissent aux parents de vos élèves.',
+      'Parent : ouvrez Rendez-vous, choisissez un enseignant de votre enfant, un créneau libre et l’enfant, indiquez le sujet et réservez.',
+      'Vous êtes prévenus la veille et une heure avant ; les parents peuvent aussi recevoir le rappel sur WhatsApp.',
+      'Chacun peut annuler ; l’autre est prévenu, et l’annulation d’un parent libère le créneau.',
+    ],
+  },
+  'parent-tools': {
+    title: 'Rester en lien avec l’école',
+    summary: 'Alerte précoce, remarques de comportement, « j’ai vu le devoir » et résumé hebdomadaire parlé pour les parents.',
+    steps: [
+      'Alerte précoce : quand un enfant décroche (devoirs manquants, notes basses, absences, inactivité), les parents et les enseignants sont prévenus, au plus une fois par semaine.',
+      'Devoirs : sur la page Famille, touchez « Je l’ai vu » sur chaque devoir ; l’enseignant voit quels parents l’ont vu.',
+      'Comportement : les enseignants peuvent féliciter ou signaler un souci ; l’élève et les parents sont prévenus et lisent les remarques dans Notes et Famille.',
+      'Résumé hebdomadaire : touchez Écouter sur la page Famille et votre téléphone lit la semaine à voix haute dans votre langue.',
+    ],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

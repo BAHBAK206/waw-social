@@ -1791,3 +1791,41 @@ export interface SurveyDto {
   responses: number | null;
   createdAt: number;
 }
+
+/* ───────── Parents and communication ───────── */
+
+export interface MeetingSlotDto {
+  id: string;
+  startsAt: number;
+  endsAt: number;
+  status: 'open' | 'booked' | 'cancelled';
+  teacher: { id: string; displayName: string };
+  /** Who booked (visible to the teacher and to that parent). */
+  booking: { parent: { id: string; displayName: string }; student: { id: string; displayName: string }; note: string } | null;
+  mine: boolean;
+}
+
+export interface BehaviorNoteDto {
+  id: string;
+  kind: 'positive' | 'concern';
+  text: string;
+  courseTitle: string;
+  teacherName: string | null;
+  student: { id: string; displayName: string };
+  createdAt: number;
+}
+
+export interface HomeworkAckItemDto {
+  assignmentId: string;
+  title: string;
+  courseTitle: string;
+  student: { id: string; displayName: string };
+  dueAt: number | null;
+  status: 'graded' | 'submitted' | 'missing' | 'upcoming';
+  acked: boolean;
+}
+
+export interface VoiceSummaryDto {
+  text: string;
+  language: 'en' | 'ar' | 'fr' | 'es';
+}

@@ -28,6 +28,7 @@ const MOBILE: Partial<Record<FeatureId, Omit<HubItem, 'id'>>> = {
   schools: { icon: 'business-outline', href: '/schools' },
   grades: { icon: 'ribbon-outline', href: '/grades' },
   fees: { icon: 'wallet-outline', web: '/fees' },
+  meetings: { icon: 'calendar-outline', web: '/meetings' },
   classes: { icon: 'videocam-outline', href: '/live' },
   catalog: { icon: 'storefront-outline', href: '/courses' },
   certificates: { icon: 'medal-outline', href: '/certificates' },
