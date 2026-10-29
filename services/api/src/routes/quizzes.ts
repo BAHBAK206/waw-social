@@ -8,6 +8,7 @@ import {
   optionPermutation,
   permuteOptions,
   pickFromBlueprint,
+  reviewAfterAnswer,
   seededRandom,
   unpermuteAnswer,
   type BankItem,
@@ -41,6 +42,7 @@ import {
   objectiveSamples,
   quizAttempts,
   quizBest,
+  questionReviews,
   quizQuestions,
   quizzes,
   topicSamples,
@@ -135,6 +137,8 @@ async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Pr
       durationSec: r.q.durationSec,
       questionCount: r.q.questionCount,
       fromBank: !!r.q.blueprint,
+      paperYear: r.q.paperYear,
+      paperBoard: r.q.paperBoard,
       integrity: r.q.integrity,
       section: r.s?.id ? { id: r.s.id, name: r.s.name } : null,
       material: r.m?.id ? { id: r.m.id, name: r.m.name } : null,
@@ -227,6 +231,64 @@ export async function recordObjectives(
   if (agg.size) await tx.insert(objectiveSamples).values([...agg].map(([objectiveId, a]) => ({ userId, objectiveId, attemptId, ...a })));
 }
 
+/** Missed questions go to the daily review queue; right answers advance questions already in it. */
+export async function scheduleMissed(
+  tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0],
+  userId: string,
+  breakdown: { questionId: string; correct: boolean }[],
+  now = Date.now(),
+) {
+  if (!breakdown.length) return;
+  const existing = await tx
+    .select()
+    .from(questionReviews)
+    .where(
+      and(
+        eq(questionReviews.userId, userId),
+        inArray(
+          questionReviews.questionId,
+          breakdown.map((b) => b.questionId),
+        ),
+      ),
+    );
+  const prev = new Map(existing.map((r) => [r.questionId, r]));
+  for (const b of breakdown) {
+    const p = prev.get(b.questionId);
+    const next = reviewAfterAnswer(
+      p
+        ? {
+            level: p.level,
+            ease: p.ease,
+            repetitions: p.repetitions,
+            lapses: p.lapses,
+            intervalDays: p.intervalDays,
+            dueAt: p.dueAt.getTime(),
+            lastReviewedAt: p.lastReviewedAt?.getTime() ?? null,
+            misses: p.misses,
+          }
+        : null,
+      b.correct,
+      now,
+    );
+    if (!next) continue;
+    const values = {
+      ease: next.ease,
+      level: next.level,
+      repetitions: next.repetitions,
+      lapses: next.lapses,
+      intervalDays: next.intervalDays,
+      misses: next.misses,
+      dueAt: new Date(next.dueAt),
+      lastResult: b.correct,
+      lastReviewedAt: new Date(now),
+    };
+    await tx
+      .insert(questionReviews)
+      .values({ userId, questionId: b.questionId, ...values })
+      .onConflictDoUpdate({ target: [questionReviews.userId, questionReviews.questionId], set: values });
+  }
+}
+
 /** Saves the questions, keeping the ids of existing ones (bank questions build up item statistics across exams). */
 async function saveQuestions(tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0], quizId: string, input: QuizInput) {
   const existing = await tx.select({ id: quizQuestions.id }).from(quizQuestions).where(eq(quizQuestions.quizId, quizId));
@@ -287,6 +349,8 @@ function quizValues(input: QuizInput, questionCount: number) {
     integrity: input.integrity,
     blueprint: input.blueprint ?? null,
     curriculumId: input.curriculumId ?? null,
+    paperYear: input.paperYear ?? null,
+    paperBoard: input.paperBoard?.trim() || null,
     questionCount,
   };
 }
@@ -307,6 +371,8 @@ async function attemptDto(deps: Deps, viewer: AuthUser, attempt: typeof quizAtte
     durationSec: Math.round((attempt.expiresAt.getTime() - attempt.startedAt.getTime()) / 1000),
     questionCount: attempt.questionIds.length,
     fromBank: false,
+    paperYear: null,
+    paperBoard: null,
     integrity: false,
     section: null,
     material: null,
@@ -389,6 +455,8 @@ export const quizRoutes = new Hono<AppEnv>()
           q.sectionId ? eq(quizzes.sectionId, q.sectionId) : undefined,
           q.materialId ? eq(quizzes.materialId, q.materialId) : undefined,
           q.difficulty ? eq(quizzes.difficulty, q.difficulty) : undefined,
+          q.papers ? sql`${quizzes.paperYear} is not null` : undefined,
+          q.paperYear ? eq(quizzes.paperYear, q.paperYear) : undefined,
           q.kind === 'bank'
             ? and(eq(quizzes.kind, 'bank'), viewer ? eq(quizzes.createdBy, viewer.id) : sql`false`)
             : q.kind
@@ -629,6 +697,7 @@ export const quizRoutes = new Hono<AppEnv>()
         );
       }
       if (!attempt.review) await recordObjectives(tx, viewer.id, attemptId, ordered, g.breakdown);
+      await scheduleMissed(tx, viewer.id, g.breakdown, now);
       await touchStreak(tx, viewer.id, viewer.timezone);
       await logStudy(tx, viewer.id, today, { quizzes: 1, minutes: Math.min(180, Math.round(timeSec / 60)) });
       await tx
@@ -720,6 +789,8 @@ export const quizRoutes = new Hono<AppEnv>()
       integrity: quiz.integrity,
       blueprint: quiz.blueprint ? { bankIds: quiz.blueprint.bankIds, rules: quiz.blueprint.rules as NonNullable<QuizEditorDto['blueprint']>['rules'] } : null,
       curriculumId: quiz.curriculumId,
+      paperYear: quiz.paperYear,
+      paperBoard: quiz.paperBoard,
       questions: qs.map((q) => ({
         id: q.id,
         objectiveId: q.objectiveId,

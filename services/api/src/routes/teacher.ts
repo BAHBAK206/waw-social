@@ -17,7 +17,7 @@ function isTeacher(u: AuthUser) {
 }
 
 /** Lesson text: title, description and the captions in the requested language (or any language). */
-async function lessonSource(deps: Deps, viewer: AuthUser, videoId: string, language: string) {
+export async function lessonSource(deps: Deps, viewer: AuthUser, videoId: string, language: string) {
   const video = await loadVideo(deps, viewer, videoId);
   const tracks = await deps.db.select().from(videoCaptions).where(eq(videoCaptions.videoId, video.id));
   const track = tracks.find((t) => t.language === language) ?? tracks[0];

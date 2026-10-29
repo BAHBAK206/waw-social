@@ -781,6 +781,9 @@ export const quizzes = pgTable(
       rules: { objectiveId?: string | null; difficulty?: 'easy' | 'medium' | 'hard' | null; bloom?: string | null; count: number }[];
     }>(),
     curriculumId: uuid('curriculum_id').references((): AnyPgColumn => curriculumNodes.id, { onDelete: 'set null' }),
+    /** Past exam paper: the year and the board/ministry it came from (shown in the "Past papers" list). */
+    paperYear: integer('paper_year'),
+    paperBoard: text('paper_board'),
     questionCount: integer('question_count').notNull().default(0),
     attemptCount: integer('attempt_count').notNull().default(0),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
@@ -2152,4 +2155,64 @@ export const schoolMembers = pgTable(
     index('school_members_user_idx').on(t.userId),
     index('school_members_section_idx').on(t.schoolId, t.role, t.section),
   ],
+);
+
+/** A quiz question the student missed, scheduled for spaced review (same scheduler as flashcards). */
+export const questionReviews = pgTable(
+  'question_reviews',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => quizQuestions.id, { onDelete: 'cascade' }),
+    ease: real('ease').notNull().default(2.5),
+    level: integer('level').notNull().default(0),
+    repetitions: integer('repetitions').notNull().default(0),
+    lapses: integer('lapses').notNull().default(0),
+    intervalDays: doublePrecision('interval_days').notNull().default(0),
+    /** How many times the question was answered wrong in total (recurring-mistake detection). */
+    misses: integer('misses').notNull().default(0),
+    dueAt: ts('due_at').notNull().defaultNow(),
+    lastResult: boolean('last_result'),
+    lastReviewedAt: ts('last_reviewed_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.questionId] }), index('question_reviews_due_idx').on(t.userId, t.dueAt)],
+);
+
+/** A focus session: notifications are muted and social screens hidden until it ends. */
+export const focusSessions = pgTable(
+  'focus_sessions',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    startedAt: ts('started_at').notNull().defaultNow(),
+    endsAt: ts('ends_at').notNull(),
+    endedAt: ts('ended_at'),
+    minutes: integer('minutes').notNull().default(0),
+    muted: integer('muted').notNull().default(0),
+  },
+  (t) => [index('focus_sessions_user_idx').on(t.userId, t.startedAt)],
+);
+
+/** Glossary term of a subject: personal, or shared with a course by its teacher. */
+export const glossaryTerms = pgTable(
+  'glossary_terms',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id'),
+    subject: text('subject').notNull(),
+    term: text('term').notNull(),
+    definition: text('definition').notNull(),
+    source: text('source').$type<'manual' | 'lesson'>().notNull().default('manual'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('glossary_subject_idx').on(t.userId, t.subject), index('glossary_course_idx').on(t.courseId)],
 );

@@ -253,6 +253,8 @@ export interface QuizSummaryDto {
   fromBank: boolean;
   /** Full screen is requested and leaving the page is recorded. */
   integrity: boolean;
+  paperYear: number | null;
+  paperBoard: string | null;
   section: { id: string; name: string } | null;
   material: { id: string; name: string } | null;
   courseId: string | null;
@@ -343,6 +345,8 @@ export interface QuizEditorDto {
     rules: { objectiveId?: string | null; difficulty?: ItemDifficulty | null; bloom?: BloomLevel | null; count: number }[];
   } | null;
   curriculumId: string | null;
+  paperYear: number | null;
+  paperBoard: string | null;
   questions: {
     id?: string;
     type: QuestionType;
@@ -1523,4 +1527,72 @@ export interface SimilarityReportDto {
   pairs: { a: UserSummary; b: UserSummary; score: number; excerpt: string }[];
   sources: { student: UserSummary; material: string; score: number; excerpt: string }[];
   checked: number;
+}
+
+/* ───────── Smart study ───────── */
+
+export interface ReviewQuestionDto {
+  id: string;
+  quizId: string | null;
+  type: 'mc' | 'tf' | 'multi' | 'short';
+  prompt: string;
+  options: string[];
+  topic: string | null;
+  imageUrl: string | null;
+  misses: number;
+}
+
+export interface DailyReviewDto {
+  cards: FlashcardDto[];
+  questions: ReviewQuestionDto[];
+  weakObjectives: { id: string; title: string; pct: number; total: number }[];
+  /** Rough time the whole queue takes. */
+  minutes: number;
+  total: number;
+}
+
+export interface ReviewAnswerResultDto {
+  correct: boolean;
+  answer: number | number[] | string[];
+  explanation: string | null;
+  nextDueAt: number;
+}
+
+export interface RecurringMistakeDto {
+  questionId: string;
+  prompt: string;
+  topic: string | null;
+  objectiveId: string | null;
+  objectiveTitle: string | null;
+  misses: number;
+  quizId: string | null;
+  /** In-app link for practising the weak point. */
+  practiceLink: string | null;
+}
+
+export interface StudyPackDto {
+  keyTerms: { term: string; count: number }[];
+  mindMap: { center: string; branches: { title: string; points: string[] }[] };
+  flashcards: { front: string; back: string }[];
+  questions: { prompt: string; answer: string }[];
+  glossary: { term: string; definition: string }[];
+}
+
+export interface FocusStatusDto {
+  active: { id: string; startedAt: number; endsAt: number; minutes: number } | null;
+  todayMinutes: number;
+  weekMinutes: number;
+  weekSessions: number;
+  mutedWeek: number;
+}
+
+export interface GlossaryTermDto {
+  id: string;
+  subject: string;
+  term: string;
+  definition: string;
+  courseId: string | null;
+  source: 'manual' | 'lesson';
+  mine: boolean;
+  authorName: string;
 }

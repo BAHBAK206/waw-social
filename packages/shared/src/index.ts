@@ -13,6 +13,7 @@ export * from './math';
 export * from './schoolImport';
 export * from './similarity';
 export * from './reminders';
+export * from './smartStudy';
 export * from './roles';
 export * from './appearance';
 export * from './planner';

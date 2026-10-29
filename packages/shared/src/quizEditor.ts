@@ -35,6 +35,8 @@ export function blankQuiz(): QuizDraft {
     integrity: false,
     blueprint: null,
     curriculumId: null,
+    paperYear: null,
+    paperBoard: null,
     questions: [blankQuestion()],
   };
 }

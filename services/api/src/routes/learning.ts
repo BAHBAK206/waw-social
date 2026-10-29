@@ -57,7 +57,7 @@ import { awardXp, checkAchievements, logStudy, touchStreak } from '../lib/progre
 import { checkRate } from '../middleware';
 import { masteryFor } from './quizzes';
 
-const toCard = (r: typeof flashcards.$inferSelect): FlashcardDto => ({
+export const toCard = (r: typeof flashcards.$inferSelect): FlashcardDto => ({
   id: r.id,
   front: r.front,
   back: r.back,
@@ -639,6 +639,48 @@ async function pendingAssignments(deps: Deps, userId: string, horizonDays: numbe
     .orderBy(asc(assignments.dueAt));
 }
 
+/** The week's plan for a student: assignments, exams, tasks, fixed sessions and flashcards fitted into a daily time budget. */
+export async function computeWeeklyPlan(deps: Deps, user: AuthUser, q: { budget?: number; days?: number }) {
+  const today = dayKey(Date.now(), user.timezone);
+  const horizon = q.days ?? 7;
+  const [examRows, taskRows, [due], assigns, sessionRows, me] = await Promise.all([
+    deps.db
+      .select()
+      .from(exams)
+      .where(and(eq(exams.userId, user.id), gte(exams.day, today))),
+    deps.db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, user.id), sql`${tasks.status} <> 'done'`)),
+    deps.db
+      .select({ n: count() })
+      .from(flashcards)
+      .where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date(Date.now() + 86400_000)))),
+    pendingAssignments(deps, user.id, horizon + 1),
+    deps.db
+      .select()
+      .from(studySessions)
+      .where(and(eq(studySessions.userId, user.id), gte(studySessions.day, today), lte(studySessions.day, addDays(today, horizon - 1)))),
+    deps.db.select({ goal: users.dailyGoalMinutes }).from(users).where(eq(users.id, user.id)),
+  ]);
+  const plan = buildWeeklyPlan({
+    today,
+    horizonDays: horizon,
+    dailyBudgetMinutes: q.budget ?? me[0]?.goal ?? 90,
+    exams: examRows.map((e) => ({ id: e.id, subject: e.subject, day: e.day })),
+    assignments: assigns.map((a) => ({
+      id: a.id,
+      title: a.title,
+      dueDay: dayKey(a.dueAt!, user.timezone),
+      releaseDay: a.releaseAt ? dayKey(a.releaseAt, user.timezone) : null,
+    })),
+    tasks: taskRows.map((t) => ({ id: t.id, title: t.title, dueDay: t.dueAt ? dayKey(t.dueAt, user.timezone) : null, done: t.status === 'done' })),
+    dueCards: due?.n ?? 0,
+    sessions: sessionRows.map((s) => ({ id: s.id, title: s.title, day: s.day, minutes: s.minutes })),
+  });
+  return plan;
+}
+
 export const academicRoutes = new Hono<AppEnv>()
   .get('/dashboard', async (c) => {
     const user = requireUser(c);
@@ -738,46 +780,7 @@ export const academicRoutes = new Hono<AppEnv>()
   })
   .get('/weekly-plan', async (c) => {
     const user = requireUser(c);
-    const deps = c.get('deps');
-    const q = query(c, weeklyPlanQuerySchema);
-    const today = dayKey(Date.now(), user.timezone);
-    const horizon = q.days ?? 7;
-    const [examRows, taskRows, [due], assigns, sessionRows, me] = await Promise.all([
-      deps.db
-        .select()
-        .from(exams)
-        .where(and(eq(exams.userId, user.id), gte(exams.day, today))),
-      deps.db
-        .select()
-        .from(tasks)
-        .where(and(eq(tasks.userId, user.id), sql`${tasks.status} <> 'done'`)),
-      deps.db
-        .select({ n: count() })
-        .from(flashcards)
-        .where(and(eq(flashcards.userId, user.id), lte(flashcards.dueAt, new Date(Date.now() + 86400_000)))),
-      pendingAssignments(deps, user.id, horizon + 1),
-      deps.db
-        .select()
-        .from(studySessions)
-        .where(and(eq(studySessions.userId, user.id), gte(studySessions.day, today), lte(studySessions.day, addDays(today, horizon - 1)))),
-      deps.db.select({ goal: users.dailyGoalMinutes }).from(users).where(eq(users.id, user.id)),
-    ]);
-    const plan = buildWeeklyPlan({
-      today,
-      horizonDays: horizon,
-      dailyBudgetMinutes: q.budget ?? me[0]?.goal ?? 90,
-      exams: examRows.map((e) => ({ id: e.id, subject: e.subject, day: e.day })),
-      assignments: assigns.map((a) => ({
-        id: a.id,
-        title: a.title,
-        dueDay: dayKey(a.dueAt!, user.timezone),
-        releaseDay: a.releaseAt ? dayKey(a.releaseAt, user.timezone) : null,
-      })),
-      tasks: taskRows.map((t) => ({ id: t.id, title: t.title, dueDay: t.dueAt ? dayKey(t.dueAt, user.timezone) : null, done: t.status === 'done' })),
-      dueCards: due?.n ?? 0,
-      sessions: sessionRows.map((s) => ({ id: s.id, title: s.title, day: s.day, minutes: s.minutes })),
-    });
-    return c.json(plan);
+    return c.json(await computeWeeklyPlan(c.get('deps'), user, query(c, weeklyPlanQuerySchema)));
   })
   .get('/study-log', async (c) => {
     const user = requireUser(c);

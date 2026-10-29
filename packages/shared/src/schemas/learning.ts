@@ -84,6 +84,9 @@ export const quizInputSchema = z
     blueprint: blueprintSchema.optional().nullable(),
     /** Curriculum node the whole quiz belongs to (shown on the curriculum page). */
     curriculumId: idSchema.optional().nullable(),
+    /** Past exam paper: year and board (e.g. "Thanaweya Amma"). Listed under "Past papers". */
+    paperYear: z.number().int().min(1950).max(2100).optional().nullable(),
+    paperBoard: trimmed(80).optional().nullable(),
     questions: z.array(questionInputSchema).max(LIMITS.questionsPerQuiz).default([]),
   })
   .superRefine((q, ctx) => {
@@ -100,6 +103,9 @@ export const quizListQuerySchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   kind: z.enum(['quiz', 'test', 'exam', 'bank']).optional(),
   mine: z.coerce.boolean().optional(),
+  /** Only past exam papers. */
+  papers: z.coerce.boolean().optional(),
+  paperYear: z.coerce.number().int().optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(24),
 });
@@ -265,5 +271,45 @@ export const curriculumLinkSchema = z.object({
 export const curriculumQuerySchema = z.object({
   system: z.enum(CURRICULUM_SYSTEMS).optional(),
   gradeLevel: z.string().max(10).optional(),
+  q: z.string().trim().max(120).optional(),
+});
+
+/* ───────── Smart study (daily review, study pack, focus, glossary) ───────── */
+
+export const reviewAnswerSchema = z.object({
+  answer: z.union([z.number().int(), z.array(z.number().int()).max(20), z.string().max(500)]).nullable(),
+});
+
+export const studyPackSchema = z.object({
+  text: z.string().trim().min(80).max(60_000).optional(),
+  videoId: idSchema.optional(),
+  noteId: idSchema.optional(),
+  language: z.enum(['en', 'ar', 'fr', 'es']).optional(),
+});
+
+export const studyPackSaveSchema = z.object({
+  deck: trimmed(80, 1).default('study-pack'),
+  cards: z.array(z.object({ front: trimmed(500, 1), back: trimmed(1000, 1) })).min(1).max(100),
+  terms: z.array(z.object({ term: trimmed(120, 1), definition: trimmed(600, 1) })).max(100).default([]),
+  subject: trimmed(80).optional(),
+});
+
+export const applyPlanSchema = z.object({
+  budget: z.coerce.number().int().min(15).max(600).optional(),
+  days: z.coerce.number().int().min(1).max(14).optional(),
+});
+
+export const focusStartSchema = z.object({ minutes: z.number().int().min(5).max(180).default(25) });
+
+export const glossaryInputSchema = z.object({
+  subject: trimmed(80, 1),
+  term: trimmed(120, 1),
+  definition: trimmed(600, 1),
+  courseId: idSchema.optional().nullable(),
+});
+
+export const glossaryQuerySchema = z.object({
+  subject: z.string().trim().max(80).optional(),
+  courseId: idSchema.optional(),
   q: z.string().trim().max(120).optional(),
 });

@@ -1,6 +1,7 @@
 import { and, inArray } from 'drizzle-orm';
 import { blocks, notifications, users } from '../db/schema';
 import type { Deps } from './context';
+import { focusingNow } from './focus';
 import { deliverPush } from './push';
 import { ch } from './realtime';
 
@@ -61,16 +62,20 @@ export async function notify(deps: Deps, input: NotifyInput | NotifyInput[]): Pr
   if (actorIds.length) {
     for (const a of await deps.db.select({ id: users.id, name: users.displayName }).from(users).where(inArray(users.id, actorIds))) names.set(a.id, a.name);
   }
+  // Someone in a focus session still gets the notification in the app, but no push interrupts them.
+  const focusing = await focusingNow(deps, recipients).catch(() => new Set<string>());
   deliverPush(
     deps,
-    allowed.map((n) => ({
-      userId: n.userId,
-      type: n.type,
-      title: n.title ?? '',
-      body: n.body ?? '',
-      link: n.link ?? null,
-      actorName: n.actorId ? (names.get(n.actorId) ?? null) : null,
-      data: n.data ?? {},
-    })),
+    allowed
+      .filter((n) => !focusing.has(n.userId))
+      .map((n) => ({
+        userId: n.userId,
+        type: n.type,
+        title: n.title ?? '',
+        body: n.body ?? '',
+        link: n.link ?? null,
+        actorName: n.actorId ? (names.get(n.actorId) ?? null) : null,
+        data: n.data ?? {},
+      })),
   );
 }
