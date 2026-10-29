@@ -1,4 +1,10 @@
 import type {
+  DailyReviewDto,
+  FocusStatusDto,
+  GlossaryTermDto,
+  RecurringMistakeDto,
+  ReviewAnswerResultDto,
+  StudyPackDto,
   LiveAttendanceDto,
   LivePollDto,
   RubricFeedbackDto,
@@ -602,6 +608,28 @@ export function createApi(options: ClientOptions) {
       remove: (id: string) => http.del<Ok>(`/flashcards/${id}`),
       review: (id: string, rating: 'again' | 'unsure' | 'know' | 'easy', reviewedAt?: number) =>
         http.post<{ card: FlashcardDto; newAchievements: string[] }>(`/flashcards/${id}/review`, { rating, reviewedAt }),
+    },
+
+    study: {
+      review: () => http.get<DailyReviewDto>('/study/review'),
+      answerQuestion: (id: string, answer: number | number[] | string | null) =>
+        http.post<ReviewAnswerResultDto>(`/study/review/questions/${id}/answer`, { answer }),
+      mistakes: () => http.get<{ items: RecurringMistakeDto[] }>('/study/mistakes'),
+      pack: (body: { text?: string; noteId?: string; videoId?: string; language?: string }) => http.post<StudyPackDto>('/study/pack', body),
+      savePack: (body: { deck?: string; cards: { front: string; back: string }[]; terms?: { term: string; definition: string }[]; subject?: string }) =>
+        http.post<{ cards: number; terms: number }>('/study/pack/save', body),
+      schedule: (body: { budget?: number; days?: number } = {}) => http.post<{ created: number; skipped: number; days: number }>('/study/schedule', body),
+      focus: () => http.get<FocusStatusDto>('/study/focus'),
+      startFocus: (minutes: number) => http.post<FocusStatusDto>('/study/focus/start', { minutes }),
+      stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
+    },
+
+    glossary: {
+      list: (q: { subject?: string; courseId?: string; q?: string } = {}) => http.get<{ items: GlossaryTermDto[]; subjects: string[] }>('/glossary', q),
+      add: (body: { subject: string; term: string; definition: string; courseId?: string | null }) => http.post<GlossaryTermDto>('/glossary', body),
+      update: (id: string, body: Partial<{ subject: string; term: string; definition: string }>) => http.patch<GlossaryTermDto>(`/glossary/${id}`, body),
+      remove: (id: string) => http.del<Ok>(`/glossary/${id}`),
+      suggest: (text: string) => http.post<{ items: { term: string; definition: string }[] }>('/glossary/suggest', { text }),
     },
 
     pomodoro: {

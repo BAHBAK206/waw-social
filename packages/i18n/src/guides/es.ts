@@ -385,6 +385,37 @@ export const es: GuideBook = {
     summary: 'Ligas semanales con estudiantes de tu nivel. Gana XP para subir; la semana se reinicia el lunes.',
     steps: ['Estudia, haz cuestionarios y ayuda a otros para ganar XP.', 'Los primeros suben y los últimos bajan.', 'Tu liga aparece en tu perfil.'],
   },
+  review: {
+    title: 'Repaso diario',
+    summary: 'Las tarjetas de hoy y las preguntas falladas, programadas justo antes de que las olvides.',
+    steps: [
+      'Abre el repaso diario: lista lo que toca hoy y cuánto tarda.',
+      'Da la vuelta a cada tarjeta y valora cuánto la sabías; responde cada pregunta fallada y comprueba.',
+      'Una pregunta fallada vuelve mañana; cada acierto la aleja más.',
+      'La pestaña «Errores repetidos» muestra las preguntas falladas dos o más veces, con un botón para practicar el tema.',
+      'El modo concentración (en la misma página) silencia las notificaciones push mientras estudias.',
+    ],
+  },
+  'study-pack': {
+    title: 'Pack de estudio',
+    summary: 'Pega una lección o elige una nota y obtén términos clave, mapa mental, tarjetas y preguntas de práctica.',
+    steps: [
+      'Pega el texto (o elige una nota) y pulsa «Crear el pack».',
+      'Lee los términos y el mapa mental y prueba las preguntas.',
+      'Elige una materia y «Guardar tarjetas y términos» para añadirlos a tu repaso y a tu glosario.',
+    ],
+    tips: ['Funciona mejor con textos que incluyen definiciones («La fotosíntesis es el proceso…»).'],
+  },
+  glossary: {
+    title: 'Glosario',
+    summary: 'Los términos de cada materia con su significado: los tuyos y los que comparten los profesores.',
+    steps: [
+      'Añade un término con su materia y significado.',
+      'Busca o filtra por materia.',
+      'Con «Encontrar términos en un texto» detectas definiciones de una lección pegada y las añades de una vez.',
+      'Un profesor puede compartir un término con toda su clase.',
+    ],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

@@ -99,7 +99,7 @@ const isHeading = (line: string) =>
   line.length >= 3 && line.length <= 70 && !/[.!?؟]$/.test(line) && (/^#{1,3}\s/.test(line) || /^\d+[.)]\s/.test(line) || !/\s{2,}/.test(line));
 
 export function buildStudyPack(text: string, opts: { maxFlashcards?: number; maxQuestions?: number } = {}): StudyPack {
-  const clean = text.replace(/\u0000/g, '').trim();
+  const clean = text.replaceAll(String.fromCharCode(0), '').trim();
   const keyTerms = keyTermsOf(clean);
   const defs = definitionsIn(clean);
 

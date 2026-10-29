@@ -22,19 +22,21 @@ export default function LearnScreen() {
   const [difficulty, setDifficulty] = useState<Difficulty>('');
   const [mine, setMine] = useState(false);
   const [banks, setBanks] = useState(false);
+  const [papers, setPapers] = useState(false);
   const teacher = useSession((s) => s.me?.accountType === 'teacher');
   useEffect(() => {
     const id = setTimeout(() => setQ(term.trim()), 300);
     return () => clearTimeout(id);
   }, [term]);
   const list = useInfiniteQuery({
-    queryKey: ['quizzes', q, difficulty, mine, banks],
+    queryKey: ['quizzes', q, difficulty, mine, banks, papers],
     queryFn: ({ pageParam }) =>
       api.quizzes.list({
         q: q || undefined,
         difficulty: difficulty || undefined,
         mine: mine || banks || undefined,
         kind: banks ? 'bank' : undefined,
+        papers: papers || undefined,
         cursor: pageParam,
         limit: 20,
       }),
@@ -123,6 +125,7 @@ export default function LearnScreen() {
             />
           )}
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Chip label={tr.t('quiz.papers.tab')} active={papers} onPress={() => setPapers((v) => !v)} />
             <Chip label={tr.t('quiz.mine')} active={mine} onPress={() => setMine((m) => !m)} />
             {teacher ? <Chip label={tr.t('quiz.bank.banks')} active={banks} onPress={() => setBanks((b) => !b)} /> : null}
             <Chip label={tr.t('common.all')} active={!difficulty} onPress={() => setDifficulty('')} />

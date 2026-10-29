@@ -12,7 +12,9 @@ import { useT } from '@/lib/i18n';
 import { appPath } from '@/lib/links';
 import { useSession } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
-import { confirm, toastError } from '@/lib/ui';
+import { canRecognize, listen, MicDeniedError } from '@/lib/recognition';
+import { speak } from '@/lib/speech';
+import { confirm, toast, toastError } from '@/lib/ui';
 import { GuideHint } from '@/components/Guide';
 
 function Bubble({ m }: { m: AssistantMessageDto }) {
@@ -94,8 +96,31 @@ export default function AssistantScreen() {
   const [busy, setBusy] = useState(false);
   const [list, setList] = useState(false);
   const [hints, setHints] = useState(false);
+  const [listening, setListening] = useState<{ stop: () => void } | null>(null);
+  const [readAloud, setReadAloud] = useState(false);
   const ref = useRef<FlatList<AssistantMessageDto>>(null);
   const messages = [...(threadId ? (thread.data?.messages ?? []) : []), ...pending];
+
+  const talk = async () => {
+    if (listening) {
+      listening.stop();
+      return;
+    }
+    if (!canRecognize()) {
+      toast(tr.t('assistant.voiceUnsupported'), 'err');
+      return;
+    }
+    try {
+      const l = await listen(language ?? 'en', setText);
+      setListening(l);
+      const said = await l.result;
+      setListening(null);
+      if (said.trim()) void send(said);
+    } catch (e) {
+      setListening(null);
+      if (!(e instanceof MicDeniedError)) toastError(e);
+    }
+  };
 
   const send = async (content: string) => {
     const body = content.trim();
@@ -114,6 +139,7 @@ export default function AssistantScreen() {
       }));
       setThreadId(res.threadId);
       setPending([]);
+      if (readAloud) speak(res.message.content, res.message.id, language ?? 'en');
       void qc.invalidateQueries({ queryKey: ['assistant', 'threads'] });
     } catch (e) {
       setPending([]);
@@ -198,8 +224,34 @@ export default function AssistantScreen() {
               <Ionicons name={hints ? 'checkbox' : 'square-outline'} size={18} color={hints ? t.primary : t.text3} />
               <Text size={12}>{tr.t('aiGuard.hintsToggle')}</Text>
             </Pressable>
+            <Pressable
+              onPress={() => setReadAloud((v) => !v)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: readAloud }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Ionicons name={readAloud ? 'checkbox' : 'square-outline'} size={18} color={readAloud ? t.primary : t.text3} />
+              <Text size={12}>{tr.t('assistant.voiceReplies')}</Text>
+            </Pressable>
             <Input value={text} onChangeText={setText} placeholder={tr.t('assistant.placeholder')} multiline maxLength={4000} />
           </View>
+          <Pressable
+            onPress={() => void talk()}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityState={{ selected: !!listening }}
+            accessibilityLabel={listening ? tr.t('assistant.voiceStop') : tr.t('assistant.voice')}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: listening ? t.errFill : t.primarySoft,
+            }}
+          >
+            <Ionicons name={listening ? 'stop' : 'mic'} size={20} color={listening ? t.onPrimary : t.primaryInk} />
+          </Pressable>
           <Pressable
             onPress={() => void send(text)}
             disabled={!text.trim() || busy}

@@ -18,6 +18,9 @@ export const NAV_ORDER: readonly FeatureId[] = [
   'certificates',
   'curriculum',
   'academic',
+  'review',
+  'study-pack',
+  'glossary',
   'exams',
   'quiz',
   'library',
@@ -59,6 +62,9 @@ const AUDIENCE: Partial<Record<FeatureId, readonly AccountType[]>> = {
   grades: ['student', 'parent'],
   certificates: ['student'],
   academic: ['student', 'teacher'],
+  review: ['student'],
+  'study-pack': ['student', 'teacher'],
+  glossary: ['student', 'teacher'],
   exams: ['student'],
   lab: ['student', 'teacher'],
   league: ['student'],
@@ -88,4 +94,9 @@ export function categoryOf(id: FeatureId): FeatureCategory {
 /** Feature ids in menu order for one section, filtered for the account. */
 export function sectionItems(category: FeatureCategory, accountType: AccountType | null | undefined): FeatureId[] {
   return NAV_ORDER.filter((id) => categoryOf(id) === category && shownTo(id, accountType));
+}
+
+/** Pages hidden from the menus while a focus session runs (the social and entertainment ones). */
+export function hiddenInFocus(id: FeatureId): boolean {
+  return categoryOf(id) === 'community' || id === 'feed' || id === 'shorts';
 }

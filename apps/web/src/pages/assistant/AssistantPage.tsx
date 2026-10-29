@@ -1,6 +1,6 @@
 import type { AssistantMessageDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bot, MessageSquarePlus, Send, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import { Bot, Mic, MessageSquarePlus, Send, Square, ThumbsDown, ThumbsUp, Trash2, Volume2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { Avatar } from '@/components/ui/Avatar';
@@ -11,7 +11,8 @@ import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
 import { useSession } from '@/lib/session';
-import { confirmDialog, toastError } from '@/lib/ui';
+import { canRecognize, listen, speak, stopSpeaking, type Listening } from '@/lib/speech';
+import { confirmDialog, toast, toastError } from '@/lib/ui';
 import { ReadAloud } from '@/components/common/ReadAloud';
 
 function Bubble({ m }: { m: AssistantMessageDto }) {
@@ -98,12 +99,35 @@ export default function AssistantPage() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [hints, setHints] = useState(false);
+  const [heard, setHeard] = useState<Listening | null>(null);
+  const [readAloud, setReadAloud] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const messages = [...(thread.data?.messages ?? []), ...pending];
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length, busy]);
+
+  const talk = () => {
+    if (heard) {
+      heard.stop();
+      return;
+    }
+    if (!canRecognize()) {
+      toast(tr.t('assistant.voiceUnsupported'), 'info');
+      return;
+    }
+    const l = listen(language ?? 'en', (partial) => setText(partial));
+    setHeard(l);
+    l.result
+      .then((said) => {
+        if (said) void send(said);
+      })
+      .catch((e: Error) => {
+        if (e.message !== 'aborted') toastError(e);
+      })
+      .finally(() => setHeard(null));
+  };
 
   const send = async (content: string) => {
     const t = content.trim();
@@ -124,6 +148,7 @@ export default function AssistantPage() {
     try {
       const res = await api.assistant.send({ threadId, text: t, language, hints });
       setPending([]);
+      if (readAloud) void speak(res.message.content);
       if (!threadId) setThreadId(res.threadId);
       await qc.invalidateQueries({ queryKey: ['assistant', 'thread', res.threadId] });
       void qc.invalidateQueries({ queryKey: qk.assistantThreads });
@@ -237,10 +262,25 @@ export default function AssistantPage() {
           )}
           <div ref={bottom} />
         </div>
-        <label className="flex items-center gap-2 border-t border-line px-3 pt-2 text-sm">
-          <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={hints} onChange={(e) => setHints(e.target.checked)} />
-          {tr.t('aiGuard.hintsToggle')}
-        </label>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line px-3 pt-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={hints} onChange={(e) => setHints(e.target.checked)} />
+            {tr.t('aiGuard.hintsToggle')}
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--primary)]"
+              checked={readAloud}
+              onChange={(e) => {
+                setReadAloud(e.target.checked);
+                if (!e.target.checked) stopSpeaking();
+              }}
+            />
+            <Volume2 className="size-4" aria-hidden />
+            {tr.t('assistant.voiceReplies')}
+          </label>
+        </div>
         <form
           className="flex items-end gap-2 p-3"
           onSubmit={(e) => {
@@ -263,6 +303,16 @@ export default function AssistantPage() {
               }
             }}
           />
+          <Button
+            variant={heard ? 'danger' : 'soft'}
+            className="!size-11 !rounded-full !p-0"
+            aria-label={heard ? tr.t('assistant.voiceStop') : tr.t('assistant.voice')}
+            aria-pressed={!!heard}
+            disabled={busy}
+            onClick={talk}
+          >
+            {heard ? <Square className="size-5" /> : <Mic className="size-5" />}
+          </Button>
           <Button type="submit" className="!size-11 !rounded-full !p-0" disabled={!text.trim() || busy} aria-label={tr.t('common.send')}>
             <Send className="size-5 flip-rtl" />
           </Button>

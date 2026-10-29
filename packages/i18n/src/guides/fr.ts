@@ -402,6 +402,37 @@ export const fr: GuideBook = {
       'Votre ligue s’affiche sur votre profil.',
     ],
   },
+  review: {
+    title: 'Révision du jour',
+    summary: 'Les cartes du jour et les questions de quiz ratées, programmées juste avant que vous ne les oubliiez.',
+    steps: [
+      'Ouvrez la révision du jour : elle liste ce qui est dû et le temps approximatif.',
+      'Retournez chaque carte et notez votre connaissance ; répondez aux questions ratées puis vérifiez.',
+      'Une question ratée revient demain ; à chaque réussite elle revient plus tard.',
+      'L’onglet « Erreurs répétées » montre les questions ratées au moins deux fois, avec un bouton pour travailler le sujet.',
+      'Le mode concentration (sur la même page) coupe les notifications push pendant que vous étudiez.',
+    ],
+  },
+  'study-pack': {
+    title: 'Fiche de révision',
+    summary: 'Collez un cours ou choisissez une note pour obtenir termes clés, carte mentale, cartes et questions d’entraînement.',
+    steps: [
+      'Collez le texte (ou choisissez une note) puis « Créer la fiche ».',
+      'Lisez les termes clés et la carte mentale, essayez les questions.',
+      'Choisissez une matière et « Enregistrer cartes et termes » pour les ajouter à votre révision et à votre glossaire.',
+    ],
+    tips: ['Fonctionne mieux avec des textes qui contiennent des définitions (« La photosynthèse est le processus… »).'],
+  },
+  glossary: {
+    title: 'Glossaire',
+    summary: 'Les termes de chaque matière avec leur sens : les vôtres et ceux partagés par les enseignants.',
+    steps: [
+      'Ajoutez un terme avec sa matière et son sens.',
+      'Recherchez ou filtrez par matière.',
+      'Avec « Trouver des termes dans un texte », repérez les définitions d’un cours collé et ajoutez-les d’un coup.',
+      'Un enseignant peut partager un terme avec toute sa classe.',
+    ],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

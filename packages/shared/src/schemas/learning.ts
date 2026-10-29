@@ -289,8 +289,14 @@ export const studyPackSchema = z.object({
 
 export const studyPackSaveSchema = z.object({
   deck: trimmed(80, 1).default('study-pack'),
-  cards: z.array(z.object({ front: trimmed(500, 1), back: trimmed(1000, 1) })).min(1).max(100),
-  terms: z.array(z.object({ term: trimmed(120, 1), definition: trimmed(600, 1) })).max(100).default([]),
+  cards: z
+    .array(z.object({ front: trimmed(500, 1), back: trimmed(1000, 1) }))
+    .min(1)
+    .max(100),
+  terms: z
+    .array(z.object({ term: trimmed(120, 1), definition: trimmed(600, 1) }))
+    .max(100)
+    .default([]),
   subject: trimmed(80).optional(),
 });
 

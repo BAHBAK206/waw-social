@@ -52,3 +52,10 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | AI guard rails: hints-only mode, paused during exams, rubric feedback, copying check | ✅ | ✅ |
 | Live classes: breakout groups, quick questions and polls, automatic attendance | ✅ | ✅ (same live room) |
 | Two-step sign-in (authenticator app), parental consent under 13, Content-Security-Policy | ✅ | ✅ |
+| Daily review: due flashcards plus the quiz questions you missed (spaced repetition), recurring-mistake list with a practice link, weak objectives | ✅ | ✅ |
+| Study pack: key terms, mind map, flashcards and practice questions from pasted text, a note or a lesson; saves to flashcards and the glossary | ✅ | ✅ (opens in the app's browser view) |
+| Weekly plan → "Add to my sessions": puts homework, exams and tasks on the plan's days | ✅ | — |
+| Focus mode: push notifications held back and social pages hidden until the timer ends, with weekly stats | ✅ | ✅ (notifications held back; menus unchanged) |
+| Voice tutor: speak a question and hear the reply read aloud | ✅ (browser) | ✅ |
+| Past exam papers: year and board, a "Past papers" list with a year filter | ✅ | ✅ |
+| Glossary per subject: your own terms, terms teachers share with a class, terms found in a pasted lesson | ✅ | ✅ |

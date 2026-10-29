@@ -430,6 +430,25 @@ export default function QuizEditorPage() {
           </div>
         )}
       </section>
+      <div className="card grid gap-3 p-4 sm:grid-cols-2">
+        <Input
+          type="number"
+          min={1950}
+          max={2100}
+          label={tr.t('quiz.editor.paperYear')}
+          value={form.paperYear ?? ''}
+          onChange={(e) => setForm({ ...form, paperYear: e.target.value ? Number(e.target.value) : null })}
+          dir="ltr"
+        />
+        <Input
+          label={tr.t('quiz.editor.paperBoard')}
+          value={form.paperBoard ?? ''}
+          maxLength={80}
+          onChange={(e) => setForm({ ...form, paperBoard: e.target.value || null })}
+          dir="auto"
+        />
+        <p className="muted text-sm sm:col-span-2">{tr.t('quiz.editor.paperHint')}</p>
+      </div>
       {fromBanks && <BlueprintEditor value={form.blueprint!} onChange={(blueprint) => setForm({ ...form, blueprint })} />}
       {!fromBanks &&
         form.questions.map((q, i) => (

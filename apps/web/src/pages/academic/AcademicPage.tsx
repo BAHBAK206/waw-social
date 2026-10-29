@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { FlashcardReviewer } from '@/components/overlays/Flashcards';
 import { PomodoroPanel } from '@/components/overlays/Pomodoro';
+import { FocusPanel } from '@/components/study/focus';
 import { Button, ButtonLink, IconButton } from '@/components/ui/Button';
 import { ColumnChart, ProgressBar } from '@/components/ui/Charts';
 import { Input, Select, Textarea } from '@/components/ui/Field';
@@ -16,7 +17,7 @@ import { cx } from '@/lib/cx';
 import { daysUntil, formatDate, todayKey } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { qk } from '@/lib/query';
-import { confirmDialog, toastError } from '@/lib/ui';
+import { confirmDialog, toast, toastError } from '@/lib/ui';
 
 const TABS = ['today', 'plan', 'sessions', 'exams', 'cards', 'mastery', 'focus'] as const;
 
@@ -96,6 +97,16 @@ function Plan() {
   const tr = useT();
   const [budget, setBudget] = useState(90);
   const q = useQuery({ queryKey: ['weekly-plan', budget], queryFn: () => api.academic.weeklyPlan({ budget, days: 7 }) });
+  const qc = useQueryClient();
+  const schedule = useMutation({
+    mutationFn: () => api.study.schedule({ budget, days: 7 }),
+    onSuccess: (r) => {
+      toast(tr.t('academic.plan.scheduled', { count: r.created }));
+      void qc.invalidateQueries({ queryKey: ['weekly-plan'] });
+      void qc.invalidateQueries({ queryKey: qk.sessions });
+    },
+    onError: toastError,
+  });
   return (
     <div className="space-y-4">
       <div className="card flex flex-wrap items-center gap-4 p-3">
@@ -112,6 +123,9 @@ function Plan() {
           />
           <span className="tabular-nums">{budget}</span>
         </label>
+        <Button variant="soft" size="sm" loading={schedule.isPending} title={tr.t('academic.plan.scheduleHint')} onClick={() => schedule.mutate()}>
+          {tr.t('academic.plan.schedule')}
+        </Button>
       </div>
       <QueryState query={q}>
         {(plan) => (
@@ -668,8 +682,11 @@ export default function AcademicPage() {
       {tab === 'cards' && <Cards />}
       {tab === 'mastery' && <Mastery />}
       {tab === 'focus' && (
-        <div className="card mx-auto max-w-lg p-6">
-          <PomodoroPanel />
+        <div className="mx-auto grid max-w-3xl gap-5 md:grid-cols-2">
+          <div className="card p-6">
+            <PomodoroPanel />
+          </div>
+          <FocusPanel />
         </div>
       )}
     </div>

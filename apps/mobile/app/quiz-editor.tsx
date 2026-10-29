@@ -368,6 +368,13 @@ export default function QuizEditorScreen() {
               value={form.curriculumId}
               onChange={(curriculumId) => setForm({ ...form, curriculumId })}
             />
+            <Input
+              label={tr.t('quiz.editor.paperYear')}
+              value={form.paperYear ? String(form.paperYear) : ''}
+              keyboardType="number-pad"
+              onChangeText={(v) => setForm({ ...form, paperYear: v.replace(/\D/g, '') ? Number(v.replace(/\D/g, '').slice(0, 4)) : null })}
+            />
+            <Input label={tr.t('quiz.editor.paperBoard')} value={form.paperBoard ?? ''} onChangeText={(v) => setForm({ ...form, paperBoard: v || null })} />
             <SwitchRow label={tr.t('quiz.editor.shuffle')} value={form.shuffle} onChange={(v) => setForm({ ...form, shuffle: v })} />
             <SwitchRow label={tr.t('quiz.editor.publishedLabel')} value={form.published} onChange={(v) => setForm({ ...form, published: v })} />
             <SwitchRow label={tr.t('quiz.bank.shuffleOptions')} value={form.shuffleOptions} onChange={(v) => setForm({ ...form, shuffleOptions: v })} />

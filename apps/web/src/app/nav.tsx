@@ -16,6 +16,10 @@ import {
   Bookmark,
   Aperture,
   Bot,
+  BookA,
+  Focus,
+  NotebookPen,
+  Repeat,
   Building2,
   CalendarDays,
   ChartColumn,
@@ -139,6 +143,10 @@ export const ICONS: Record<string, LucideIcon> = {
   calculator: Calculator,
   map: MapIcon,
   building: Building2,
+  repeat: Repeat,
+  'notebook-pen': NotebookPen,
+  'book-a': BookA,
+  focus: Focus,
 };
 
 export interface NavItem {

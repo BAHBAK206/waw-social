@@ -1,7 +1,9 @@
 import { Lock, ShieldCheck, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router';
+import { hiddenInFocus } from '@qubedu/shared';
 import { NAV_CATEGORIES, navItems } from '@/app/nav';
+import { useFocusing } from '@/components/study/focus';
 import { Logo } from '@/components/layout/Logo';
 import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
@@ -13,7 +15,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const tr = useT();
   const config = useSession((s) => s.config);
   const me = useSession((s) => s.me);
-  const items = navItems(config?.features ?? {}, me?.accountType);
+  const focusing = useFocusing();
+  const items = navItems(config?.features ?? {}, me?.accountType).filter((i) => !(focusing && hiddenInFocus(i.id)));
   const location = useLocation();
   const isActive = (route: string) => {
     const [path, query] = route.split('?');

@@ -18,7 +18,7 @@ import {
   type ReviewAnswerResultDto,
   type StudyPackDto,
 } from '@qubedu/shared';
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {

@@ -393,6 +393,37 @@ export const en: GuideBook = {
       'Your league is shown on your profile.',
     ],
   },
+  review: {
+    title: 'Daily review',
+    summary: 'Today’s flashcards and the quiz questions you missed, scheduled so you see them just before you would forget.',
+    steps: [
+      'Open Daily review: it lists what is due today and roughly how long it takes.',
+      'Flip each flashcard and rate how well you knew it; answer each missed question and check it.',
+      'A question you miss comes back tomorrow; each time you get it right it comes back later and later.',
+      'The “Recurring mistakes” tab shows questions you missed two or more times, with a button to practice that topic.',
+      'Use Focus mode (on the same page) to silence push notifications while you study.',
+    ],
+  },
+  'study-pack': {
+    title: 'Study pack',
+    summary: 'Paste a lesson or choose one of your notes and get key terms, a mind map, flashcards and practice questions.',
+    steps: [
+      'Paste the lesson text (or pick a note) and choose “Make the study pack”.',
+      'Read the key terms and the mind map, and try the practice questions.',
+      'Choose a subject and “Save flashcards and terms” to add the flashcards to your review and the terms to your glossary.',
+    ],
+    tips: ['It works best on text that states definitions, such as “Photosynthesis is the process…”.'],
+  },
+  glossary: {
+    title: 'Glossary',
+    summary: 'The terms of each subject with their meaning: your own, and the ones teachers share with the class.',
+    steps: [
+      'Add a term with its subject and meaning.',
+      'Search or filter by subject.',
+      'Use “Find terms in a text” to pick out definitions from a pasted lesson and add them all at once.',
+      'Teachers can share a term with a whole class from the class they teach.',
+    ],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

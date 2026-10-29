@@ -1,4 +1,5 @@
-import { FEATURES, featureMode, type FeatureId } from '@qubedu/shared';
+import { FEATURES, featureMode, hiddenInFocus, type FeatureId } from '@qubedu/shared';
+import { useFocusing } from '@/components/study/focus';
 import { NavLink } from 'react-router';
 import { ICONS, bottomNav } from '@/app/nav';
 import { cx } from '@/lib/cx';
@@ -10,7 +11,8 @@ export function BottomNav() {
   const tr = useT();
   const me = useSession((s) => s.me);
   const controls = useSession((s) => s.config?.features ?? {});
-  const ids = bottomNav(me?.accountType).filter((id) => featureMode(controls, id) !== 'hidden');
+  const focusing = useFocusing();
+  const ids = bottomNav(me?.accountType).filter((id) => featureMode(controls, id) !== 'hidden' && !(focusing && hiddenInFocus(id)));
   return (
     <nav
       aria-label={tr.t('nav.menu')}

@@ -62,8 +62,8 @@ describe('daily review and recurring mistakes', () => {
     const qid = today.body.questions[0]!.id;
 
     // Wrong again → missed twice → shows up as a recurring mistake.
-    const wrong = await call<ReviewAnswerResultDto>('POST', `/study/review/questions/${qid}/answer`, { token: s.token, body: { answer: 0 } });
-    expect(wrong.body).toMatchObject({ correct: false, answer: 1 });
+    const wrong = await call<ReviewAnswerResultDto>('POST', `/study/review/questions/${qid}/answer`, { token: s.token, body: { answer: 1 } });
+    expect(wrong.body).toMatchObject({ correct: false, answer: 0 });
     const mistakes = await call<{ items: RecurringMistakeDto[] }>('GET', '/study/mistakes', { token: s.token });
     expect(mistakes.body.items[0]).toMatchObject({ questionId: qid, misses: 2 });
 
@@ -72,7 +72,7 @@ describe('daily review and recurring mistakes', () => {
       .update(questionReviews)
       .set({ dueAt: new Date(Date.now() - 1000) })
       .where(eq(questionReviews.userId, s.user.id));
-    const right = await call<ReviewAnswerResultDto>('POST', `/study/review/questions/${qid}/answer`, { token: s.token, body: { answer: 1 } });
+    const right = await call<ReviewAnswerResultDto>('POST', `/study/review/questions/${qid}/answer`, { token: s.token, body: { answer: 0 } });
     expect(right.body.correct).toBe(true);
     expect(right.body.nextDueAt).toBeGreaterThan(Date.now() + 3_600_000);
     expect((await call<DailyReviewDto>('GET', '/study/review', { token: s.token })).body.questions).toHaveLength(0);

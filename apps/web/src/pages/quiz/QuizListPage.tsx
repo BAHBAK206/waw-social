@@ -27,6 +27,7 @@ export function QuizCard({ quiz, onStart, busy }: { quiz: QuizSummaryDto; onStar
         <span className={cx('badge', DIFF_STYLE[quiz.difficulty])}>{tr.t(`quiz.difficulties.${quiz.difficulty}`)}</span>
         <span className="badge">{tr.t(`quiz.kinds.${quiz.kind}`)}</span>
         {!quiz.published && <span className="badge badge-warn">{tr.t('common.draft')}</span>}
+        {quiz.paperYear && <span className="badge badge-primary">{[quiz.paperBoard, quiz.paperYear].filter(Boolean).join(' · ')}</span>}
         {quiz.section && <span className="badge badge-primary">{quiz.section.name}</span>}
         {quiz.material && <span className="badge">{quiz.material.name}</span>}
       </div>
@@ -107,6 +108,8 @@ export default function QuizListPage() {
   const difficulty = params.get('difficulty') ?? '';
   const mine = params.get('mine') === '1';
   const banks = params.get('tab') === 'banks';
+  const papers = params.get('tab') === 'papers';
+  const paperYear = params.get('year') ?? '';
   const set = (k: string, v: string) =>
     setParams(
       (p) => {
@@ -120,7 +123,7 @@ export default function QuizListPage() {
     );
 
   const taxonomy = useQuery({ queryKey: qk.taxonomy, queryFn: () => api.taxonomy(), staleTime: 10 * 60_000 });
-  const filters = { q: debounced, sectionId: section, materialId: material, difficulty, mine, banks };
+  const filters = { q: debounced, sectionId: section, materialId: material, difficulty, mine, banks, papers, paperYear };
   const list = usePaged<QuizSummaryDto>(qk.quizzes(filters), (cursor) =>
     api.quizzes.list({
       q: debounced || undefined,
@@ -129,6 +132,8 @@ export default function QuizListPage() {
       difficulty: difficulty || undefined,
       mine: mine || banks || undefined,
       kind: banks ? 'bank' : undefined,
+      papers: papers || undefined,
+      paperYear: papers && paperYear ? Number(paperYear) : undefined,
       cursor,
       limit: 18,
     }),
@@ -222,41 +227,65 @@ export default function QuizListPage() {
           ))}
         </select>
       </div>
-      {authed && isTeacher && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className={cx('chip', !mine && !banks && 'is-active')}
-            aria-pressed={!mine && !banks}
-            onClick={() => setParams({}, { replace: true })}
-          >
-            {tr.t('common.all')}
-          </button>
-          <button type="button" className={cx('chip', mine && 'is-active')} aria-pressed={mine} onClick={() => setParams({ mine: '1' }, { replace: true })}>
-            {tr.t('quiz.mine')}
-          </button>
-          <button
-            type="button"
-            className={cx('chip', banks && 'is-active')}
-            aria-pressed={banks}
-            onClick={() => setParams({ tab: 'banks' }, { replace: true })}
-          >
-            {tr.t('quiz.bank.banks')}
-          </button>
-          {banks && (
-            <ButtonLink to="/quiz/new?kind=bank" size="sm" variant="outline" icon={<Plus className="size-4" />}>
-              {tr.t('quiz.bank.newBank')}
-            </ButtonLink>
-          )}
-        </div>
-      )}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className={cx('chip', !mine && !banks && !papers && 'is-active')}
+          aria-pressed={!mine && !banks && !papers}
+          onClick={() => setParams({}, { replace: true })}
+        >
+          {tr.t('common.all')}
+        </button>
+        <button
+          type="button"
+          className={cx('chip', papers && 'is-active')}
+          aria-pressed={papers}
+          onClick={() => setParams({ tab: 'papers' }, { replace: true })}
+        >
+          {tr.t('quiz.papers.tab')}
+        </button>
+        {authed && isTeacher && (
+          <>
+            <button type="button" className={cx('chip', mine && 'is-active')} aria-pressed={mine} onClick={() => setParams({ mine: '1' }, { replace: true })}>
+              {tr.t('quiz.mine')}
+            </button>
+            <button
+              type="button"
+              className={cx('chip', banks && 'is-active')}
+              aria-pressed={banks}
+              onClick={() => setParams({ tab: 'banks' }, { replace: true })}
+            >
+              {tr.t('quiz.bank.banks')}
+            </button>
+          </>
+        )}
+        {papers && (
+          <select className="input w-40" aria-label={tr.t('quiz.papers.year')} value={paperYear} onChange={(e) => set('year', e.target.value)}>
+            <option value="">{tr.t('quiz.papers.allYears')}</option>
+            {Array.from({ length: 12 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        )}
+        {banks && (
+          <ButtonLink to="/quiz/new?kind=bank" size="sm" variant="outline" icon={<Plus className="size-4" />}>
+            {tr.t('quiz.bank.newBank')}
+          </ButtonLink>
+        )}
+      </div>
       {banks && <p className="muted mb-3 text-sm">{tr.t('quiz.bank.hint')}</p>}
+      {papers && <p className="muted mb-3 text-sm">{tr.t('quiz.papers.hint')}</p>}
       {list.isPending ? (
         <CardSkeletons count={6} className="sm:grid-cols-2 lg:grid-cols-3" />
       ) : list.error ? (
         <ErrorState error={list.error} onRetry={() => void list.refetch()} />
       ) : !list.items.length ? (
-        <EmptyState icon={<ListChecks className="size-7" />} title={banks ? tr.t('quiz.bank.empty') : tr.t('quiz.empty')} />
+        <EmptyState
+          icon={<ListChecks className="size-7" />}
+          title={banks ? tr.t('quiz.bank.empty') : papers ? tr.t('quiz.papers.empty') : tr.t('quiz.empty')}
+        />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
