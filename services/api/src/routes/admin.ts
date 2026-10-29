@@ -64,6 +64,7 @@ import {
   videoComments,
   videos,
 } from '../db/schema';
+import { liveHealth } from '../lib/health';
 import { audit } from '../lib/audit';
 import type { AppEnv } from '../lib/context';
 import { decodeCursor, pageOf } from '../lib/cursor';
@@ -748,6 +749,10 @@ export const adminRoutes = new Hono<AppEnv>()
     return c.json(await getSettings(deps.db, deps.env.AI_DAILY_QUOTA));
   })
   /* monitoring */
+  .get('/health', async (c) => {
+    requirePerm(c, 'errors.view');
+    return c.json(await liveHealth(c.get('deps')));
+  })
   .get('/errors', async (c) => {
     requirePerm(c, 'errors.view');
     const { db } = c.get('deps');

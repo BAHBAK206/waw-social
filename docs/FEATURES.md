@@ -86,3 +86,8 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | School plans (free up to 50 students, Standard 300, Premium unlimited): student limit enforced on import, pay by Paymob or transfer approved by platform staff, lapses to free when the period ends | ✅ | ✅ (browser view) |
 | Public student portfolio: certificates (verifiable), strong topics, projects and awards; student chooses what shows; under-18s need a linked parent and show a first name only | ✅ | ✅ |
 | Referral program: personal invite code and link, both friends earn XP when the invited friend finishes a first quiz (up to 20 rewards) | ✅ | ✅ |
+| Offline quizzes: download practice quizzes, solve with no connection, results are marked again by the server and sent when back online (small daily XP bonus, never a best score) | — | ✅ |
+| Voice search: speak into the search box (web palette and phone search) in the app language | ✅ | ✅ |
+| System health dashboard for administrators: database, cache, storage, AI and live services with response times, memory, errors in 24 h, video processing, last backup and what is waiting for staff | ✅ | ✅ (browser view) |
+| Data saver: lessons start in the lowest quality and do not play by themselves | ✅ | ✅ |
+| One-click school backup: a ZIP with people, classes, marks, attendance, fees, announcements, calendar, survey answers and templates | ✅ | ✅ (browser view) |

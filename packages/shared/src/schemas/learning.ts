@@ -375,3 +375,23 @@ export const templateUseSchema = z.object({ courseId: idSchema.optional().nullab
 
 export const commentSuggestSchema = z.object({ courseId: idSchema, studentId: idSchema, language: z.enum(['en', 'ar', 'fr', 'es']).optional() });
 export const commentSendSchema = z.object({ courseId: idSchema, studentId: idSchema, text: trimmed(1500, 5) });
+
+// ---- Offline quizzes ----
+
+const givenAnswer = z.union([z.number().int(), z.array(z.number().int()).max(20), z.string().max(500), z.null()]);
+export const offlineResultsSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        /** Made on the phone, so sending the same result twice changes nothing. */
+        clientId: z.string().uuid(),
+        quizId: z.string().uuid(),
+        /** Answers in the order of the downloaded questions. */
+        answers: z.array(givenAnswer).max(200),
+        startedAt: z.number().int().positive(),
+        finishedAt: z.number().int().positive(),
+      }),
+    )
+    .min(1)
+    .max(20),
+});

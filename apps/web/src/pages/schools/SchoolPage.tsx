@@ -8,6 +8,7 @@ import { Input, Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, QueryState } from '@/components/ui/States';
 import { SchoolPlan } from '@/components/growth/SchoolPlan';
+import { SchoolBackup } from '@/components/schooladmin/Backup';
 import { SchoolComplaints } from '@/components/schooladmin/Complaints';
 import { SchoolDashboard } from '@/components/schooladmin/Dashboard';
 import { SchoolFees } from '@/components/schooladmin/Fees';
@@ -120,6 +121,7 @@ function Overview({ school }: { school: SchoolDto }) {
           </Button>
         </section>
       )}
+      {admin && <SchoolBackup school={school} />}
       <Button
         variant="ghost"
         onClick={async () => {

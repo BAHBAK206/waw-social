@@ -120,6 +120,25 @@ export default function SchoolScreen() {
                   }}
                 />
               ))}
+              {admin ? (
+                <Button
+                  small
+                  variant="outline"
+                  icon="download-outline"
+                  title={tr.t('ops.export.button')}
+                  loading={busy === 'export'}
+                  onPress={async () => {
+                    setBusy('export');
+                    try {
+                      await openWebSignedIn(`/schools/${s.id}?tab=overview`);
+                    } catch (e) {
+                      toastError(e);
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                />
+              ) : null}
             </View>
           </Card>
         )}

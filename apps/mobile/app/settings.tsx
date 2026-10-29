@@ -83,6 +83,12 @@ function Appearance() {
       </View>
 
       <SwitchRow label={tr.t('settings.appearance.reduceMotion')} value={a.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
+      <SwitchRow
+        label={tr.t('settings.appearance.dataSaver')}
+        hint={tr.t('settings.appearance.dataSaverHint')}
+        value={a.dataSaver}
+        onChange={(v) => update({ dataSaver: v })}
+      />
       <SwitchRow label={tr.t('settings.appearance.highContrast')} value={a.highContrast} onChange={(v) => update({ highContrast: v })} />
       <SwitchRow
         label={tr.t('settings.appearance.dyslexiaFont')}

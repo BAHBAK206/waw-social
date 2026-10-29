@@ -312,6 +312,12 @@ function AppearanceTab() {
           ))}
         </div>
         <Switch checked={a.reduceMotion} onChange={(v) => update({ reduceMotion: v })} label={tr.t('settings.appearance.reduceMotion')} />
+        <Switch
+          checked={a.dataSaver}
+          onChange={(v) => update({ dataSaver: v })}
+          label={tr.t('settings.appearance.dataSaver')}
+          description={tr.t('settings.appearance.dataSaverHint')}
+        />
         <Switch checked={a.highContrast} onChange={(v) => update({ highContrast: v })} label={tr.t('settings.appearance.highContrast')} />
         <Switch
           checked={a.readingFont === 'dyslexic'}

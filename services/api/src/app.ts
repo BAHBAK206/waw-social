@@ -34,6 +34,8 @@ import { schoolRoutes } from './routes/school';
 import { classRoutes, liveRoutes } from './routes/live';
 import { formRoutes } from './routes/forms';
 import { behaviorRoutes, meetingRoutes, parentRoutes } from './routes/parentcomms';
+import { schoolExportRoutes } from './routes/export';
+import { offlineRoutes } from './routes/offline';
 import { complaintAdminRoutes, wellbeingRoutes } from './routes/wellbeing';
 import { couponRoutes, lessonRoutes, planReviewRoutes, planRoutes, portfolioRoutes, referralRoutes } from './routes/growth';
 import { schoolAdminRoutes, schoolFeeRoutes } from './routes/schooladmin';
@@ -157,6 +159,8 @@ export function createApp(deps: Deps) {
   api.route('/coupons', couponRoutes);
   api.route('/lessons', lessonRoutes);
   api.route('/schools', planRoutes);
+  api.route('/schools', schoolExportRoutes);
+  api.route('/offline', offlineRoutes);
   api.route('/growth', planReviewRoutes);
   api.route('/portfolio', portfolioRoutes);
   api.route('/referrals', referralRoutes);

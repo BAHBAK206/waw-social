@@ -3,11 +3,14 @@ import type { SearchResultsDto } from '@qubedu/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Row } from '@/components/kit';
 import { Empty, Loading, SectionTitle } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useAppearance } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
+import { canRecognize, listen, MicDeniedError } from '@/lib/recognition';
+import { toast, toastError } from '@/lib/ui';
 import { FONT, useTheme } from '@/lib/theme';
 
 function useDebounced<T>(value: T, ms = 300) {
@@ -24,6 +27,30 @@ export default function SearchScreen() {
   const t = useTheme();
   const router = useRouter();
   const [term, setTerm] = useState('');
+  const [listening, setListening] = useState<{ stop: () => void } | null>(null);
+  const language = useAppearance((s) => s.appearance.language);
+  const talk = async () => {
+    if (listening) {
+      listening.stop();
+      return;
+    }
+    if (!canRecognize()) {
+      toast(tr.t('ops.voice.unsupported'), 'err');
+      return;
+    }
+    try {
+      const l = await listen(language, setTerm);
+      setListening(l);
+      const said = await l.result;
+      setListening(null);
+      if (said.trim()) setTerm(said.trim());
+      else toast(tr.t('ops.voice.nothing'));
+    } catch (e) {
+      setListening(null);
+      if (e instanceof MicDeniedError) toast(tr.t('ops.voice.denied'), 'err');
+      else toastError(e);
+    }
+  };
   const q = useDebounced(term.trim());
   const res = useQuery({ queryKey: ['search', q], queryFn: ({ signal }) => api.search(q, signal), enabled: q.length >= 2 });
   const d: SearchResultsDto | undefined = res.data;
@@ -53,6 +80,14 @@ export default function SearchScreen() {
           returnKeyType="search"
           style={{ flex: 1, minHeight: 48, color: t.text, fontFamily: FONT.regular, fontSize: 15, textAlign: 'auto' }}
         />
+        <Pressable
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={listening ? tr.t('ops.voice.listening') : tr.t('ops.voice.speak')}
+          onPress={() => void talk()}
+        >
+          <Ionicons name={listening ? 'stop-circle' : 'mic-outline'} size={22} color={listening ? t.err : t.text3} />
+        </Pressable>
       </View>
       {res.isFetching && <Loading />}
       {empty && <Empty icon="search-outline" title={tr.t('palette.noResults')} />}

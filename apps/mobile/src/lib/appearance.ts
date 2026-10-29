@@ -18,6 +18,7 @@ function sanitize(raw: unknown): Partial<Appearance> {
   if (TEXT_SIZES.includes(r.textSize as never)) out.textSize = r.textSize as Appearance['textSize'];
   if (typeof r.reduceMotion === 'boolean') out.reduceMotion = r.reduceMotion;
   if (typeof r.highContrast === 'boolean') out.highContrast = r.highContrast;
+  if (typeof r.dataSaver === 'boolean') out.dataSaver = r.dataSaver;
   if (READING_FONTS.includes(r.readingFont as never)) out.readingFont = r.readingFont as Appearance['readingFont'];
   return out;
 }

@@ -8,7 +8,17 @@ import { useSession } from './session';
 /** Things done without a connection, sent in order once it returns. */
 export type OutboxItem =
   | { kind: 'card-review'; cardId: string; rating: 'again' | 'unsure' | 'know' | 'easy'; at: number; userId: string }
-  | { kind: 'video-progress'; videoId: string; sec: number; completed: boolean; at: number; userId: string };
+  | { kind: 'video-progress'; videoId: string; sec: number; completed: boolean; at: number; userId: string }
+  | {
+      kind: 'quiz-result';
+      clientId: string;
+      quizId: string;
+      answers: (number | number[] | string | null)[];
+      startedAt: number;
+      finishedAt: number;
+      at: number;
+      userId: string;
+    };
 
 type Draft<T> = T extends unknown ? Omit<T, 'userId' | 'at'> & { at?: number } : never;
 type NewItem = Draft<OutboxItem>;
@@ -62,6 +72,8 @@ export function flushOutbox(): Promise<void> {
         const it = items[0]!;
         try {
           if (it.kind === 'card-review') await api.flashcards.review(it.cardId, it.rating, it.at);
+          else if (it.kind === 'quiz-result')
+            await api.offline.results([{ clientId: it.clientId, quizId: it.quizId, answers: it.answers, startedAt: it.startedAt, finishedAt: it.finishedAt }]);
           else await api.videos.progress(it.videoId, it.sec, it.completed);
         } catch (e) {
           if (e instanceof ApiError && (e.isNetwork || e.status === 429 || e.status >= 500)) break;

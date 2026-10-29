@@ -4,6 +4,7 @@ import type Hls from 'hls.js';
 import { Gauge, Play, RotateCcw, Settings2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, fileUrl } from '@/lib/api';
+import { useAppearance } from '@/lib/appearance';
 import { cx } from '@/lib/cx';
 import { formatClock } from '@/lib/format';
 import { useT } from '@/lib/i18n';
@@ -61,7 +62,8 @@ export function VideoPlayer({
   const playedSec = useRef(0);
   const lastSync = useRef(0);
   const lastWhole = useRef(-1);
-  const stream = useAdaptiveStream(ref, video);
+  const saver = useAppearance((s) => s.appearance.dataSaver);
+  const stream = useAdaptiveStream(ref, video, saver);
   const trackUrls = useCaptionUrls(captions);
   const [qualityOpen, setQualityOpen] = useState(false);
 
@@ -101,8 +103,8 @@ export function VideoPlayer({
     const el = ref.current;
     if (!el) return;
     if (!active) el.pause();
-    else if (autoPlay) void el.play().catch(() => undefined);
-  }, [active, autoPlay, video.id]);
+    else if (autoPlay && !saver) void el.play().catch(() => undefined);
+  }, [active, autoPlay, saver, video.id]);
 
   const toggle = useCallback(() => {
     const el = ref.current;
@@ -190,7 +192,7 @@ export function VideoPlayer({
         className={cx('size-full', vertical ? 'object-cover' : 'object-contain')}
         controls={!vertical}
         playsInline
-        preload="metadata"
+        preload={saver ? 'none' : 'metadata'}
         loop={vertical}
         muted={muted}
         onClick={vertical ? toggle : undefined}
@@ -331,7 +333,7 @@ export function VideoPlayer({
  * Plays the adaptive stream (360p/720p/1080p, picked by connection speed) when the lesson has one: natively on Safari,
  * through hls.js elsewhere (loaded only when needed). Falls back to the original file on any fatal stream error.
  */
-function useAdaptiveStream(ref: { current: HTMLVideoElement | null }, video: VideoDto) {
+function useAdaptiveStream(ref: { current: HTMLVideoElement | null }, video: VideoDto, saver: boolean) {
   const [levels, setLevels] = useState<number[]>([]);
   const [level, setLevelState] = useState(-1);
   const hls = useRef<Hls | null>(null);
@@ -354,8 +356,19 @@ function useAdaptiveStream(ref: { current: HTMLVideoElement | null }, video: Vid
           el.src = original;
           return;
         }
-        const h = new HlsClass({ capLevelToPlayerSize: true, startLevel: -1 });
-        h.on(HlsClass.Events.MANIFEST_PARSED, (_e, d) => setLevels(d.levels.map((l) => l.height)));
+        const h = new HlsClass({
+          capLevelToPlayerSize: true,
+          startLevel: saver ? 0 : -1,
+          ...(saver ? { autoStartLoad: true, abrEwmaDefaultEstimate: 300_000 } : {}),
+        });
+        h.on(HlsClass.Events.MANIFEST_PARSED, (_e, d) => {
+          setLevels(d.levels.map((l) => l.height));
+          // Data saver: stay on the lowest quality (the viewer can still pick a higher one).
+          if (saver) {
+            h.currentLevel = 0;
+            setLevelState(0);
+          }
+        });
         h.on(HlsClass.Events.ERROR, (_e, d) => {
           if (!d.fatal) return;
           h.destroy();
@@ -377,6 +390,7 @@ function useAdaptiveStream(ref: { current: HTMLVideoElement | null }, video: Vid
       hls.current?.destroy();
       hls.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, video.id, video.streamUrl, video.videoUrl]);
   const setLevel = (i: number) => {
     setLevelState(i);

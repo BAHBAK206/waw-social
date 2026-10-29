@@ -53,6 +53,7 @@ export default function DownloadsScreen() {
           </View>
         ) : null}
       </Card>
+      <Button variant="outline" icon="document-text-outline" title={tr.t('ops.offline.title')} onPress={() => router.push('/offline-quizzes' as never)} />
       {active.map(([id, p]) => (
         <Card key={id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Ionicons name="download-outline" size={20} color={t.primary} />

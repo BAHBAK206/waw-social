@@ -1,15 +1,17 @@
 import { normalizeSearch, type SearchResultsDto } from '@qubedu/shared';
 import type { TKey } from '@qubedu/i18n';
-import { BookOpen, GraduationCap, Layers, ListChecks, MoonStar, Newspaper, Palette, Search, Share2, Timer, UsersRound } from 'lucide-react';
+import { BookOpen, GraduationCap, Layers, ListChecks, Mic, MoonStar, Newspaper, Palette, Search, Share2, Square, Timer, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { actionVisible, navItems } from '@/app/nav';
 import { Avatar } from '@/components/ui/Avatar';
+import { IconButton } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 import { useAppearance, resolvedMode } from '@/lib/appearance';
 import { cx } from '@/lib/cx';
 import { useT } from '@/lib/i18n';
+import { canRecognize, listen, type Listening } from '@/lib/speech';
 import { useSession } from '@/lib/session';
 import { toast, useUi } from '@/lib/ui';
 
@@ -30,6 +32,8 @@ export default function CommandPalette() {
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResultsDto | null>(null);
   const [index, setIndex] = useState(0);
+  const [heard, setHeard] = useState<Listening | null>(null);
+  const language = useAppearance((s) => s.appearance.language);
   const inputRef = useRef<HTMLInputElement>(null);
   const close = () => useUi.getState().set({ paletteOpen: false });
 
@@ -226,6 +230,31 @@ export default function CommandPalette() {
             aria-controls="palette-list"
             aria-activedescendant={entries[index] ? `pe-${entries[index].id}` : undefined}
           />
+          {canRecognize() && (
+            <IconButton
+              label={heard ? tr.t('ops.voice.listening') : tr.t('ops.voice.speak')}
+              aria-pressed={!!heard}
+              onClick={() => {
+                if (heard) {
+                  heard.stop();
+                  return;
+                }
+                const l = listen(language, (partial) => setQ(partial));
+                setHeard(l);
+                l.result
+                  .then((said) => {
+                    if (said) setQ(said);
+                    else toast(tr.t('ops.voice.nothing'), 'info');
+                  })
+                  .catch((e: Error) => {
+                    if (e.message === 'not-allowed' || e.message === 'service-not-allowed') toast(tr.t('ops.voice.denied'), 'info');
+                  })
+                  .finally(() => setHeard(null));
+              }}
+            >
+              {heard ? <Square className="size-5" /> : <Mic className="size-5" />}
+            </IconButton>
+          )}
           <kbd className="badge">Esc</kbd>
         </div>
         <div id="palette-list" role="listbox" className="scroll-thin max-h-[60vh] overflow-y-auto p-2">

@@ -1972,3 +1972,32 @@ export interface ReferralDto {
   rewardXp: number;
   friends: { name: string; joinedAt: number; rewarded: boolean }[];
 }
+
+// ---- System health (admin) ----
+
+export interface HealthCheckDto {
+  name: 'database' | 'cache' | 'storage' | 'ai' | 'realtime';
+  /** ok = answered fast; slow = answered but slowly; down = no answer; off = not configured. */
+  status: 'ok' | 'slow' | 'down' | 'off';
+  ms: number | null;
+  detail: string;
+}
+
+export interface SystemHealthDto {
+  checkedAt: number;
+  overall: 'ok' | 'degraded' | 'down';
+  checks: HealthCheckDto[];
+  process: { uptimeSec: number; rssMb: number; heapMb: number; node: string; loopLagMs: number };
+  load: { online: number; errors24h: number; errorKinds: { message: string; count: number }[]; pendingVideos: number; failedVideos: number };
+  backup: { at: number | null; sizeKb: number | null };
+  queues: { reports: number; teacherVerifications: number; transfers: number; planPayments: number; complaints: number };
+}
+
+// ---- Offline quizzes ----
+
+export interface OfflineQuizPackDto {
+  quiz: QuizSummaryDto;
+  /** Questions with their answers (practice quizzes only), so the phone can mark them with no connection. */
+  questions: (QuizQuestionPublic & { answer: number | number[] | string[]; explanation: string | null })[];
+  version: number;
+}

@@ -90,7 +90,7 @@ async function canEditQuiz(deps: Deps, user: AuthUser, quiz: QuizRow) {
 }
 
 /** Visible: published + (no course or member of course); creators and staff see everything they own/manage. */
-async function canSeeQuiz(deps: Deps, user: AuthUser | null, quiz: QuizRow) {
+export async function canSeeQuiz(deps: Deps, user: AuthUser | null, quiz: QuizRow) {
   if (quiz.deletedAt) return false;
   if (user && (await canEditQuiz(deps, user, quiz))) return true;
   if (!quiz.published || quiz.kind === 'bank') return false;
@@ -98,7 +98,7 @@ async function canSeeQuiz(deps: Deps, user: AuthUser | null, quiz: QuizRow) {
   return true;
 }
 
-async function loadQuiz(deps: Deps, id: string) {
+export async function loadQuiz(deps: Deps, id: string) {
   const [q] = await deps.db
     .select()
     .from(quizzes)
@@ -107,7 +107,7 @@ async function loadQuiz(deps: Deps, id: string) {
   return q;
 }
 
-async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Promise<QuizSummaryDto[]> {
+export async function summaries(deps: Deps, viewer: AuthUser | null, ids: string[]): Promise<QuizSummaryDto[]> {
   if (!ids.length) return [];
   const rows = await deps.db
     .select({ q: quizzes, s: { id: eduSections.id, name: eduSections.name }, m: { id: eduMaterials.id, name: eduMaterials.name }, ...authorCols })

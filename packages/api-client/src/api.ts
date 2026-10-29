@@ -1,4 +1,6 @@
 import type {
+  OfflineQuizPackDto,
+  SystemHealthDto,
   CouponDto,
   CouponPreviewDto,
   PlanOrderDto,
@@ -661,6 +663,12 @@ export function createApi(options: ClientOptions) {
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
     },
 
+    offline: {
+      quizzes: () => http.get<{ items: QuizSummaryDto[] }>('/offline/quizzes'),
+      pack: (id: string) => http.get<OfflineQuizPackDto>(`/offline/quizzes/${id}/pack`),
+      results: (items: { clientId: string; quizId: string; answers: (number | number[] | string | null)[]; startedAt: number; finishedAt: number }[]) =>
+        http.post<{ synced: string[] }>('/offline/results', { items }),
+    },
     coupons: {
       list: () => http.get<{ items: CouponDto[] }>('/coupons'),
       create: (body: {
@@ -897,6 +905,8 @@ export function createApi(options: ClientOptions) {
       create: (body: { name: string; system?: string; address?: string | null; phone?: string | null; principal?: string | null; logoUrl?: string | null }) =>
         http.post<SchoolDto>('/schools', body),
       get: (id: string) => http.get<SchoolDto>(`/schools/${id}`),
+      /** Everything the school keeps, as a ZIP of spreadsheets (administrators only). */
+      exportAll: (id: string) => http.request<Response>('GET', `/schools/${id}/export`, { raw: true }),
       update: (
         id: string,
         body: Partial<{ name: string; system: string; address: string | null; phone: string | null; principal: string | null; logoUrl: string | null }>,
@@ -1227,6 +1237,7 @@ export function createApi(options: ClientOptions) {
       rejectVerification: (id: string, reason: string) => http.post<Ok>(`/admin/teacher-verifications/${id}/reject`, { reason }),
       unverifyTeacher: (userId: string) => http.del<Ok>(`/admin/teacher-verifications/users/${userId}`),
       overview: () => http.get<AdminOverviewDto>('/admin/overview'),
+      health: () => http.get<SystemHealthDto>('/admin/health'),
       users: (q: Q = {}) => http.get<Page<AdminUserDto>>('/admin/users', q),
       user: (id: string) =>
         http.get<{

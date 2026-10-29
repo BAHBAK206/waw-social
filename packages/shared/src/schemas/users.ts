@@ -56,6 +56,7 @@ export const appearanceSchema = z.object({
   reduceMotion: z.boolean(),
   highContrast: z.boolean(),
   readingFont: z.enum(tuple(READING_FONTS)),
+  dataSaver: z.boolean(),
 });
 
 export const updatePrefsSchema = z.object({

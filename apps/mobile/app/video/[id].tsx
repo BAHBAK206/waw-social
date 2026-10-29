@@ -12,6 +12,7 @@ import { ReportButton } from '@/components/Report';
 import { Checkpoint, LessonNotes, LessonOutline } from '@/components/LessonTools';
 import { Avatar, Button, Card, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { VideoItem } from '../(tabs)/watch';
+import { useAppearance } from '@/lib/appearance';
 import { api, fileUrl } from '@/lib/api';
 import { compactNumber, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
@@ -50,7 +51,7 @@ function Player({
   const player = useVideoPlayer({ uri }, (p) => {
     p.timeUpdateEventInterval = 0.5;
     if (video.progressSec > 5 && video.progressSec < video.durationSec - 5) p.currentTime = video.progressSec;
-    if (autoPlay) p.play();
+    if (autoPlay && !useAppearance.getState().appearance.dataSaver) p.play();
   });
   controller.current = {
     seek: (sec) => {

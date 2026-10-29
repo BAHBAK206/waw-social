@@ -26,6 +26,8 @@ export interface Appearance {
   reduceMotion: boolean;
   highContrast: boolean;
   readingFont: ReadingFont;
+  /** Fewer bytes: lessons start in low quality and do not play by themselves. */
+  dataSaver: boolean;
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -37,4 +39,5 @@ export const DEFAULT_APPEARANCE: Appearance = {
   reduceMotion: false,
   highContrast: false,
   readingFont: 'default',
+  dataSaver: false,
 };
