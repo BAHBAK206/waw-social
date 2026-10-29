@@ -20,7 +20,7 @@ import { safeEqual } from '../lib/crypto';
 import { AppError, badRequest, conflict, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
 import { pickSummary, summaryColumns, toSummary } from '../lib/mappers';
-import { resolveCoupon, settleCouponUse, settleGrowthFromPaymob } from '../lib/growth';
+import { claimCouponUse, resolveCoupon, settleCouponUse, settleGrowthFromPaymob } from '../lib/growth';
 import { notify } from '../lib/notify';
 import { checkRate } from '../middleware';
 import { courseDtos, requireRole } from './school';
@@ -276,6 +276,8 @@ export const catalogRoutes = new Hono<AppEnv>()
     const app = deps.env.APP_URL.replace(/\/$/, '');
     // A coupon that makes it free: enroll straight away, and keep a record of the purchase.
     if (price === 0) {
+      const taken = await claimCouponUse(deps, user.id, deal!.couponId);
+      if (taken !== 'ok') throw badRequest(taken === 'used' ? 'coupon_used' : 'coupon_exhausted');
       const pid = randomUUID();
       const [paid] = await deps.db
         .insert(payments)

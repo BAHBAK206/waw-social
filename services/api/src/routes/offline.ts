@@ -1,7 +1,7 @@
 import { dayKey, offlineResultsSchema, xpRewardMeta, type OfflineQuizPackDto, type QuizResultDto } from '@qubedu/shared';
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { courseMembers, quizAttempts, quizQuestions, quizzes } from '../db/schema';
+import { courseMembers, quizAttempts, quizBest, quizQuestions, quizzes } from '../db/schema';
 import type { AppEnv } from '../lib/context';
 import { notFound } from '../lib/errors';
 import { grade, type GivenAnswer, type GradableQuestion } from '../lib/grading';
@@ -14,6 +14,19 @@ import { canSeeQuiz, loadQuiz, summaries } from './quizzes';
 const OFFLINE_XP = 10;
 const OFFLINE_DAILY_CAP = 30;
 const MAX_LIST = 40;
+
+/**
+ * A class quiz can be downloaded only after the student has finished it once (practice, not a way to read the answers
+ * before an assigned quiz); quizzes that belong to no class are open practice.
+ */
+async function practiceAllowed(deps: Parameters<typeof canSeeQuiz>[0], userId: string, quiz: { id: string; courseId: string | null }) {
+  if (!quiz.courseId) return true;
+  const [done] = await deps.db
+    .select({ q: quizBest.quizId })
+    .from(quizBest)
+    .where(and(eq(quizBest.userId, userId), eq(quizBest.quizId, quiz.id)));
+  return !!done;
+}
 
 export const offlineRoutes = new Hono<AppEnv>()
   /** Practice quizzes that can be downloaded (no exams, no random-from-bank quizzes). */
@@ -42,7 +55,7 @@ export const offlineRoutes = new Hono<AppEnv>()
       .orderBy(desc(quizzes.attemptCount), asc(quizzes.title))
       .limit(MAX_LIST * 2);
     const visible: string[] = [];
-    for (const q of rows) if (q.questionCount > 0 && (await canSeeQuiz(deps, viewer, q))) visible.push(q.id);
+    for (const q of rows) if (q.questionCount > 0 && (await canSeeQuiz(deps, viewer, q)) && (await practiceAllowed(deps, viewer.id, q))) visible.push(q.id);
     return c.json({ items: await summaries(deps, viewer, visible.slice(0, MAX_LIST)) });
   })
   .get('/quizzes/:id/pack', async (c) => {
@@ -50,7 +63,8 @@ export const offlineRoutes = new Hono<AppEnv>()
     await checkRate(c, { bucket: 'offline-pack', limit: 60, windowSec: 3600, by: 'user' });
     const deps = c.get('deps');
     const quiz = await loadQuiz(deps, param(c, 'id'));
-    if (quiz.kind !== 'quiz' || quiz.blueprint || !(await canSeeQuiz(deps, viewer, quiz))) throw notFound('quiz_not_found');
+    if (quiz.kind !== 'quiz' || quiz.blueprint || !(await canSeeQuiz(deps, viewer, quiz)) || !(await practiceAllowed(deps, viewer.id, quiz)))
+      throw notFound('quiz_not_found');
     const qs = await deps.db.select().from(quizQuestions).where(eq(quizQuestions.quizId, quiz.id)).orderBy(asc(quizQuestions.position));
     if (!qs.length) throw notFound('quiz_not_found');
     const [summary] = await summaries(deps, viewer, [quiz.id]);

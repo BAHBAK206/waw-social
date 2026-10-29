@@ -3001,6 +3001,7 @@ export const en = {
     empty: 'You have no notifications.',
     clear: 'Clear all',
     types: {
+      lesson_payment_issue: 'Your payment for “{{title}}” arrived after the slot was taken. Contact the teacher or support for a refund.',
       referral_reward: '{{name}} finished a first quiz — you both earned {{xp}} XP!',
       plan_rejected: 'Your plan payment was not accepted: {{reason}}',
       plan_active: 'Your school’s {{plan}} plan is active',

@@ -3021,6 +3021,7 @@ export const es: Dictionary = {
     empty: 'No tienes notificaciones.',
     clear: 'Borrar todo',
     types: {
+      lesson_payment_issue: 'Tu pago de «{{title}}» llegó cuando el horario ya estaba ocupado. Contacta al profesor o a soporte para el reembolso.',
       referral_reward: '{{name}} terminó su primer test: ¡ambos ganáis {{xp}} XP!',
       plan_rejected: 'No se aceptó el pago del plan: {{reason}}',
       plan_active: 'El plan {{plan}} de tu centro está activo',

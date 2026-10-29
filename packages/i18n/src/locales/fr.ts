@@ -3009,6 +3009,7 @@ export const fr: Dictionary = {
     empty: 'Aucune notification.',
     clear: 'Tout effacer',
     types: {
+      lesson_payment_issue: 'Votre paiement pour « {{title}} » est arrivé après la prise du créneau. Contactez l’enseignant ou le support pour être remboursé.',
       referral_reward: '{{name}} a fini un premier quiz — vous gagnez tous les deux {{xp}} XP !',
       plan_rejected: 'Le paiement de l’offre n’a pas été accepté : {{reason}}',
       plan_active: 'L’offre {{plan}} de votre école est active',

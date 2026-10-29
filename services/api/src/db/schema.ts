@@ -2615,6 +2615,8 @@ export const privateLessons = pgTable(
     currency: text('currency').notNull().default('EGP'),
     status: text('status').$type<'open' | 'booked' | 'cancelled'>().notNull().default('open'),
     studentId: uuid('student_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Who started paying; kept when an unpaid hold is released, so a late payment still reaches the right person. */
+    payerId: uuid('payer_id').references(() => users.id, { onDelete: 'set null' }),
     payStatus: text('pay_status').$type<'none' | 'pending' | 'paid' | 'failed'>().notNull().default('none'),
     provider: text('provider'),
     method: text('method'),

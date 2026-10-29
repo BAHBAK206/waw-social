@@ -239,6 +239,13 @@
       "when": 1793250828452,
       "tag": "0033_growth",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793279025158,
+      "tag": "0034_lesson_payer",
+      "breakpoints": true
     }
   ]
 }

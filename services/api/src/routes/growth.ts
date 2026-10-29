@@ -308,6 +308,7 @@ export const lessonRoutes = new Hono<AppEnv>()
       .set({
         status: 'booked',
         studentId: user.id,
+        payerId: user.id,
         payStatus: 'pending',
         bookedAt: new Date(),
         provider: lesson.priceCents > 0 ? 'paymob' : 'free',

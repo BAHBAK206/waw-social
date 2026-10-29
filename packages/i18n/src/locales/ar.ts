@@ -3010,6 +3010,7 @@ export const ar: Dictionary = {
     empty: 'لا توجد إشعارات.',
     clear: 'مسح الكل',
     types: {
+      lesson_payment_issue: 'وصل دفعك لدرس «{{title}}» بعد أن حُجز الموعد لغيرك. تواصل مع المعلم أو الدعم لاسترداد المبلغ.',
       referral_reward: 'أنهى {{name}} أول اختبار — حصلتما كلاكما على {{xp}} نقطة خبرة!',
       plan_rejected: 'لم يُقبل دفع الباقة: {{reason}}',
       plan_active: 'باقة {{plan}} لمدرستك فعّالة الآن',

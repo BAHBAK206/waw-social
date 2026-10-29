@@ -1,0 +1,2 @@
+ALTER TABLE "private_lessons" ADD COLUMN "payer_id" uuid;--> statement-breakpoint
+ALTER TABLE "private_lessons" ADD CONSTRAINT "private_lessons_payer_id_users_id_fk" FOREIGN KEY ("payer_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;

@@ -20,10 +20,17 @@ export async function body<T extends z.ZodType>(c: Ctx, schema: T): Promise<z.in
 
 /**
  * Every published text goes through the automatic filter: insults are masked, threats / self-harm encouragement /
- * solicitation are rejected. Admin console writes are exempt so moderators can quote what they act on.
+ * solicitation are rejected. Admin console writes are exempt so moderators can quote what they act on, and so is the
+ * anonymous complaint box: a child reporting a threat has to be able to repeat the threat.
  */
 async function screen<V>(c: Ctx, value: V): Promise<V> {
-  if (c.req.path.includes('/admin/') || c.req.path.includes('/internal/') || c.req.path.endsWith('/client-errors')) return value;
+  if (
+    c.req.path.includes('/admin/') ||
+    c.req.path.includes('/wellbeing/complaints') ||
+    c.req.path.includes('/internal/') ||
+    c.req.path.endsWith('/client-errors')
+  )
+    return value;
   const deps = c.get('deps');
   if (!deps) return value;
   const settings = await getSettings(deps.db, deps.env.AI_DAILY_QUOTA);

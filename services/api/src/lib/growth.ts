@@ -69,6 +69,25 @@ export async function resolveCoupon(
   return { couponId: c.id, discountCents, finalCents };
 }
 
+/**
+ * Takes one use of a coupon for a student before anything is given away (the free-with-a-code path), in one step so
+ * two students racing for the last use cannot both get it.
+ */
+export async function claimCouponUse(deps: Deps, userId: string, couponId: string): Promise<'ok' | 'used' | 'exhausted'> {
+  return deps.db.transaction(async (tx) => {
+    const inserted = await tx.insert(couponUses).values({ couponId, userId }).onConflictDoNothing().returning({ c: couponUses.couponId });
+    if (!inserted.length) return 'used';
+    const [bumped] = await tx
+      .update(coupons)
+      .set({ uses: sql`${coupons.uses} + 1` })
+      .where(and(eq(coupons.id, couponId), sql`(${coupons.maxUses} is null or ${coupons.uses} < ${coupons.maxUses})`))
+      .returning({ id: coupons.id });
+    if (bumped) return 'ok';
+    await tx.delete(couponUses).where(and(eq(couponUses.couponId, couponId), eq(couponUses.userId, userId)));
+    return 'exhausted';
+  });
+}
+
 /** A payment that used a coupon was paid: count the use once (a second call for the same student changes nothing). */
 export async function settleCouponUse(deps: Deps, p: { userId: string; couponId: string | null }): Promise<void> {
   if (!p.couponId) return;
@@ -265,8 +284,32 @@ export async function settleGrowthFromPaymob(deps: Deps, ref: string, obj: Recor
     .from(privateLessons)
     .where(and(eq(privateLessons.id, ref), eq(privateLessons.provider, 'paymob')));
   if (lesson) {
-    if (lesson.payStatus !== 'pending') return true;
-    if (ok && amount === lesson.priceCents && currency === lesson.currency) await activateLesson(deps, lesson.id);
+    const good = ok && amount === lesson.priceCents && currency === lesson.currency;
+    if (lesson.payStatus !== 'pending') {
+      if (!good || (lesson.payStatus === 'paid' && lesson.studentId === lesson.payerId)) return true;
+      // Money arrived after the hold was released: give the slot back to the person who paid if it is still free.
+      if (lesson.status === 'open' && lesson.payerId) {
+        const [back] = await deps.db
+          .update(privateLessons)
+          .set({ status: 'booked', studentId: lesson.payerId, payStatus: 'pending', bookedAt: new Date(), provider: 'paymob' })
+          .where(and(eq(privateLessons.id, lesson.id), eq(privateLessons.status, 'open')))
+          .returning({ id: privateLessons.id });
+        if (back && (await activateLesson(deps, lesson.id))) return true;
+      }
+      // Someone else has the slot (or it was cancelled): a person paid and has nothing, so tell them and the log.
+      deps.log.error({ lessonId: lesson.id, payerId: lesson.payerId, amount }, 'late lesson payment needs a refund');
+      if (lesson.payerId)
+        await notify(deps, {
+          userId: lesson.payerId,
+          type: 'lesson_payment_issue',
+          icon: 'wallet',
+          link: '/lessons',
+          data: { title: lesson.title },
+          pref: 'school',
+        });
+      return true;
+    }
+    if (good) await activateLesson(deps, lesson.id);
     else if (obj.pending !== true)
       await deps.db
         .update(privateLessons)
