@@ -1,4 +1,10 @@
 import type {
+  ClassComparisonDto,
+  LessonPlanDto,
+  PaperGradeDto,
+  SchoolTemplateDto,
+  StudentCommentDto,
+  WorksheetDto,
   ClassChallengeDto,
   ClassGoalDto,
   GroupStudyDto,
@@ -627,6 +633,29 @@ export function createApi(options: ClientOptions) {
       focus: () => http.get<FocusStatusDto>('/study/focus'),
       startFocus: (minutes: number) => http.post<FocusStatusDto>('/study/focus/start', { minutes }),
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
+    },
+
+    teacherTools: {
+      lessonPlan: (objectiveId: string, minutes: number) => http.post<LessonPlanDto>('/teacher/lesson-plan', { objectiveId, minutes }),
+      readPaper: (fileUrl: string, language?: string) => http.post<{ text: string }>('/teacher/paper/read', { fileUrl, language }),
+      suggestPaper: (text: string, key: { label: string; accepted: string[]; points: number; needed?: number }[]) =>
+        http.post<PaperGradeDto>('/teacher/paper/suggest', { text, key }),
+      compare: (courseIds: string[]) => http.get<ClassComparisonDto>('/teacher/compare', { courseIds: courseIds.join(',') }),
+      worksheet: (body: { objectiveId?: string; bankId?: string; perTier: number; save: boolean; title?: string }) =>
+        http.post<WorksheetDto>('/teacher/worksheet', body),
+      templates: (schoolId: string, kind?: 'quiz' | 'assignment') => http.get<{ items: SchoolTemplateDto[] }>(`/schools/${schoolId}/templates`, { kind }),
+      shareTemplate: (schoolId: string, body: { kind: 'quiz'; quizId: string } | { kind: 'assignment'; title: string; description: string; points: number }) =>
+        http.post<{ id: string }>(`/schools/${schoolId}/templates`, body),
+      useTemplate: (schoolId: string, id: string, courseId?: string | null) =>
+        http.post<{ quizId?: string; assignmentId?: string }>(`/schools/${schoolId}/templates/${id}/use`, { courseId }),
+      removeTemplate: (schoolId: string, id: string) => http.del<Ok>(`/schools/${schoolId}/templates/${id}`),
+      suggestComment: (courseId: string, studentId: string) =>
+        http.post<{ text: string; facts: { percent: number | null; attendance: number | null; missing: number } }>('/teacher/comments/suggest', {
+          courseId,
+          studentId,
+        }),
+      sendComment: (courseId: string, studentId: string, text: string) => http.post<{ id: string }>('/teacher/comments/send', { courseId, studentId, text }),
+      myComments: () => http.get<{ items: StudentCommentDto[] }>('/teacher/comments/mine'),
     },
 
     collab: {

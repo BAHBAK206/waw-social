@@ -6,7 +6,7 @@ import { GuideHint } from '@/components/Guide';
 import { FeatureGate } from '@/components/kit';
 import { ReportCard } from '@/components/Gradebook';
 import { Screen } from '@/components/Screen';
-import { Button, Chip, Empty, Text } from '@/components/ui';
+import { Button, Card, Chip, Empty, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
@@ -22,10 +22,31 @@ export default function GradesScreen() {
         <Text muted size={13}>
           {tr.t('features.grades')}
         </Text>
+        <TeacherNotes />
         {parent ? <ChildrenReportCards /> : <ReportCard />}
         {!parent ? <CalculatorLink /> : null}
       </Screen>
     </FeatureGate>
+  );
+}
+
+/** Personal notes teachers wrote about the student (or the parent's children). */
+function TeacherNotes() {
+  const tr = useT();
+  const q = useQuery({ queryKey: ['my-teacher-notes'], queryFn: () => api.teacherTools.myComments() });
+  if (!q.data?.items.length) return null;
+  return (
+    <Card style={{ gap: 8 }}>
+      <Text weight="black">{tr.t('teacherTools.comments.mineTitle')}</Text>
+      {q.data.items.slice(0, 5).map((n) => (
+        <View key={n.id} style={{ gap: 2 }}>
+          <Text>{n.text}</Text>
+          <Text muted size={12}>
+            {tr.t('teacherTools.comments.from', { name: n.teacherName ?? '—', course: n.courseTitle })}
+          </Text>
+        </View>
+      ))}
+    </Card>
   );
 }
 

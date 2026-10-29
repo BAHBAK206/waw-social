@@ -88,6 +88,9 @@ export const fakeAi: AiClient = {
       return { provider: 'fake', chapters: (input.cues ?? []).slice(0, 2).map((c, i) => ({ at: i ? Math.floor(c.start) : 0, title: c.text })) };
     return { provider: 'fake', ideas: ['Explain it in your own words.'] };
   },
+  async ocr() {
+    return { text: '1) Cairo\n2) photosynthesis uses light and chlorophyll\n3) 12' };
+  },
   async transcribe() {
     return {
       cues: [

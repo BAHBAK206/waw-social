@@ -19,6 +19,7 @@ import {
   type SearchResultsDto,
   type WorkspaceFileDto,
   type WorkspaceFolderDto,
+  boolQuery,
 } from '@qubedu/shared';
 import {
   courseMembers,
@@ -91,8 +92,8 @@ const libQuery = paginationSchema.extend({
   category: z.enum(['book', 'summary', 'exam', 'notes', 'video', 'other']).optional(),
   sectionId: z.string().uuid().optional(),
   materialId: z.string().uuid().optional(),
-  pending: z.coerce.boolean().optional(),
-  mine: z.coerce.boolean().optional(),
+  pending: boolQuery.optional(),
+  mine: boolQuery.optional(),
 });
 
 export const libraryRoutes = new Hono<AppEnv>()

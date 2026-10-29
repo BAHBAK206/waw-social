@@ -62,3 +62,9 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Study groups: shared task list, this week's study-time ranking, scheduled study sessions (events) | ✅ | ✅ (opens in the app's browser view) |
 | Class weekly study goal with class badge and XP when reached; weekly challenge between the classes of a school (study minutes per student) | ✅ | ✅ |
 | Study mentors: seniors list the subjects they can help with; answers stay public in the study hall | ✅ | ✅ (opens in the app's browser view) |
+| Lesson-plan generator from a curriculum objective (timeline, linked resources, sample questions, print) | ✅ | ✅ (opens in the app's browser view) |
+| Grade a paper from a photo: text recognition (when the server has it), answer key, suggested marks the teacher approves into a manual grade component | ✅ | ✅ (browser view) |
+| Compare classes by objective (average per objective, per class) | ✅ | ✅ (browser view) |
+| Tiered worksheets (foundation / core / advanced) from an objective or question bank, optionally saved as three quizzes | ✅ | ✅ (browser view) |
+| Shared quiz and assignment templates inside a school | ✅ | ✅ (browser view) |
+| One-tap suggested personal note per student (from marks, attendance and missing work), reviewed then sent to the student and parents | ✅ | ✅ (students and parents read the notes on Grades) |

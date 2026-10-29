@@ -30,6 +30,7 @@ import {
   type StudyInboxItem,
   type StudySessionDto,
   type TaskDto,
+  boolQuery,
 } from '@qubedu/shared';
 import {
   assignments,
@@ -139,7 +140,7 @@ export const flashcardRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
     const user = requireUser(c);
     const { db } = c.get('deps');
-    const q = query(c, z.object({ due: z.coerce.boolean().optional(), deck: z.string().max(80).optional() }));
+    const q = query(c, z.object({ due: boolQuery.optional(), deck: z.string().max(80).optional() }));
     const rows = await db
       .select()
       .from(flashcards)

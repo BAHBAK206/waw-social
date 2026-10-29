@@ -2252,3 +2252,39 @@ export const classGoals = pgTable(
   },
   (t) => [uniqueIndex('class_goals_week_uq').on(t.courseId, t.weekStart)],
 );
+
+/** A quiz or assignment a teacher shares with the other teachers of their school. */
+export const schoolTemplates = pgTable(
+  'school_templates',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'quiz' | 'assignment'>().notNull(),
+    title: text('title').notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    uses: integer('uses').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index('school_templates_school_idx').on(t.schoolId, t.kind, t.createdAt)],
+);
+
+/** A personal comment from a teacher about one student in one class (shown to the student and their parents). */
+export const studentComments = pgTable(
+  'student_comments',
+  {
+    id: id(),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    teacherId: uuid('teacher_id').references(() => users.id, { onDelete: 'set null' }),
+    text: text('text').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('student_comments_idx').on(t.studentId, t.createdAt), index('student_comments_course_idx').on(t.courseId, t.createdAt)],
+);

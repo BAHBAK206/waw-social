@@ -57,6 +57,8 @@ export interface AiClient {
   }): Promise<Record<string, unknown> & { provider: string }>;
   /** Speech → timed captions (16 kHz mono WAV). Throws AppError 501 transcription_unavailable when not installed. */
   transcribe(input: { audio: Uint8Array; language?: string }): Promise<{ cues: { start: number; end: number; text: string }[] }>;
+  /** Text from a photo of a paper. Throws AppError 501 ocr_unavailable when the AI service has no text recognition. */
+  ocr(input: { image: Uint8Array; mime: string; language?: string }): Promise<{ text: string }>;
   health(): Promise<boolean>;
 }
 
@@ -73,7 +75,7 @@ export function createAiClient(baseUrl: string, internalToken: string, timeoutMs
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        if (res.status === 501) throw new AppError(501, 'transcription_unavailable');
+        if (res.status === 501) throw new AppError(501, path === '/v1/ocr' ? 'ocr_unavailable' : 'transcription_unavailable');
         if (res.status === 422 && text.includes('needs_ai')) throw new AppError(422, 'needs_ai');
         if (res.status === 422 || res.status === 400) throw new AppError(400, 'ai_rejected', text.slice(0, 300));
         throw new AppError(503, 'ai_unavailable', `AI service responded ${res.status}`);
@@ -107,6 +109,13 @@ export function createAiClient(baseUrl: string, internalToken: string, timeoutMs
           headers: { 'content-type': 'audio/wav', ...(input.language ? { 'x-language': input.language } : {}) },
         },
         30 * 60_000,
+      ),
+    ocr: (input) =>
+      call(
+        '/v1/ocr',
+        null,
+        { data: input.image, headers: { 'content-type': input.mime, ...(input.language ? { 'x-language': input.language } : {}) } },
+        120_000,
       ),
     async health() {
       try {

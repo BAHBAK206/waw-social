@@ -1,7 +1,7 @@
 import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { paginationSchema, type NotificationDto } from '@qubedu/shared';
+import { paginationSchema, type NotificationDto, boolQuery } from '@qubedu/shared';
 import { notifications, users } from '../db/schema';
 import type { AppEnv } from '../lib/context';
 import { decodeCursor, pageOf } from '../lib/cursor';
@@ -12,7 +12,7 @@ export const notificationRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
     const user = requireUser(c);
     const { db } = c.get('deps');
-    const q = query(c, paginationSchema.extend({ unread: z.coerce.boolean().optional() }));
+    const q = query(c, paginationSchema.extend({ unread: boolQuery.optional() }));
     const cursor = decodeCursor(q.cursor);
     const rows = await db
       .select({

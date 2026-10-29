@@ -434,6 +434,19 @@ export const en: GuideBook = {
       'When the author picks your answer as the best, you earn XP and it counts in your “answers chosen” number.',
     ],
   },
+  'teacher-tools': {
+    title: 'Teacher toolkit',
+    summary: 'Plan lessons, grade from a photo, compare classes, build tiered worksheets, share templates in your school and write personal notes.',
+    steps: [
+      'Lesson plan: pick a curriculum objective and the lesson length to get a timeline with warm-up, explanation, practice, a quick check and wrap-up, plus the quizzes, videos and questions already linked to that objective.',
+      'Grade a paper: choose the class and student, take or upload a photo (the text is read for you when the server supports it, otherwise type or paste it), write the answer key, then review the suggested marks and save the approved mark into a manual grade component.',
+      'Compare classes: pick two or more of your classes to see their average on each objective.',
+      'Worksheets: choose an objective to get questions in foundation, core and advanced levels, and save them as three quizzes.',
+      'Shared templates: share one of your quizzes or an assignment with the other teachers of your school, and use theirs.',
+      'Student notes: get a suggested personal note from the student’s results, edit it, then send it to the student and their parents.',
+    ],
+    tips: ['Marks from a photo are only suggestions: every mark can be changed before it is saved.'],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

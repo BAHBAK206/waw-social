@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { LIMITS } from '../limits';
 import { FLASHCARD_RATINGS } from '../flashcards';
 import { BLOOM_LEVELS, CURRICULUM_SYSTEMS, ITEM_DIFFICULTIES } from '../curriculum';
-import { daySchema, idSchema, optionalUrl, timeSchema, trimmed } from './common';
+import { boolQuery, daySchema, idSchema, optionalUrl, timeSchema, trimmed } from './common';
 
 export const questionTypeSchema = z.enum(['mc', 'tf', 'multi', 'short']);
 export type QuestionType = z.infer<typeof questionTypeSchema>;
@@ -102,9 +102,9 @@ export const quizListQuerySchema = z.object({
   courseId: idSchema.optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   kind: z.enum(['quiz', 'test', 'exam', 'bank']).optional(),
-  mine: z.coerce.boolean().optional(),
+  mine: boolQuery.optional(),
   /** Only past exam papers. */
-  papers: z.coerce.boolean().optional(),
+  papers: boolQuery.optional(),
   paperYear: z.coerce.number().int().optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(24),
@@ -327,3 +327,51 @@ export const groupTaskUpdateSchema = z.object({ done: z.boolean() });
 export const classGoalSchema = z.object({ targetMinutes: z.number().int().min(30).max(200_000) });
 export const mentorSettingsSchema = z.object({ subjects: z.array(trimmed(40, 1)).max(6) });
 export const mentorQuerySchema = z.object({ subject: z.string().trim().max(40).optional() });
+
+/* ───────── Teacher tools ───────── */
+
+export const lessonPlanSchema = z.object({
+  objectiveId: idSchema,
+  minutes: z.number().int().min(20).max(180).default(45),
+});
+
+export const paperKeySchema = z
+  .array(
+    z.object({
+      label: trimmed(40, 1),
+      accepted: z.array(trimmed(120, 1)).min(1).max(12),
+      points: z.number().min(0).max(100),
+      needed: z.number().int().min(1).max(12).optional(),
+    }),
+  )
+  .min(1)
+  .max(60);
+
+export const paperReadSchema = z.object({ fileUrl: z.string().min(1).max(500), language: z.enum(['en', 'ar', 'fr', 'es']).optional() });
+export const paperSuggestSchema = z.object({ text: z.string().max(30_000), key: paperKeySchema });
+
+export const compareQuerySchema = z.object({ courseIds: z.string().min(1).max(600) });
+
+export const worksheetSchema = z.object({
+  objectiveId: idSchema.optional(),
+  bankId: idSchema.optional(),
+  perTier: z.number().int().min(1).max(20).default(5),
+  /** Also create three quizzes (easy, medium, advanced) in the teacher's account. */
+  save: z.boolean().default(false),
+  title: trimmed(120).optional(),
+  courseId: idSchema.optional().nullable(),
+});
+
+export const templateInputSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('quiz'), quizId: idSchema }),
+  z.object({
+    kind: z.literal('assignment'),
+    title: trimmed(200, 1),
+    description: trimmed(10000).default(''),
+    points: z.number().int().min(0).max(1000).default(100),
+  }),
+]);
+export const templateUseSchema = z.object({ courseId: idSchema.optional().nullable() });
+
+export const commentSuggestSchema = z.object({ courseId: idSchema, studentId: idSchema, language: z.enum(['en', 'ar', 'fr', 'es']).optional() });
+export const commentSendSchema = z.object({ courseId: idSchema, studentId: idSchema, text: trimmed(1500, 5) });

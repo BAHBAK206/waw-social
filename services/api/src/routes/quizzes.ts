@@ -290,7 +290,7 @@ export async function scheduleMissed(
 }
 
 /** Saves the questions, keeping the ids of existing ones (bank questions build up item statistics across exams). */
-async function saveQuestions(tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0], quizId: string, input: QuizInput) {
+export async function saveQuestions(tx: Parameters<Parameters<Deps['db']['transaction']>[0]>[0], quizId: string, input: QuizInput) {
   const existing = await tx.select({ id: quizQuestions.id }).from(quizQuestions).where(eq(quizQuestions.quizId, quizId));
   const keep = new Set(existing.map((e) => e.id));
   const kept = new Set<string>();
@@ -331,7 +331,7 @@ async function checkBlueprint(deps: Deps, user: AuthUser, input: QuizInput): Pro
   return input.blueprint.rules.reduce((n, r) => n + r.count, 0);
 }
 
-function quizValues(input: QuizInput, questionCount: number) {
+export function quizValues(input: QuizInput, questionCount: number) {
   return {
     title: input.title,
     searchTitle: normalizeSearch(`${input.title} ${input.description}`),

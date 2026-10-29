@@ -24,6 +24,7 @@ interface HubItem {
 /** Where each feature opens on the phone (a native screen, or a web page for web-only tools). */
 const MOBILE: Partial<Record<FeatureId, Omit<HubItem, 'id'>>> = {
   school: { icon: 'easel-outline', href: '/school' },
+  'teacher-tools': { icon: 'construct-outline', web: '/teacher-tools' },
   schools: { icon: 'business-outline', href: '/schools' },
   grades: { icon: 'ribbon-outline', href: '/grades' },
   classes: { icon: 'videocam-outline', href: '/live' },

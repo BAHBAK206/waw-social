@@ -15,6 +15,7 @@ export * from './similarity';
 export * from './reminders';
 export * from './smartStudy';
 export * from './collab';
+export * from './teacherTools';
 export * from './roles';
 export * from './appearance';
 export * from './planner';

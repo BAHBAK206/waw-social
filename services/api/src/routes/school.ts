@@ -30,6 +30,7 @@ import {
   type CourseMaterialDto,
   type RubricDto,
   type SubmissionDto,
+  boolQuery,
 } from '@qubedu/shared';
 import {
   assignments,
@@ -405,7 +406,7 @@ export const schoolRoutes = new Hono<AppEnv>()
   .get('/courses', async (c) => {
     const user = requireUser(c);
     const deps = c.get('deps');
-    const q = query(c, z.object({ archived: z.coerce.boolean().default(false) }));
+    const q = query(c, z.object({ archived: boolQuery.default(false) }));
     const rows = await deps.db
       .select({ id: courses.id })
       .from(courseMembers)

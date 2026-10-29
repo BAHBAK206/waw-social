@@ -33,6 +33,7 @@ import { quizRoutes, taxonomyRoutes } from './routes/quizzes';
 import { schoolRoutes } from './routes/school';
 import { classRoutes, liveRoutes } from './routes/live';
 import { formRoutes } from './routes/forms';
+import { schoolTemplateRoutes, teacherToolRoutes } from './routes/teachertools';
 import { collabRoutes, groupStudyRoutes } from './routes/collab';
 import { focusRoutes, glossaryRoutes, studyRoutes } from './routes/smart';
 import { libraryRoutes, savedRoutes, searchRoutes, workspaceRoutes } from './routes/content';
@@ -134,6 +135,8 @@ export function createApp(deps: Deps) {
   api.route('/videos', captionRoutes);
   api.route('/videos', videoRoutes);
   api.route('/teacher', teacherRoutes);
+  api.route('/teacher', teacherToolRoutes);
+  api.route('/schools', schoolTemplateRoutes);
   api.route('/family', familyRoutes);
   api.route('/catalog', catalogRoutes);
   api.route('/school', voucherRoutes);

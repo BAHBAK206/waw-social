@@ -426,6 +426,19 @@ export const es: GuideBook = {
       'Cuando el autor elige tu respuesta como la mejor, ganas XP y cuenta en tus «respuestas elegidas».',
     ],
   },
+  'teacher-tools': {
+    title: 'Herramientas del profesor',
+    summary: 'Planifica clases, corrige con una foto, compara clases, crea hojas por niveles, comparte plantillas en tu centro y escribe notas personales.',
+    steps: [
+      'Plan de clase: elige un objetivo del currículo y la duración para obtener un guion (calentamiento, explicación, práctica, comprobación y cierre) con los cuestionarios, vídeos y preguntas ya enlazados.',
+      'Corregir un examen: elige la clase y el alumno, haz o sube una foto (el texto se lee si el servidor lo permite; si no, escríbelo), escribe la clave, revisa las notas sugeridas y guarda la nota aprobada en un componente manual.',
+      'Comparar clases: elige dos o más clases para ver su promedio por objetivo.',
+      'Hojas de trabajo: elige un objetivo para obtener preguntas de nivel básico, medio y avanzado, y guárdalas como tres cuestionarios.',
+      'Plantillas compartidas: comparte un cuestionario o una tarea con los demás profesores del centro y usa las suyas.',
+      'Notas a alumnos: obtén una nota personal sugerida a partir de los resultados, edítala y envíala al alumno y a sus padres.',
+    ],
+    tips: ['Las notas de una foto son solo sugerencias: puedes cambiar cualquier nota antes de guardar.'],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

@@ -41,6 +41,7 @@ export const FEATURES = [
   { id: 'study-pack', kind: 'page', category: 'study', route: '/study-pack', icon: 'notebook-pen', auth: true },
   { id: 'glossary', kind: 'page', category: 'study', route: '/glossary', icon: 'book-a', auth: true },
   { id: 'school', kind: 'page', category: 'classroom', route: '/school', icon: 'school', auth: true },
+  { id: 'teacher-tools', kind: 'page', category: 'classroom', route: '/teacher-tools', icon: 'clipboard-pen', auth: true },
   { id: 'schools', kind: 'page', category: 'classroom', route: '/schools', icon: 'building', auth: true },
   { id: 'grades', kind: 'page', category: 'classroom', route: '/grades', icon: 'clipboard-check', auth: true },
   { id: 'catalog', kind: 'page', category: 'classroom', route: '/courses', icon: 'store' },

@@ -1642,3 +1642,55 @@ export interface MentorDto {
   /** Answers of this mentor that a question's author chose as the best answer. */
   helped: number;
 }
+
+/* ───────── Teacher tools ───────── */
+
+export interface LessonPlanDto {
+  objective: { id: string; title: string; description: string | null };
+  /** Subject › unit › lesson. */
+  path: string[];
+  minutes: number;
+  sections: { key: 'warmup' | 'explain' | 'practice' | 'assess' | 'wrapup'; minutes: number }[];
+  resources: { kind: 'quiz' | 'video' | 'library'; id: string; title: string }[];
+  questions: { type: 'mc' | 'tf' | 'multi' | 'short'; prompt: string; level: string | null }[];
+}
+
+export interface PaperGradeDto {
+  items: { label: string; points: number; awarded: number; matched: string[] }[];
+  total: number;
+  max: number;
+}
+
+export interface ClassComparisonDto {
+  objectives: { id: string; title: string }[];
+  classes: { courseId: string; title: string; students: number; cells: Record<string, { pct: number; questions: number } | null> }[];
+}
+
+export interface WorksheetDto {
+  tiers: Record<
+    'easy' | 'medium' | 'advanced',
+    { type: 'mc' | 'tf' | 'multi' | 'short'; prompt: string; options: string[]; answer: number | number[] | string[]; level: string | null }[]
+  >;
+  /** Quizzes created when `save` was set. */
+  quizIds: Partial<Record<'easy' | 'medium' | 'advanced', string>>;
+}
+
+export interface SchoolTemplateDto {
+  id: string;
+  kind: 'quiz' | 'assignment';
+  title: string;
+  authorName: string | null;
+  uses: number;
+  questionCount: number | null;
+  mine: boolean;
+  createdAt: number;
+}
+
+export interface StudentCommentDto {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  text: string;
+  teacherName: string | null;
+  createdAt: number;
+}

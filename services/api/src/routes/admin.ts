@@ -30,6 +30,7 @@ import {
   type AuditEntryDto,
   type ClientErrorDto,
   type ReportDto,
+  boolQuery,
 } from '@qubedu/shared';
 import {
   ads,
@@ -224,7 +225,7 @@ export const adminRoutes = new Hono<AppEnv>()
       paginationSchema.extend({
         q: z.string().trim().max(120).default(''),
         role: z.enum(['user', 'moderator', 'admin', 'root']).optional(),
-        banned: z.coerce.boolean().optional(),
+        banned: boolQuery.optional(),
         accountType: z.enum(['student', 'teacher', 'parent']).optional(),
         /** child = under 13, minor = under 18. */
         age: z.enum(['child', 'minor']).optional(),

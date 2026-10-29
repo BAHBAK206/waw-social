@@ -443,6 +443,20 @@ export const fr: GuideBook = {
       'Quand l’auteur choisit votre réponse comme meilleure, vous gagnez de l’XP et elle compte dans vos « réponses retenues ».',
     ],
   },
+  'teacher-tools': {
+    title: 'Outils enseignant',
+    summary:
+      'Préparez vos cours, corrigez depuis une photo, comparez les classes, créez des fiches par niveaux, partagez des modèles dans votre école et écrivez des mots personnels.',
+    steps: [
+      'Plan de cours : choisissez un objectif du programme et la durée pour obtenir un déroulé (mise en route, explication, pratique, vérification, conclusion) avec les quiz, vidéos et questions déjà liés.',
+      'Corriger une copie : choisissez la classe et l’élève, prenez ou importez une photo (le texte est lu si le serveur le permet, sinon saisissez-le), écrivez le corrigé, vérifiez les notes proposées et enregistrez la note validée dans une composante manuelle.',
+      'Comparer les classes : choisissez deux classes ou plus pour voir leur moyenne par objectif.',
+      'Fiches : choisissez un objectif pour obtenir des questions de niveau base, standard et avancé, et enregistrez-les en trois quiz.',
+      'Modèles partagés : partagez un quiz ou un devoir avec les autres enseignants de l’école et utilisez les leurs.',
+      'Mots aux élèves : obtenez un mot personnel proposé d’après les résultats, modifiez-le puis envoyez-le à l’élève et à ses parents.',
+    ],
+    tips: ['Les notes issues d’une photo ne sont que des propositions : chaque note peut être modifiée avant l’enregistrement.'],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

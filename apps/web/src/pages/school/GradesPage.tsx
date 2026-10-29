@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Calculator } from 'lucide-react';
 import { useState } from 'react';
 import { ReportCard } from '@/components/school/Gradebook';
+import { StudentNotes } from '@/components/teachertools/StudentNotes';
 import { Avatar } from '@/components/ui/Avatar';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState, PageHeader } from '@/components/ui/States';
@@ -26,6 +27,7 @@ export default function GradesPage() {
           )
         }
       />
+      <StudentNotes />
       {parent ? <ChildrenReportCards /> : <ReportCard />}
     </div>
   );

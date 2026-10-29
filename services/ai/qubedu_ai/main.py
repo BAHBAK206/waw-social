@@ -11,7 +11,7 @@ from urllib.parse import unquote
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from . import engine, teacher, transcribe
+from . import engine, ocr, teacher, transcribe
 from .essay import grade_essay
 from .extract import ExtractError, extract
 from .llm import build_provider
@@ -171,6 +171,18 @@ async def transcribe_audio(request: Request, x_language: Annotated[str | None, H
         return {"cues": await transcribe.run(data, x_language)}
     except transcribe.Unavailable as e:
         raise HTTPException(status_code=501, detail="transcription_unavailable") from e
+
+
+@app.post("/v1/ocr", dependencies=[Internal])
+async def ocr_image(request: Request, x_language: Annotated[str | None, Header()] = None) -> dict:
+    """Text from a photo of a paper, when tesseract is installed."""
+    data = await request.body()
+    if len(data) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="file_too_large")
+    try:
+        return {"text": await ocr.run(data, x_language)}
+    except ocr.Unavailable as e:
+        raise HTTPException(status_code=501, detail="ocr_unavailable") from e
 
 
 @app.post("/v1/extract", dependencies=[Internal])

@@ -10,6 +10,8 @@ export const urlSchema = z
   .max(2048)
   .refine((v) => /^(https?:\/\/|\/)/.test(v), 'invalid_url');
 export const optionalUrl = urlSchema.optional().nullable();
+/** A true/false value from a query string: "false" and "0" are false (z.coerce.boolean would make any non-empty text true). */
+export const boolQuery = z.preprocess((v) => (v === 'false' || v === '0' ? false : v === 'true' || v === '1' ? true : v), z.boolean());
 export const trimmed = (max: number, min = 0) => z.string().trim().min(min).max(max);
 
 export const paginationSchema = z.object({
