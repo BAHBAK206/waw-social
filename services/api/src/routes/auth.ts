@@ -18,6 +18,7 @@ import {
   ageTier,
 } from '@qubedu/shared';
 import { emailTokens, sessions, users } from '../db/schema';
+import { recordReferral } from '../lib/growth';
 import { openSecret, recoveryHash, verifyTotp } from '../lib/totp';
 import { createLink, inviteGuardian } from './family';
 import type { AppEnv, Deps } from '../lib/context';
@@ -175,6 +176,7 @@ export const authRoutes = new Hono<AppEnv>()
       })
       .returning({ id: users.id });
     await sendEmailToken(deps, { id: user!.id, email: input.email, language }, 'verify');
+    if (input.referralCode) await recordReferral(deps, user!.id, input.referralCode).catch((err) => deps.log.warn({ err }, 'referral failed'));
     if (child) await sendConsentEmail(deps, { id: user!.id, displayName: input.displayName }, input.parentEmail!, language);
     if (input.parentEmail && input.accountType === 'student' && input.parentEmail !== input.email)
       await inviteGuardian(deps, { id: user!.id, displayName: input.displayName }, input.parentEmail).catch((err) =>

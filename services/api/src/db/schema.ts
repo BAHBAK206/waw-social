@@ -58,6 +58,8 @@ export const users = pgTable(
     gradeLevel: text('grade_level'),
     /** Minutes a day a parent allows for this child (null = no limit). */
     dailyLimitMinutes: integer('daily_limit_minutes'),
+    /** The code this person shares to invite friends. */
+    referralCode: text('referral_code').unique(),
     /** Subjects a senior student offers to help juniors with (see canMentor). */
     mentorSubjects: jsonb('mentor_subjects').$type<string[]>().notNull().default([]),
     /** Set when an administrator verifies a teacher account (unlocks public catalog, open live classes…). */
@@ -510,6 +512,9 @@ export const payments = pgTable(
     reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
     reviewedAt: ts('reviewed_at'),
     reason: text('reason'),
+    /** A discount code used on this purchase, and how much it took off. */
+    couponId: uuid('coupon_id'),
+    discountCents: integer('discount_cents').notNull().default(0),
     createdAt: createdAt(),
     paidAt: ts('paid_at'),
   },
@@ -2555,4 +2560,158 @@ export const complaints = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex('complaints_code_uq').on(t.codeHash), index('complaints_school_idx').on(t.schoolId, t.status, t.createdAt)],
+);
+
+// ---- Growth: coupons, private lessons, school plans, portfolios, referrals ----
+
+/** A teacher's discount code for one of their courses (or all of them when courseId is empty). */
+export const coupons = pgTable(
+  'coupons',
+  {
+    id: id(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }),
+    code: text('code').notNull(),
+    percentOff: integer('percent_off'),
+    amountOffCents: integer('amount_off_cents'),
+    maxUses: integer('max_uses'),
+    uses: integer('uses').notNull().default(0),
+    expiresAt: ts('expires_at'),
+    active: boolean('active').notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('coupons_code_uq').on(t.code), index('coupons_owner_idx').on(t.ownerId)],
+);
+
+/** A student used a coupon once (settled when the payment is paid). */
+export const couponUses = pgTable(
+  'coupon_uses',
+  {
+    couponId: uuid('coupon_id')
+      .notNull()
+      .references(() => coupons.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.couponId, t.userId] })],
+);
+
+/** A one-to-one lesson slot a teacher sells; paid for by the student, then held in a private live room. */
+export const privateLessons = pgTable(
+  'private_lessons',
+  {
+    id: id(),
+    teacherId: uuid('teacher_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    startsAt: ts('starts_at').notNull(),
+    durationMin: integer('duration_min').notNull(),
+    priceCents: integer('price_cents').notNull().default(0),
+    currency: text('currency').notNull().default('EGP'),
+    status: text('status').$type<'open' | 'booked' | 'cancelled'>().notNull().default('open'),
+    studentId: uuid('student_id').references(() => users.id, { onDelete: 'set null' }),
+    payStatus: text('pay_status').$type<'none' | 'pending' | 'paid' | 'failed'>().notNull().default('none'),
+    provider: text('provider'),
+    method: text('method'),
+    bookedAt: ts('booked_at'),
+    paidAt: ts('paid_at'),
+    roomId: uuid('room_id').references(() => liveRooms.id, { onDelete: 'set null' }),
+    remindedAt: ts('reminded_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('private_lessons_teacher_idx').on(t.teacherId, t.startsAt),
+    index('private_lessons_student_idx').on(t.studentId),
+    index('private_lessons_room_idx').on(t.roomId),
+  ],
+);
+
+/** The plan a school pays for; a paid plan lapses to free after periodEnd. */
+export const schoolSubscriptions = pgTable('school_subscriptions', {
+  schoolId: uuid('school_id')
+    .primaryKey()
+    .references(() => schools.id, { onDelete: 'cascade' }),
+  plan: text('plan').$type<'free' | 'standard' | 'premium'>().notNull().default('free'),
+  periodEnd: ts('period_end'),
+  updatedAt: updatedAt(),
+});
+
+export const schoolPlanOrders = pgTable(
+  'school_plan_orders',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    plan: text('plan').$type<'standard' | 'premium'>().notNull(),
+    period: text('period').$type<'month' | 'year'>().notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    provider: text('provider'),
+    method: text('method'),
+    reference: text('reference'),
+    receipt: jsonb('receipt').$type<Record<string, unknown> | null>(),
+    status: text('status').$type<'pending' | 'review' | 'paid' | 'failed'>().notNull().default('pending'),
+    reason: text('reason'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    paidAt: ts('paid_at'),
+  },
+  (t) => [index('school_plan_orders_school_idx').on(t.schoolId, t.createdAt), index('school_plan_orders_status_idx').on(t.status)],
+);
+
+/** A student's public page: only visible when `enabled`. */
+export const portfolios = pgTable(
+  'portfolios',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(),
+    enabled: boolean('enabled').notNull().default(false),
+    headline: text('headline').notNull().default(''),
+    bio: text('bio').notNull().default(''),
+    showCertificates: boolean('show_certificates').notNull().default(true),
+    showStats: boolean('show_stats').notNull().default(true),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('portfolios_slug_uq').on(t.slug)],
+);
+
+export const portfolioItems = pgTable(
+  'portfolio_items',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'project' | 'award'>().notNull(),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    url: text('url'),
+    day: date('day', { mode: 'string' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('portfolio_items_user_idx').on(t.userId, t.createdAt)],
+);
+
+/** Who invited whom; the invite is rewarded once, when the friend finishes a first quiz. */
+export const referrals = pgTable(
+  'referrals',
+  {
+    referredId: uuid('referred_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    referrerId: uuid('referrer_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+    rewardedAt: ts('rewarded_at'),
+  },
+  (t) => [index('referrals_referrer_idx').on(t.referrerId)],
 );

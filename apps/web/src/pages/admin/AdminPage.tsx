@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ToggleLeft,
   Users,
+  Wallet,
   GraduationCap,
   Trophy,
   Bot,
@@ -20,6 +21,7 @@ import { PageHeader } from '@/components/ui/States';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { useT } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
+import { PlanReview } from '@/components/growth/PlanReview';
 import { AssistantTab, AuditTab, ErrorsTab } from './SystemTabs';
 import { ChallengesTab, ContentTab, EducationTab, LibraryTab } from './ContentTabs';
 import { FeaturesTab, SiteTab } from './SettingsTabs';
@@ -38,6 +40,7 @@ const TABS = [
   { key: 'assistant', perm: 'assistant.manage', icon: Bot },
   { key: 'features', perm: 'features.manage', icon: ToggleLeft },
   { key: 'site', perm: 'site.manage', icon: Settings2 },
+  { key: 'plans', perm: 'site.manage', icon: Wallet },
   { key: 'errors', perm: 'errors.view', icon: AlertTriangle },
   { key: 'audit', perm: 'audit.view', icon: ScrollText },
 ] as const satisfies readonly { key: string; perm: AdminPermission | null; icon: unknown }[];
@@ -72,6 +75,7 @@ export default function AdminPage() {
       {active === 'assistant' && <AssistantTab />}
       {active === 'features' && <FeaturesTab />}
       {active === 'site' && <SiteTab />}
+      {active === 'plans' && <PlanReview />}
       {active === 'errors' && <ErrorsTab />}
       {active === 'audit' && <AuditTab />}
     </div>

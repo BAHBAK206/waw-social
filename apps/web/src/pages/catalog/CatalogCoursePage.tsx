@@ -13,6 +13,7 @@ import { useSession } from '@/lib/session';
 import { toast, toastError } from '@/lib/ui';
 import { useAuthGate } from '@/lib/useAuthGate';
 import { PriceTag } from './CatalogPage';
+import { CouponBox, type AppliedCoupon } from '@/components/catalog/CouponBox';
 import { OnlinePay, TransferPay } from '@/components/catalog/PayOptions';
 
 export default function CatalogCoursePage() {
@@ -26,6 +27,7 @@ export default function CatalogCoursePage() {
   const q = useQuery({ queryKey: ['catalog', 'course', id, authed], queryFn: () => api.catalog.get(id) });
   const [busy, setBusy] = useState<string | null>(null);
   const [voucher, setVoucher] = useState('');
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
   // Back from Stripe: enrollment arrives with the payment webhook, usually within seconds.
   const paid = params.get('paid') === '1';
   useEffect(() => {
@@ -98,7 +100,24 @@ export default function CatalogCoursePage() {
                 </Button>
               ) : (
                 <>
-                  <OnlinePay c={c} run={(k, fn) => void run(k, fn)} busy={busy} />
+                  <CouponBox c={c} applied={coupon} onApplied={setCoupon} />
+                  {coupon?.preview.finalCents === 0 ? (
+                    <Button
+                      icon={<GraduationCap className="size-4" />}
+                      loading={busy === 'free'}
+                      onClick={() =>
+                        void run('free', async () => {
+                          await api.catalog.checkout(c.id, { coupon: coupon.code });
+                          await qc.invalidateQueries({ queryKey: ['catalog'] });
+                          navigate(`/school/${c.id}`);
+                        })
+                      }
+                    >
+                      {tr.t('payments.couponGetFree')}
+                    </Button>
+                  ) : (
+                    <OnlinePay c={c} run={(k, fn) => void run(k, fn)} busy={busy} coupon={coupon?.code} priceCents={coupon?.preview.finalCents} />
+                  )}
                   <form
                     className="flex flex-wrap items-end gap-2"
                     onSubmit={(e) => {
@@ -129,7 +148,9 @@ export default function CatalogCoursePage() {
                       {tr.t('catalog.redeem')}
                     </Button>
                   </form>
-                  {c.transferInfo && <TransferPay c={c} authed={authed} login={gate(() => undefined)} />}
+                  {c.transferInfo && coupon?.preview.finalCents !== 0 && (
+                    <TransferPay c={c} authed={authed} login={gate(() => undefined)} coupon={coupon?.code} priceCents={coupon?.preview.finalCents} />
+                  )}
                 </>
               )}
             </section>

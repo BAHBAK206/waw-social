@@ -81,3 +81,8 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Anonymous complaint box: students report bullying or safety problems to the school without their name stored, get a one-time secret code to read the reply; urgent categories alert the supervisors at once | ✅ | ✅ (admins read it in browser view) |
 | Daily mood check (private) with a gentle alert to parents and school supervisors after several low days, at most once a week and never showing what was written | ✅ | ✅ |
 | Parent daily time limit per child: the app locks for the rest of the day when time is up, parents add extra time any time | ✅ | ✅ |
+| Course discount codes (percentage or fixed amount, max uses, expiry, one use per student); a 100% code enrolls for free; price shown before paying | ✅ | ✅ (teachers create codes on the web) |
+| Paid private lessons: teachers publish slots with a price, students book and pay by Paymob (card or wallet), unpaid holds expire after 30 minutes, a private live room opens for the two of them, reminder before the start | ✅ | ✅ (publishing in browser view; paying is hidden on iPhone) |
+| School plans (free up to 50 students, Standard 300, Premium unlimited): student limit enforced on import, pay by Paymob or transfer approved by platform staff, lapses to free when the period ends | ✅ | ✅ (browser view) |
+| Public student portfolio: certificates (verifiable), strong topics, projects and awards; student chooses what shows; under-18s need a linked parent and show a first name only | ✅ | ✅ |
+| Referral program: personal invite code and link, both friends earn XP when the invited friend finishes a first quiz (up to 20 rewards) | ✅ | ✅ |

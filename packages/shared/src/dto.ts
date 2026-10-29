@@ -1859,3 +1859,116 @@ export interface ComplaintStatusDto {
   reply: string | null;
   createdAt: number;
 }
+
+// ---- Growth ----
+
+export interface CouponDto {
+  id: string;
+  code: string;
+  courseId: string | null;
+  courseTitle: string | null;
+  percentOff: number | null;
+  amountOffCents: number | null;
+  maxUses: number | null;
+  uses: number;
+  expiresAt: number | null;
+  active: boolean;
+  createdAt: number;
+}
+
+export interface CouponPreviewDto {
+  priceCents: number;
+  discountCents: number;
+  finalCents: number;
+  currency: string;
+}
+
+export interface PrivateLessonDto {
+  id: string;
+  teacher: UserSummary;
+  title: string;
+  startsAt: number;
+  durationMin: number;
+  priceCents: number;
+  currency: string;
+  status: 'open' | 'booked' | 'cancelled';
+  /** Only the teacher and the student see who booked. */
+  student: UserSummary | null;
+  payStatus: 'none' | 'pending' | 'paid' | 'failed';
+  /** The live room, once the lesson is paid for. */
+  roomId: string | null;
+  mine: 'teacher' | 'student' | null;
+}
+
+export interface PlanOrderDto {
+  id: string;
+  plan: 'standard' | 'premium';
+  period: 'month' | 'year';
+  amountCents: number;
+  method: string;
+  status: 'pending' | 'review' | 'paid' | 'failed';
+  reason: string | null;
+  createdAt: number;
+}
+
+export interface SchoolPlanStateDto {
+  plan: 'free' | 'standard' | 'premium';
+  periodEnd: number | null;
+  students: number;
+  limit: number | null;
+  orders: PlanOrderDto[];
+  transferInfo: string | null;
+}
+
+export interface PlanReviewItemDto extends PlanOrderDto {
+  school: { id: string; name: string };
+  reference: string | null;
+  receipt: Attachment | null;
+}
+
+export interface PortfolioItemDto {
+  id: string;
+  kind: 'project' | 'award';
+  title: string;
+  description: string;
+  url: string | null;
+  day: string | null;
+}
+
+export interface PortfolioDto {
+  slug: string;
+  enabled: boolean;
+  headline: string;
+  bio: string;
+  showCertificates: boolean;
+  showStats: boolean;
+  items: PortfolioItemDto[];
+  /** Why the page cannot be turned on yet (a young student needs a linked parent). */
+  blocked: 'needs_guardian' | null;
+}
+
+export interface PublicPortfolioDto {
+  name: string;
+  avatarUrl: string | null;
+  headline: string;
+  bio: string;
+  level: number;
+  xp: number;
+  streak: number;
+  joinedAt: number;
+  achievements: string[];
+  stats: { quizzes: number; averagePct: number } | null;
+  topics: { topic: string; mastery: number }[];
+  certificates: { code: string; title: string; issuerName: string; grade: number | null; issuedAt: number }[];
+  items: PortfolioItemDto[];
+}
+
+export interface ReferralDto {
+  code: string;
+  invited: number;
+  rewarded: number;
+  xpEarned: number;
+  maxRewards: number;
+  rewardXp: number;
+  friends: { name: string; joinedAt: number; rewarded: boolean }[];
+}

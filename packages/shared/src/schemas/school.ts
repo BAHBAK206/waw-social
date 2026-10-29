@@ -178,6 +178,8 @@ export const checkoutSchema = z.object({
     .trim()
     .regex(/^\+?[0-9]{10,15}$/)
     .optional(),
+  /** A teacher's discount code. */
+  coupon: z.string().trim().min(4).max(20).optional(),
 });
 export const transferRequestSchema = z.object({
   method: z.enum(TRANSFER_METHODS),
@@ -185,6 +187,7 @@ export const transferRequestSchema = z.object({
   reference: trimmed(80, 3),
   receipt: attachmentSchema,
   note: trimmed(500).default(''),
+  coupon: z.string().trim().min(4).max(20).optional(),
 });
 export const transferReviewSchema = z.object({ approve: z.boolean(), reason: trimmed(300).optional() });
 export const redeemVoucherSchema = z.object({ code: z.string().trim().min(6).max(20) });
@@ -350,3 +353,79 @@ export const complaintReviewSchema = z.object({ status: z.enum(['new', 'seen', '
 export const moodInputSchema = z.object({ mood: z.number().int().min(1).max(5), note: trimmed(300).optional() });
 export const timeLimitSchema = z.object({ minutes: z.number().int().min(15).max(480).nullable() });
 export const extraTimeSchema = z.object({ minutes: z.number().int().min(5).max(120) });
+
+// ---- Growth: coupons, private lessons, school plans, portfolio ----
+
+export const couponInputSchema = z
+  .object({
+    courseId: idSchema.nullable().optional(),
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9]{4,20}$/)
+      .optional(),
+    percentOff: z.number().int().min(1).max(100).nullable().optional(),
+    amountOffCents: z.number().int().min(100).max(10_000_000).nullable().optional(),
+    maxUses: z.number().int().min(1).max(100_000).nullable().optional(),
+    expiresAt: z.number().int().positive().nullable().optional(),
+  })
+  .refine((v) => !!v.percentOff !== !!v.amountOffCents, { message: 'one_discount', path: ['percentOff'] });
+export const couponPatchSchema = z.object({ active: z.boolean() });
+export const couponPreviewSchema = z.object({ code: z.string().trim().min(4).max(20) });
+
+export const lessonSlotsSchema = z
+  .object({
+    title: trimmed(120, 2),
+    start: z.number().int().positive(),
+    end: z.number().int().positive(),
+    slotMinutes: z
+      .number()
+      .int()
+      .refine((n) => [30, 45, 60, 90].includes(n)),
+    priceCents: z.number().int().min(0).max(5_000_000),
+  })
+  .refine((v) => v.end > v.start && (v.end - v.start) / 60_000 / v.slotMinutes <= 40, { message: 'range', path: ['end'] });
+export const lessonBookSchema = z.object({
+  method: z.enum(['paymob_card', 'paymob_wallet']).optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9]{10,15}$/)
+    .optional(),
+});
+
+export const planOrderSchema = z.object({
+  plan: z.enum(['standard', 'premium']),
+  period: z.enum(['month', 'year']),
+  method: z.enum(['paymob_card', 'paymob_wallet', 'transfer']),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9]{10,15}$/)
+    .optional(),
+  reference: trimmed(80, 3).optional(),
+  receipt: attachmentSchema.optional(),
+});
+export const planReviewSchema = z.object({ approve: z.boolean(), reason: trimmed(300).optional() });
+
+export const portfolioInputSchema = z.object({
+  enabled: z.boolean().optional(),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/)
+    .optional(),
+  headline: trimmed(120).optional(),
+  bio: trimmed(1000).optional(),
+  showCertificates: z.boolean().optional(),
+  showStats: z.boolean().optional(),
+});
+export const portfolioItemSchema = z.object({
+  kind: z.enum(['project', 'award']),
+  title: trimmed(120, 2),
+  description: trimmed(600).default(''),
+  url: optionalUrl,
+  day: daySchema.optional(),
+});

@@ -510,6 +510,38 @@ export const fr: GuideBook = {
     ],
     tips: ['Si quelqu’un est en danger maintenant, parlez-en tout de suite à un adulte de confiance ou appelez le numéro d’urgence.'],
   },
+  lessons: {
+    title: 'Cours particuliers',
+    summary: 'Réservez un cours individuel avec un enseignant et rejoignez-le dans une salle privée où vous seuls pouvez entrer.',
+    steps: [
+      'Réserver : choisissez un créneau libre chez un enseignant. Les cours payants se règlent par carte ou portefeuille ; le créneau est gardé 30 minutes pendant le paiement. Les cours gratuits sont confirmés aussitôt.',
+      'Mes cours : après le paiement, un bouton Rejoindre apparaît et vous recevez un rappel quelques minutes avant le début.',
+      'Enseignants : dans Publier des créneaux, choisissez un titre, une plage horaire, la durée et le prix. Un créneau est créé par cours et les heures qui se chevauchent sont ignorées.',
+      'Seul l’enseignant peut annuler un cours payé et régler le remboursement avec l’élève.',
+    ],
+    tips: ['Seuls l’enseignant et l’élève qui a payé peuvent voir ou entrer dans la salle.'],
+  },
+  portfolio: {
+    title: 'Mon portfolio',
+    summary: 'Une page publique avec vos certificats, projets et points forts, vérifiable par tous.',
+    steps: [
+      'Activez Rendre ma page publique et copiez votre lien. Vous pouvez changer l’adresse, la phrase d’accroche et la présentation.',
+      'Choisissez ce qui s’affiche : vos certificats (chacun se vérifie avec son code), vos résultats et vos points forts. Ajoutez projets et distinctions avec une courte description et un lien.',
+      'Moins de 18 ans : un parent doit d’abord être lié à votre compte, et la page n’affiche que votre prénom, sans photo.',
+      'Désactivez la page à tout moment : elle disparaît aussitôt.',
+    ],
+    tips: ['Partagez le lien dans un dossier d’admission ou un CV.'],
+  },
+  invite: {
+    title: 'Inviter des amis',
+    summary: 'Partagez votre code. Quand un ami finit son premier quiz, vous gagnez tous les deux de l’XP.',
+    steps: [
+      'Copiez votre lien ou votre code, ou touchez Partager. Vos amis saisissent le code à l’inscription (le lien le remplit pour eux).',
+      'Vous voyez qui a rejoint et qui a fini un premier quiz. Chaque récompense est versée une fois.',
+      'Les récompenses sont données pour 20 amis au maximum.',
+    ],
+    tips: ['N’invitez que des personnes que vous connaissez : la récompense dépend de l’étude, pas de l’inscription.'],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

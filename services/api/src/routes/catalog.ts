@@ -20,6 +20,7 @@ import { safeEqual } from '../lib/crypto';
 import { AppError, badRequest, conflict, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
 import { pickSummary, summaryColumns, toSummary } from '../lib/mappers';
+import { resolveCoupon, settleCouponUse, settleGrowthFromPaymob } from '../lib/growth';
 import { notify } from '../lib/notify';
 import { checkRate } from '../middleware';
 import { courseDtos, requireRole } from './school';
@@ -191,6 +192,7 @@ export function paymobHmac(obj: Record<string, unknown>, secret: string): string
 }
 
 async function paidAndEnrolled(deps: Deps, p: typeof payments.$inferSelect) {
+  await settleCouponUse(deps, p);
   if (!(await enroll(deps, p.courseId, p.userId))) return;
   const [course] = await deps.db.select({ title: courses.title }).from(courses).where(eq(courses.id, p.courseId));
   await notify(deps, {
@@ -267,9 +269,34 @@ export const catalogRoutes = new Hono<AppEnv>()
     const input = checkoutSchema.parse(await c.req.json().catch(() => ({})));
     const row = await listedCourse(deps, param(c, 'id'));
     if (row.c.priceCents <= 0) throw badRequest('course_is_free');
+    if (row.c.ownerId === user.id) throw badRequest('own_course');
+    const deal = input.coupon ? await resolveCoupon(deps, user.id, row.c, input.coupon) : null;
+    const price = deal ? deal.finalCents : row.c.priceCents;
+    const couponCols = deal ? { couponId: deal.couponId, discountCents: deal.discountCents } : {};
+    const app = deps.env.APP_URL.replace(/\/$/, '');
+    // A coupon that makes it free: enroll straight away, and keep a record of the purchase.
+    if (price === 0) {
+      const pid = randomUUID();
+      const [paid] = await deps.db
+        .insert(payments)
+        .values({
+          id: pid,
+          userId: user.id,
+          courseId: row.c.id,
+          provider: 'coupon',
+          sessionId: `coupon:${pid}`,
+          amountCents: 0,
+          currency: row.c.currency,
+          status: 'paid',
+          paidAt: new Date(),
+          ...couponCols,
+        })
+        .returning();
+      await paidAndEnrolled(deps, paid!);
+      return c.json({ url: `${app}/courses/${row.c.id}?paid=1` });
+    }
     if (!paymentMethodsFor(deps.env, row.c.currency).includes(input.method)) throw new AppError(503, 'card_payments_off');
     const [u] = await deps.db.select({ email: users.email, name: users.displayName }).from(users).where(eq(users.id, user.id));
-    const app = deps.env.APP_URL.replace(/\/$/, '');
     if (input.method !== 'stripe') {
       if (input.method === 'paymob_wallet' && !input.phone) throw badRequest('phone_required');
       // Our payment id travels as the merchant reference, so the callback finds the row without trusting anything else.
@@ -281,15 +308,16 @@ export const catalogRoutes = new Hono<AppEnv>()
         provider: 'paymob',
         method: input.method,
         sessionId: `paymob:${pid}`,
-        amountCents: row.c.priceCents,
+        amountCents: price,
         currency: row.c.currency,
+        ...couponCols,
       });
       const [first, ...rest] = (u?.name ?? 'Student').trim().split(/\s+/);
       const intention = await paymob<{ client_secret: string }>(deps, '/v1/intention/', {
-        amount: row.c.priceCents,
+        amount: price,
         currency: 'EGP',
         payment_methods: [input.method === 'paymob_card' ? deps.env.PAYMOB_CARD_INTEGRATION_ID : deps.env.PAYMOB_WALLET_INTEGRATION_ID],
-        items: [{ name: row.c.title.slice(0, 50), amount: row.c.priceCents, quantity: 1, description: 'Course' }],
+        items: [{ name: row.c.title.slice(0, 50), amount: price, quantity: 1, description: 'Course' }],
         billing_data: {
           first_name: first || 'Student',
           last_name: rest.join(' ') || 'NA',
@@ -326,15 +354,16 @@ export const catalogRoutes = new Hono<AppEnv>()
       'metadata[userId]': user.id,
       'line_items[0][quantity]': '1',
       'line_items[0][price_data][currency]': row.c.currency.toLowerCase(),
-      'line_items[0][price_data][unit_amount]': String(row.c.priceCents),
+      'line_items[0][price_data][unit_amount]': String(price),
       'line_items[0][price_data][product_data][name]': row.c.title.slice(0, 200),
     });
     await deps.db.insert(payments).values({
       userId: user.id,
       courseId: row.c.id,
       sessionId: session.id,
-      amountCents: row.c.priceCents,
+      amountCents: price,
       currency: row.c.currency,
+      ...couponCols,
     });
     return c.json({ url: session.url });
   })
@@ -354,14 +383,17 @@ export const catalogRoutes = new Hono<AppEnv>()
       .from(courseMembers)
       .where(and(eq(courseMembers.courseId, row.c.id), eq(courseMembers.userId, user.id)));
     if (member) throw conflict('already_enrolled');
+    const deal = input.coupon ? await resolveCoupon(deps, user.id, row.c, input.coupon) : null;
+    const price = deal ? deal.finalCents : row.c.priceCents;
+    if (price === 0) throw badRequest('use_checkout_for_free');
     const receipt = await ownAttachment(deps, user, input.receipt, '');
     if (!receipt.mime.startsWith('image/') && receipt.mime !== 'application/pdf') throw badRequest('invalid_media_url');
     const pid = randomUUID();
     // One open transfer per student and course.
     const inserted = await deps.db.execute<{ id: string }>(sql`
-      insert into payments (id, user_id, course_id, provider, session_id, amount_cents, currency, method, reference, receipt, note)
-      select ${pid}, ${user.id}, ${row.c.id}, 'transfer', ${`transfer:${pid}`}, ${row.c.priceCents}, ${row.c.currency},
-             ${input.method}, ${input.reference}, ${JSON.stringify(receipt)}::jsonb, ${input.note}
+      insert into payments (id, user_id, course_id, provider, session_id, amount_cents, currency, method, reference, receipt, note, coupon_id, discount_cents)
+      select ${pid}, ${user.id}, ${row.c.id}, 'transfer', ${`transfer:${pid}`}, ${price}, ${row.c.currency},
+             ${input.method}, ${input.reference}, ${JSON.stringify(receipt)}::jsonb, ${input.note}, ${deal?.couponId ?? null}, ${deal?.discountCents ?? 0}
       where not exists (select 1 from payments where course_id = ${row.c.id} and user_id = ${user.id} and provider = 'transfer' and status = 'pending')
       returning id`);
     if (!inserted.length) throw conflict('transfer_pending');
@@ -529,7 +561,7 @@ export const paymobWebhook = new Hono<AppEnv>().post('/', async (c) => {
     .where(and(eq(payments.id, pid), eq(payments.provider, 'paymob')));
   if (!p) {
     // Not a course payment: it may be a school fee instalment (its id is the merchant reference too).
-    await settleFeeInvoiceFromPaymob(deps, pid, obj);
+    if (!(await settleFeeInvoiceFromPaymob(deps, pid, obj))) await settleGrowthFromPaymob(deps, pid, obj);
     return c.json({ received: true });
   }
   if (p.status !== 'pending') return c.json({ received: true });

@@ -24,6 +24,7 @@ export default function RegisterScreen() {
     birthYear: '',
     gradeLevel: '' as GradeLevel | '',
     parentEmail: '',
+    referral: '',
   });
   const student = f.accountType === 'student';
   const tier = ageTier({ birthYear: f.birthYear ? Number(f.birthYear) : null, gradeLevel: f.gradeLevel || null, accountType: f.accountType });
@@ -47,6 +48,7 @@ export default function RegisterScreen() {
         parentEmail: student && f.parentEmail.trim() ? f.parentEmail.trim() : undefined,
         displayName: f.displayName.trim(),
         email: f.email.trim(),
+        referralCode: f.referral.length >= 6 ? f.referral : undefined,
         language: useAppearance.getState().appearance.language,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
@@ -108,6 +110,21 @@ export default function RegisterScreen() {
             {tr.t('auth.birthYearHint')}
           </Text>
           {student ? <GradeLevelField value={f.gradeLevel} onChange={(v) => setF({ ...f, gradeLevel: v })} /> : null}
+          <Input
+            label={tr.t('growth.referral.signupLabel')}
+            value={f.referral}
+            onChangeText={(v) =>
+              setF({
+                ...f,
+                referral: v
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, '')
+                  .slice(0, 12),
+              })
+            }
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
           {student && tier !== 'adult' ? (
             <Input
               label={needsParent ? tr.t('auth.parentEmailChild') : tr.t('auth.parentEmail')}

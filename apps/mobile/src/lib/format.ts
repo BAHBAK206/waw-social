@@ -61,3 +61,13 @@ export function formatPrice(cents: number, currency: string, tr: Translator): st
     return `${(cents / 100).toFixed(2)} ${currency}`;
   }
 }
+
+/** A date such as "12 Mar 2026". */
+export function formatDate(ms: number, tr: Translator): string {
+  return formatDay(ms, tr, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** A date and time such as "Thu, 12 Mar, 4:30 PM". */
+export function formatDateTime(ms: number, tr: Translator): string {
+  return `${formatDay(ms, tr)} ${formatTime(ms, tr)}`;
+}

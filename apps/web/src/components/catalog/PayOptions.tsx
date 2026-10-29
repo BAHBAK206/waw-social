@@ -11,14 +11,27 @@ import { useT } from '@/lib/i18n';
 import { toast, toastError } from '@/lib/ui';
 
 /** Online payment buttons: Paymob card / wallet (EGP) and Stripe. */
-export function OnlinePay({ c, run, busy }: { c: CatalogCourseDto; run: (key: string, fn: () => Promise<void>) => void; busy: string | null }) {
+export function OnlinePay({
+  c,
+  run,
+  busy,
+  coupon,
+  priceCents,
+}: {
+  c: CatalogCourseDto;
+  run: (key: string, fn: () => Promise<void>) => void;
+  busy: string | null;
+  /** A checked discount code, and the price after it. */
+  coupon?: string;
+  priceCents?: number;
+}) {
   const tr = useT();
   const [phone, setPhone] = useState('');
   const [walletOpen, setWalletOpen] = useState(false);
-  const price = formatPrice(c.priceCents, c.currency, tr);
+  const price = formatPrice(priceCents ?? c.priceCents, c.currency, tr);
   const go = (method: CatalogCourseDto['paymentMethods'][number], extra: { phone?: string } = {}) =>
     run(method, async () => {
-      const { url } = await api.catalog.checkout(c.id, { method, ...extra });
+      const { url } = await api.catalog.checkout(c.id, { method, ...extra, ...(coupon ? { coupon } : {}) });
       window.location.assign(url);
     });
   return (
@@ -71,7 +84,19 @@ export function OnlinePay({ c, run, busy }: { c: CatalogCourseDto; run: (key: st
 }
 
 /** InstaPay / wallet / bank transfer: the teacher's details, then the student's reference and receipt. */
-export function TransferPay({ c, authed, login }: { c: CatalogCourseDto; authed: boolean; login: () => void }) {
+export function TransferPay({
+  c,
+  authed,
+  login,
+  coupon,
+  priceCents,
+}: {
+  c: CatalogCourseDto;
+  authed: boolean;
+  login: () => void;
+  coupon?: string;
+  priceCents?: number;
+}) {
   const tr = useT();
   const qc = useQueryClient();
   const info = c.transferInfo!;
@@ -98,7 +123,7 @@ export function TransferPay({ c, authed, login }: { c: CatalogCourseDto; authed:
       )}
       {(mine?.status !== 'rejected' || again) && (
         <>
-          <p className="muted text-sm">{tr.t('payments.transferSteps', { price: formatPrice(c.priceCents, c.currency, tr) })}</p>
+          <p className="muted text-sm">{tr.t('payments.transferSteps', { price: formatPrice(priceCents ?? c.priceCents, c.currency, tr) })}</p>
           <ul className="space-y-2">
             {offered.map((m) => (
               <li key={m} className="flex items-center gap-3 rounded-[var(--radius-control)] bg-soft p-3">
@@ -131,7 +156,7 @@ export function TransferPay({ c, authed, login }: { c: CatalogCourseDto; authed:
               if (!receipt) return;
               setBusy(true);
               api.catalog
-                .transfer(c.id, { method, reference: reference.trim(), receipt, note: note.trim() })
+                .transfer(c.id, { method, reference: reference.trim(), receipt, note: note.trim(), ...(coupon ? { coupon } : {}) })
                 .then(async () => {
                   toast(tr.t('payments.sent'));
                   setAgain(false);

@@ -64,6 +64,9 @@ function Shell() {
         <Stack.Screen name="people" options={{ title: tr.t('people.title') }} />
         <Stack.Screen name="saved" options={{ title: tr.t('saved.title') }} />
         <Stack.Screen name="review" options={{ title: tr.t('review.title') }} />
+        <Stack.Screen name="lessons" options={{ title: tr.t('nav.lessons') }} />
+        <Stack.Screen name="portfolio" options={{ title: tr.t('nav.portfolio') }} />
+        <Stack.Screen name="invite" options={{ title: tr.t('nav.invite') }} />
         <Stack.Screen name="wellbeing" options={{ title: tr.t('nav.wellbeing') }} />
         <Stack.Screen name="glossary" options={{ title: tr.t('glossary.title') }} />
         <Stack.Screen name="downloads" options={{ title: tr.t('nav.downloads') }} />

@@ -18,6 +18,7 @@ export * from './collab';
 export * from './teacherTools';
 export * from './schoolAdmin';
 export * from './wellbeing';
+export * from './growth';
 export * from './roles';
 export * from './appearance';
 export * from './planner';

@@ -29,6 +29,10 @@ export default function RegisterPage() {
     birthYear: '',
     gradeLevel: '' as GradeLevel | '',
     parentEmail: '',
+    referral: (params.get('ref') ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 12),
   });
   const tier = ageTier({ birthYear: form.birthYear ? Number(form.birthYear) : null, gradeLevel: form.gradeLevel || null, accountType: form.accountType });
   const student = form.accountType === 'student';
@@ -57,6 +61,7 @@ export default function RegisterPage() {
         parentEmail: student && form.parentEmail.trim() ? form.parentEmail.trim() : undefined,
         displayName: form.displayName.trim(),
         email: form.email.trim(),
+        referralCode: form.referral.length >= 6 ? form.referral : undefined,
         language: useAppearance.getState().appearance.language,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
@@ -150,6 +155,14 @@ export default function RegisterPage() {
               onChange={(e) => set('parentEmail')(e.target.value)}
             />
           )}
+          <Input
+            label={tr.t('growth.referral.signupLabel')}
+            value={form.referral}
+            dir="ltr"
+            maxLength={12}
+            autoComplete="off"
+            onChange={(e) => set('referral')(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+          />
           {student && tier === 'child' && <p className="rounded-[var(--radius-control)] bg-soft p-3 text-sm">{tr.t('auth.childNotice')}</p>}
           <p className="muted text-xs">
             {tr.t('auth.agree')}{' '}

@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../db/client';
-import { conversationMembers, conversations, courseMembers, groupMembers, groups, liveRooms } from '../db/schema';
+import { conversationMembers, conversations, courseMembers, groupMembers, groups, liveRooms, privateLessons } from '../db/schema';
 import { forbidden, notFound } from './errors';
 
 export type GroupRole = 'owner' | 'admin' | 'teacher' | 'member';
@@ -42,7 +42,15 @@ export async function requireCourseRole(db: Db, courseId: string, userId: string
 type LiveRoomRow = typeof liveRooms.$inferSelect;
 
 export async function canAccessLiveRoom(db: Db, room: LiveRoomRow, userId: string): Promise<boolean> {
-  if (room.hostId === userId || room.scopeType === 'open' || !room.scopeId) return true;
+  if (room.hostId === userId || !room.scopeId) return true;
+  // An open room with a scope id is a paid private lesson: only the teacher (host) and the student who paid can enter.
+  if (room.scopeType === 'open') {
+    const [l] = await db
+      .select({ s: privateLessons.id })
+      .from(privateLessons)
+      .where(and(eq(privateLessons.id, room.scopeId), eq(privateLessons.studentId, userId), eq(privateLessons.payStatus, 'paid')));
+    return !!l;
+  }
   if (room.scopeType === 'course') return !!(await courseRole(db, room.scopeId, userId));
   return !!(await groupRole(db, room.scopeId, userId));
 }

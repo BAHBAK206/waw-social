@@ -500,6 +500,38 @@ export const en: GuideBook = {
     ],
     tips: ['If someone is in danger right now, tell a trusted adult or call the local emergency number straight away.'],
   },
+  lessons: {
+    title: 'Private lessons',
+    summary: 'Book a one-to-one lesson with a teacher and join it in a private live room that only the two of you can enter.',
+    steps: [
+      'Book a lesson: pick a free slot from a teacher. Paid slots are paid by card or wallet; the slot is held for you for 30 minutes while you pay. Free slots are confirmed at once.',
+      'My lessons: after payment the lesson shows a Join button. You also get a reminder a few minutes before it starts.',
+      'Teachers: on Publish slots choose a title, a time range, the length and the price. One slot is created for each lesson, and overlapping hours are skipped.',
+      'A paid lesson can only be cancelled by the teacher, who settles any refund with the student directly.',
+    ],
+    tips: ['Only the teacher and the student who paid can see or enter the room.'],
+  },
+  portfolio: {
+    title: 'My portfolio',
+    summary: 'A public page with your certificates, projects and strong topics that anyone can check.',
+    steps: [
+      'Turn on Make my page public and copy your link. You can change the page address, headline and about text.',
+      'Choose what shows: your certificates (each one can be verified with its code), your quiz results and strong topics. Add projects and awards with a short description and a link.',
+      'Under 18: a parent must be linked to your account first, and the page shows only your first name and no photo.',
+      'Switch the page off any time and it disappears at once.',
+    ],
+    tips: ['Share the link in a college application or a CV.'],
+  },
+  invite: {
+    title: 'Invite friends',
+    summary: 'Share your code with friends. When a friend finishes their first quiz, you both earn XP.',
+    steps: [
+      'Copy your link or code, or tap Share. Friends enter the code when they create their account (the link fills it in for them).',
+      'You see who joined and who has finished a first quiz. Each reward is paid once.',
+      'Rewards are given for up to 20 friends.',
+    ],
+    tips: ['Only invite people you know: rewards are given when the friend studies, not just signs up.'],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

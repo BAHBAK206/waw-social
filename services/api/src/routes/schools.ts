@@ -24,6 +24,7 @@ import { audit } from '../lib/audit';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
 import { summaryColumns, toSummary } from '../lib/mappers';
+import { seatsAvailable } from '../lib/growth';
 import { notify } from '../lib/notify';
 import { checkRate } from '../middleware';
 import { sendEmailToken } from './auth';
@@ -287,8 +288,14 @@ export const schoolsRoutes = new Hono<AppEnv>()
       return { id: u!.id, login, password };
     };
 
+    // The school's plan limits how many students it can hold (null = unlimited).
+    let seats = await seatsAvailable(deps, id);
     for (const [i, r] of rows.entries()) {
       try {
+        if (r.role === 'student' && seats !== null && seats <= 0) {
+          out.skipped.push({ row: i + 1, name: r.name, reason: 'plan_limit' });
+          continue;
+        }
         const accountType = r.role === 'student' ? 'student' : r.role === 'parent' ? 'parent' : 'teacher';
         if (r.role !== 'student' && !r.email) {
           out.skipped.push({ row: i + 1, name: r.name, reason: 'email_required' });
@@ -351,6 +358,7 @@ export const schoolsRoutes = new Hono<AppEnv>()
           });
           if (r.role === 'student' && r.section) touched.push({ userId, section: r.section });
         }
+        if (r.role === 'student' && seats !== null) seats -= 1;
         // Parents only for students the school just created (never for someone else's existing account).
         if (fresh && r.role === 'student' && r.parentEmail) {
           const [parent] = await deps.db.select({ id: users.id, type: users.accountType }).from(users).where(eq(users.email, r.parentEmail));

@@ -41,6 +41,13 @@ export const registerSchema = z.object({
   parentEmail: z.string().trim().toLowerCase().email().max(254).optional(),
   language: z.enum(LANGUAGES as [string, ...string[]]).optional(),
   timezone: z.string().max(64).optional(),
+  /** A friend's invite code. */
+  referralCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{6,12}$/)
+    .optional(),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 

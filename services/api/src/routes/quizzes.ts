@@ -51,6 +51,7 @@ import {
 } from '../db/schema';
 import { courseRole } from '../lib/access';
 import type { AppEnv, AuthUser, Deps } from '../lib/context';
+import { rewardReferral } from '../lib/growth';
 import { decodeCursor, pageOf } from '../lib/cursor';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { grade, seededShuffle, type GivenAnswer, type GradableQuestion } from '../lib/grading';
@@ -735,6 +736,8 @@ export const quizRoutes = new Hono<AppEnv>()
         .where(eq(quizAttempts.id, attemptId));
       return { already: false, result: dto };
     });
+    // An invited friend's first finished quiz pays the invite reward (once).
+    if (!result.already && !result.result.review) await rewardReferral(deps, viewer.id).catch((err) => deps.log.warn({ err }, 'referral reward failed'));
     return c.json({ ...result.result, lessons: await lessonsForQuiz(deps, result.result.quizId) });
   })
   /** The exam page reports when the student leaves the page or full screen, or pastes (integrity exams only). */

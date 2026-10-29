@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -27,6 +27,7 @@ import {
   livePollVotes,
   livePolls,
   liveRooms,
+  privateLessons,
   scheduledClasses,
   users,
 } from '../db/schema';
@@ -221,8 +222,16 @@ export const liveRoutes = new Hono<AppEnv>()
       if (!ok && !hasPermission(viewer.role, viewer.permissions, 'classes.manage')) throw forbidden('not_a_member');
     }
     const memberScopes = or(
-      eq(liveRooms.scopeType, 'open'),
+      // Open rooms with a scope id are paid private lessons: only their two people see them.
+      and(eq(liveRooms.scopeType, 'open'), isNull(liveRooms.scopeId)),
       eq(liveRooms.hostId, viewer.id),
+      inArray(
+        liveRooms.id,
+        deps.db
+          .select({ id: privateLessons.roomId })
+          .from(privateLessons)
+          .where(and(eq(privateLessons.studentId, viewer.id), isNotNull(privateLessons.roomId))),
+      ),
       inArray(liveRooms.scopeId, deps.db.select({ id: groupMembers.groupId }).from(groupMembers).where(eq(groupMembers.userId, viewer.id))),
       inArray(liveRooms.scopeId, deps.db.select({ id: courseMembers.courseId }).from(courseMembers).where(eq(courseMembers.userId, viewer.id))),
     );

@@ -1,4 +1,13 @@
 import type {
+  CouponDto,
+  CouponPreviewDto,
+  PlanOrderDto,
+  PlanReviewItemDto,
+  PortfolioDto,
+  PrivateLessonDto,
+  PublicPortfolioDto,
+  ReferralDto,
+  SchoolPlanStateDto,
   ComplaintDto,
   ComplaintStatusDto,
   MoodDto,
@@ -213,6 +222,7 @@ export function createApi(options: ClientOptions) {
         parentEmail?: string;
         language?: string;
         timezone?: string;
+        referralCode?: string;
       }) => http.acceptAuth(await http.request<AuthResult>('POST', '/auth/register', { body, anonymous: true })),
       /** Throws TwoFactorRequiredError (with a ticket) when the account also needs an authenticator code. */
       login: async (body: { email: string; password: string }) => {
@@ -651,6 +661,56 @@ export function createApi(options: ClientOptions) {
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
     },
 
+    coupons: {
+      list: () => http.get<{ items: CouponDto[] }>('/coupons'),
+      create: (body: {
+        courseId?: string | null;
+        code?: string;
+        percentOff?: number | null;
+        amountOffCents?: number | null;
+        maxUses?: number | null;
+        expiresAt?: number | null;
+      }) => http.post<CouponDto>('/coupons', body),
+      setActive: (id: string, active: boolean) => http.patch<CouponDto>(`/coupons/${id}`, { active }),
+      remove: (id: string) => http.del<Ok>(`/coupons/${id}`),
+      preview: (courseId: string, code: string) => http.post<CouponPreviewDto>(`/coupons/preview/${courseId}`, { code }),
+    },
+    lessons: {
+      open: (teacherId?: string) => http.get<{ items: PrivateLessonDto[] }>('/lessons/open', teacherId ? { teacherId } : undefined),
+      mine: () => http.get<{ items: PrivateLessonDto[] }>('/lessons/mine'),
+      publish: (body: { title: string; start: number; end: number; slotMinutes: number; priceCents: number }) =>
+        http.post<{ created: number; skipped: number }>('/lessons', body),
+      book: (id: string, body: { method?: 'paymob_card' | 'paymob_wallet'; phone?: string } = {}) => http.post<{ url: string }>(`/lessons/${id}/book`, body),
+      cancel: (id: string) => http.post<Ok>(`/lessons/${id}/cancel`),
+    },
+    plans: {
+      get: (schoolId: string) => http.get<SchoolPlanStateDto>(`/schools/${schoolId}/plan`),
+      order: (
+        schoolId: string,
+        body: {
+          plan: 'standard' | 'premium';
+          period: 'month' | 'year';
+          method: 'paymob_card' | 'paymob_wallet' | 'transfer';
+          phone?: string;
+          reference?: string;
+          receipt?: Attachment;
+        },
+      ) => http.post<{ order: PlanOrderDto; url: string | null }>(`/schools/${schoolId}/plan/orders`, body),
+      review: () => http.get<{ items: PlanReviewItemDto[] }>('/growth/plans/review'),
+      decide: (orderId: string, body: { approve: boolean; reason?: string }) => http.post<Ok>(`/growth/plans/${orderId}/review`, body),
+    },
+    portfolio: {
+      mine: () => http.get<PortfolioDto>('/portfolio/mine'),
+      save: (body: { enabled?: boolean; slug?: string; headline?: string; bio?: string; showCertificates?: boolean; showStats?: boolean }) =>
+        http.put<PortfolioDto>('/portfolio/mine', body),
+      addItem: (body: { kind: 'project' | 'award'; title: string; description?: string; url?: string | null }) =>
+        http.post<{ id: string }>('/portfolio/items', body),
+      removeItem: (id: string) => http.del<Ok>(`/portfolio/items/${id}`),
+      publicPage: (slug: string) => http.get<PublicPortfolioDto>(`/portfolio/public/${slug}`),
+    },
+    referrals: {
+      mine: () => http.get<ReferralDto>('/referrals/mine'),
+    },
     wellbeing: {
       sendComplaint: (body: { schoolId: string; category: string; text: string }) => http.post<{ code: string }>('/wellbeing/complaints', body),
       complaintStatus: (code: string) => http.get<ComplaintStatusDto>('/wellbeing/complaints/status', { code }),
@@ -825,10 +885,10 @@ export function createApi(options: ClientOptions) {
       list: (q: { q?: string; limit?: number } = {}) => http.get<{ items: CatalogCourseDto[] }>('/catalog', q),
       get: (id: string) => http.get<CatalogCourseDto>(`/catalog/${id}`),
       enroll: (id: string) => http.post<CourseDto>(`/catalog/${id}/enroll`),
-      checkout: (id: string, body: { method?: 'stripe' | 'paymob_card' | 'paymob_wallet'; phone?: string } = {}) =>
+      checkout: (id: string, body: { method?: 'stripe' | 'paymob_card' | 'paymob_wallet'; phone?: string; coupon?: string } = {}) =>
         http.post<{ url: string }>(`/catalog/${id}/checkout`, body),
       /** Paid by InstaPay, wallet or bank transfer: the teacher reviews the receipt. */
-      transfer: (id: string, body: { method: 'instapay' | 'wallet' | 'bank'; reference: string; receipt: Attachment; note?: string }) =>
+      transfer: (id: string, body: { method: 'instapay' | 'wallet' | 'bank'; reference: string; receipt: Attachment; note?: string; coupon?: string }) =>
         http.post<Ok>(`/catalog/${id}/transfer`, body),
     },
 

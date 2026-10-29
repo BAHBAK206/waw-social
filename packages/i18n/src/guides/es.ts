@@ -492,6 +492,38 @@ export const es: GuideBook = {
     ],
     tips: ['Si alguien está en peligro ahora mismo, díselo ya a un adulto de confianza o llama al número de emergencias.'],
   },
+  lessons: {
+    title: 'Clases particulares',
+    summary: 'Reserva una clase individual con un profesor y entra en una sala privada a la que solo accedéis los dos.',
+    steps: [
+      'Reservar: elige un horario libre de un profesor. Las clases de pago se abonan con tarjeta o monedero y el horario se guarda 30 minutos mientras pagas. Las gratuitas se confirman al instante.',
+      'Mis clases: tras el pago aparece el botón Entrar y recibes un aviso unos minutos antes del comienzo.',
+      'Profesores: en Publicar horarios elige título, franja, duración y precio. Se crea un horario por clase y las horas que se solapan se omiten.',
+      'Solo el profesor puede cancelar una clase pagada y acordar el reembolso con el alumno.',
+    ],
+    tips: ['Solo el profesor y el alumno que pagó pueden ver o entrar en la sala.'],
+  },
+  portfolio: {
+    title: 'Mi portafolio',
+    summary: 'Una página pública con tus certificados, proyectos y temas fuertes que cualquiera puede comprobar.',
+    steps: [
+      'Activa Hacer pública mi página y copia tu enlace. Puedes cambiar la dirección, el titular y la presentación.',
+      'Elige qué se muestra: tus certificados (cada uno se verifica con su código), tus resultados y temas fuertes. Añade proyectos y premios con una breve descripción y un enlace.',
+      'Menores de 18: primero debe vincularse un familiar a tu cuenta, y la página solo muestra tu nombre de pila, sin foto.',
+      'Desactiva la página cuando quieras: desaparece al instante.',
+    ],
+    tips: ['Comparte el enlace en una solicitud universitaria o en tu CV.'],
+  },
+  invite: {
+    title: 'Invitar amigos',
+    summary: 'Comparte tu código. Cuando un amigo termina su primer test, ambos ganáis XP.',
+    steps: [
+      'Copia tu enlace o tu código, o pulsa Compartir. Tus amigos escriben el código al crear su cuenta (el enlace se lo rellena).',
+      'Ves quién se unió y quién terminó un primer test. Cada recompensa se paga una vez.',
+      'Las recompensas se dan por hasta 20 amigos.',
+    ],
+    tips: ['Invita solo a gente que conozcas: la recompensa llega cuando el amigo estudia, no solo cuando se registra.'],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

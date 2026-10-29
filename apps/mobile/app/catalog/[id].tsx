@@ -1,4 +1,4 @@
-import type { CatalogCourseDto } from '@qubedu/shared';
+import type { CatalogCourseDto, CouponPreviewDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -24,6 +24,8 @@ export default function CatalogCourseScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [voucher, setVoucher] = useState('');
   const [phone, setPhone] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [coupon, setCoupon] = useState<{ code: string; preview: CouponPreviewDto } | null>(null);
   if (q.isPending) return <Loading />;
   if (q.error || !q.data) return <ErrorView onRetry={() => void q.refetch()} />;
   const c = q.data;
@@ -43,7 +45,7 @@ export default function CatalogCourseScreen() {
   };
   const pay = (method: CatalogCourseDto['paymentMethods'][number], phone?: string) =>
     run(method, async () => {
-      const { url } = await api.catalog.checkout(c.id, { method, ...(phone ? { phone } : {}) });
+      const { url } = await api.catalog.checkout(c.id, { method, ...(phone ? { phone } : {}), ...(coupon ? { coupon: coupon.code } : {}) });
       await WebBrowser.openBrowserAsync(url);
       // Enrollment arrives with the payment confirmation; check again when the browser closes.
       const fresh = await q.refetch();
@@ -97,7 +99,58 @@ export default function CatalogCourseScreen() {
                 {tr.t('catalog.notInApp')}
               </Text>
             ) : null}
-            {Platform.OS !== 'ios'
+            {Platform.OS !== 'ios' && c.paymentMethods.length > 0 ? (
+              <View style={{ gap: 6 }}>
+                <Input
+                  label={tr.t('payments.couponLabel')}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  value={couponCode}
+                  onChangeText={(v) => setCouponCode(v.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                />
+                <Button
+                  variant="outline"
+                  icon="pricetag-outline"
+                  title={tr.t('payments.couponApply')}
+                  disabled={couponCode.length < 4}
+                  loading={busy === 'coupon'}
+                  onPress={() =>
+                    void run('coupon', async () => {
+                      try {
+                        setCoupon({ code: couponCode, preview: await api.coupons.preview(c.id, couponCode) });
+                      } catch (e) {
+                        setCoupon(null);
+                        throw e;
+                      }
+                    })
+                  }
+                />
+                {coupon ? (
+                  <Text weight="bold" size={13}>
+                    {coupon.preview.finalCents === 0
+                      ? tr.t('payments.couponFree')
+                      : tr.t('payments.couponApplied', {
+                          discount: formatPrice(coupon.preview.discountCents, coupon.preview.currency, tr),
+                          final: formatPrice(coupon.preview.finalCents, coupon.preview.currency, tr),
+                        })}
+                  </Text>
+                ) : null}
+                {coupon?.preview.finalCents === 0 ? (
+                  <Button
+                    icon="school-outline"
+                    title={tr.t('payments.couponGetFree')}
+                    loading={busy === 'free'}
+                    onPress={() =>
+                      void run('free', async () => {
+                        await api.catalog.checkout(c.id, { coupon: coupon.code });
+                        await done();
+                      })
+                    }
+                  />
+                ) : null}
+              </View>
+            ) : null}
+            {Platform.OS !== 'ios' && coupon?.preview.finalCents !== 0
               ? c.paymentMethods.map((m) =>
                   m === 'paymob_wallet' ? (
                     <View key={m} style={{ gap: 6 }}>
@@ -105,7 +158,7 @@ export default function CatalogCourseScreen() {
                       <Button
                         variant="outline"
                         icon="phone-portrait-outline"
-                        title={tr.t('payments.paymobWallet', { price: formatPrice(c.priceCents, c.currency, tr) })}
+                        title={tr.t('payments.paymobWallet', { price: formatPrice(coupon?.preview.finalCents ?? c.priceCents, c.currency, tr) })}
                         disabled={phone.replace(/\D/g, '').length < 10}
                         loading={busy === m}
                         onPress={() => void pay(m, phone.replace(/\s+/g, ''))}
@@ -115,7 +168,9 @@ export default function CatalogCourseScreen() {
                     <Button
                       key={m}
                       icon="card-outline"
-                      title={tr.t(m === 'paymob_card' ? 'payments.paymobCard' : 'catalog.pay', { price: formatPrice(c.priceCents, c.currency, tr) })}
+                      title={tr.t(m === 'paymob_card' ? 'payments.paymobCard' : 'catalog.pay', {
+                        price: formatPrice(coupon?.preview.finalCents ?? c.priceCents, c.currency, tr),
+                      })}
                       loading={busy === m}
                       onPress={() => void pay(m)}
                     />

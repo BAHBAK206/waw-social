@@ -50,6 +50,8 @@ const schema = z.object({
   PAYMOB_CARD_INTEGRATION_ID: z.coerce.number().int().optional(),
   PAYMOB_WALLET_INTEGRATION_ID: z.coerce.number().int().optional(),
   PAYMOB_API_URL: z.string().default('https://accept.paymob.com'),
+  /** How schools pay the platform by transfer (shown on the plan page), e.g. an InstaPay address or a wallet number. */
+  PLATFORM_TRANSFER_INFO: z.string().optional(),
   /** WhatsApp for parents (WhatsApp Business Cloud API). Business-started messages need approved templates (see docs). */
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
