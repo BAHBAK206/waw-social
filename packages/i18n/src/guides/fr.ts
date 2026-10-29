@@ -405,7 +405,12 @@ export const fr: GuideBook = {
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',
-    steps: ['Touchez le signet pour enregistrer.', 'Rangez les éléments en collections.', 'Partagez une collection avec un lien.'],
+    steps: [
+      'Touchez le signet pour enregistrer.',
+      'Rangez les éléments en collections.',
+      'Partagez une collection avec un lien.',
+      'Touchez la cloche d’un élément enregistré pour être prévenu plus tard (dans une heure, demain matin, la semaine prochaine ou à l’heure de votre choix). Le rappel arrive en notification et ouvre l’élément.',
+    ],
   },
   organizer: {
     title: 'Organiseur',

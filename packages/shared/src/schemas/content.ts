@@ -105,4 +105,6 @@ export const savedItemSchema = z.object({
   url: urlSchema.optional().nullable(),
   note: trimmed(1000).default(''),
   collectionId: idSchema.optional().nullable(),
+  /** Remind me about this (milliseconds since 1970, in the future, within a year); null clears it. */
+  remindAt: z.number().int().nullable().optional(),
 });

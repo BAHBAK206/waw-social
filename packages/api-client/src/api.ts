@@ -951,7 +951,8 @@ export function createApi(options: ClientOptions) {
         note?: string;
         collectionId?: string | null;
       }) => http.post<SavedItemDto>('/saved', body),
-      update: (id: string, body: { note?: string; collectionId?: string | null; title?: string }) => http.patch<SavedItemDto>(`/saved/${id}`, body),
+      update: (id: string, body: { note?: string; collectionId?: string | null; title?: string; remindAt?: number | null }) =>
+        http.patch<SavedItemDto>(`/saved/${id}`, body),
       remove: (id: string) => http.del<Ok>(`/saved/${id}`),
       removeByRef: (type: string, refId: string) => http.del<Ok>(`/saved/by-ref/${enc(type)}/${enc(refId)}`),
       createCollection: (body: { name: string; description?: string; isPublic: boolean }) => http.post<SavedCollectionDto>('/saved/collections', body),

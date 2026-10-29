@@ -396,7 +396,12 @@ export const en: GuideBook = {
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',
-    steps: ['Tap the bookmark on anything to save it.', 'Group saved items into collections.', 'Share a collection with a link.'],
+    steps: [
+      'Tap the bookmark on anything to save it.',
+      'Group saved items into collections.',
+      'Share a collection with a link.',
+      'Tap the bell on a saved item to be reminded later (in an hour, tomorrow morning, next week, or any time you choose). The reminder arrives as a notification that opens the item.',
+    ],
   },
   organizer: {
     title: 'Organizer',

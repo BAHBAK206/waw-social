@@ -1,6 +1,6 @@
-import type { SavedCollectionDto, SavedItemDto } from '@qubedu/shared';
+import { REMINDER_PRESETS, reminderTime, type SavedCollectionDto, type SavedItemDto } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, FolderPlus, Globe, Link2, Pencil, Share2, Trash2 } from 'lucide-react';
+import { Bell, BellRing, Bookmark, FolderPlus, Globe, Link2, Pencil, Share2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
@@ -10,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { CardSkeletons, EmptyState, ErrorState, PageHeader } from '@/components/ui/States';
 import { api } from '@/lib/api';
 import { cx } from '@/lib/cx';
-import { relativeTime } from '@/lib/format';
+import { formatDateTime, relativeTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { confirmDialog, toast, toastError } from '@/lib/ui';
 
@@ -41,6 +41,61 @@ export function SavedLink({ item }: { item: Pick<SavedItemDto, 'itemType' | 'ref
     <Link to={href} className="hover:underline" dir="auto">
       {item.title}
     </Link>
+  );
+}
+
+/** Remind me about a saved item: a quick choice, or any date and time. */
+function ReminderDialog({ item, onClose }: { item: SavedItemDto; onClose: () => void }) {
+  const tr = useT();
+  const qc = useQueryClient();
+  const [custom, setCustom] = useState('');
+  const [busy, setBusy] = useState(false);
+  const set = async (remindAt: number | null) => {
+    setBusy(true);
+    try {
+      await api.saved.update(item.id, { remindAt });
+      await qc.invalidateQueries({ queryKey: ['saved'] });
+      if (remindAt) toast(tr.t('saved.reminderSet', { when: formatDateTime(remindAt, tr) }));
+      onClose();
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const customMs = custom ? new Date(custom).getTime() : NaN;
+  return (
+    <Modal open size="sm" onClose={onClose} title={tr.t('saved.reminderTitle')}>
+      <div className="space-y-3">
+        <p className="font-bold" dir="auto">
+          {item.title}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {REMINDER_PRESETS.map((p) => (
+            <Button key={p} variant="soft" size="sm" disabled={busy} onClick={() => void set(reminderTime(p))}>
+              {tr.t(`saved.${p}`)}
+            </Button>
+          ))}
+        </div>
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (Number.isFinite(customMs)) void set(customMs);
+          }}
+        >
+          <Input type="datetime-local" label={tr.t('saved.customTime')} value={custom} onChange={(e) => setCustom(e.target.value)} dir="ltr" />
+          <Button type="submit" loading={busy} disabled={!Number.isFinite(customMs) || customMs < Date.now() + 60_000}>
+            {tr.t('saved.remind')}
+          </Button>
+        </form>
+        {item.remindAt && (
+          <Button variant="ghost" size="sm" className="text-err" disabled={busy} onClick={() => void set(null)}>
+            {tr.t('saved.removeReminder')}
+          </Button>
+        )}
+      </div>
+    </Modal>
   );
 }
 
@@ -131,6 +186,7 @@ export default function SavedPage() {
   const [editing, setEditing] = useState<SavedCollectionDto | 'new' | null>(null);
   const [addingLink, setAddingLink] = useState(false);
   const [editingItem, setEditingItem] = useState<SavedItemDto | null>(null);
+  const [reminding, setReminding] = useState<SavedItemDto | null>(null);
   const q = useQuery({
     queryKey: ['saved', collectionId, type],
     queryFn: () => api.saved.list({ collectionId: collectionId === 'all' ? undefined : collectionId, type: type || undefined }),
@@ -248,7 +304,21 @@ export default function SavedPage() {
                     {i.note ? `${i.note} · ` : ''}
                     {relativeTime(i.createdAt, tr)}
                   </p>
+                  {i.remindAt && (
+                    <p className={cx('text-xs font-bold', i.reminded ? 'muted' : 'text-primary')}>
+                      {i.reminded ? tr.t('saved.reminderDone') : tr.t('saved.reminderOn', { when: formatDateTime(i.remindAt, tr) })}
+                    </p>
+                  )}
                 </div>
+                <button
+                  type="button"
+                  className={cx('icon-btn icon-btn-sm', i.remindAt && !i.reminded && 'text-primary')}
+                  aria-label={tr.t('saved.remind')}
+                  title={tr.t('saved.remind')}
+                  onClick={() => setReminding(i)}
+                >
+                  {i.remindAt && !i.reminded ? <BellRing className="size-4" /> : <Bell className="size-4" />}
+                </button>
                 <button type="button" className="icon-btn icon-btn-sm" aria-label={tr.t('saved.addToCollection')} onClick={() => setEditingItem(i)}>
                   <FolderPlus className="size-4" />
                 </button>
@@ -273,6 +343,7 @@ export default function SavedPage() {
         )}
       </section>
       {editing && <CollectionDialog collection={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} />}
+      {reminding && <ReminderDialog item={reminding} onClose={() => setReminding(null)} />}
       {addingLink && <LinkDialog collectionId={current?.id ?? null} onClose={() => setAddingLink(false)} />}
       {editingItem && (
         <Modal open size="sm" onClose={() => setEditingItem(null)} title={tr.t('saved.addToCollection')}>

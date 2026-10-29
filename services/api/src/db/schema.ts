@@ -1512,9 +1512,16 @@ export const savedItems = pgTable(
     title: text('title').notNull(),
     url: text('url'),
     note: text('note').notNull().default(''),
+    /** A reminder to come back to this item; `remindedAt` is set when the reminder was sent. */
+    remindAt: ts('remind_at'),
+    remindedAt: ts('reminded_at'),
     createdAt: createdAt(),
   },
-  (t) => [index('saved_items_owner_idx').on(t.ownerId, t.createdAt), uniqueIndex('saved_items_ref_uq').on(t.ownerId, t.itemType, t.refId)],
+  (t) => [
+    index('saved_items_remind_idx').on(t.remindAt),
+    index('saved_items_owner_idx').on(t.ownerId, t.createdAt),
+    uniqueIndex('saved_items_ref_uq').on(t.ownerId, t.itemType, t.refId),
+  ],
 );
 
 export const uploads = pgTable(

@@ -388,7 +388,12 @@ export const es: GuideBook = {
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',
-    steps: ['Toca el marcador para guardar.', 'Agrupa lo guardado en colecciones.', 'Comparte una colección con un enlace.'],
+    steps: [
+      'Toca el marcador para guardar.',
+      'Agrupa lo guardado en colecciones.',
+      'Comparte una colección con un enlace.',
+      'Toca la campana de un elemento guardado para que te lo recordemos más tarde (en una hora, mañana, la semana que viene o cuando quieras). El recordatorio llega como notificación y abre el elemento.',
+    ],
   },
   organizer: {
     title: 'Organizador',

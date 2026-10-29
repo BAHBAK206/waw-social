@@ -40,6 +40,7 @@ import { decodeCursor, pageOf } from '../lib/cursor';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { body, param, query, requireUser } from '../lib/http';
 import { pickSummary, summaryColumns, toSummary, withOnline } from '../lib/mappers';
+import { REMINDER_MAX_MS } from '../lib/savedReminders';
 import { checkRate } from '../middleware';
 
 const upCols = {
@@ -338,8 +339,19 @@ const toSaved = (r: typeof savedItems.$inferSelect): SavedItemDto => ({
   url: r.url,
   note: r.note,
   collectionId: r.collectionId,
+  remindAt: r.remindAt?.getTime() ?? null,
+  reminded: !!r.remindedAt,
   createdAt: r.createdAt.getTime(),
 });
+
+/** A reminder must be a moment in the near future (a minute from now to a year); null clears it. */
+function reminderOf(v: number | null | undefined): { remindAt: Date | null; remindedAt: null } | Record<string, never> {
+  if (v === undefined) return {};
+  if (v === null) return { remindAt: null, remindedAt: null };
+  const now = Date.now();
+  if (v < now + 30_000 || v > now + REMINDER_MAX_MS) throw badRequest('invalid_reminder');
+  return { remindAt: new Date(v), remindedAt: null };
+}
 
 export const savedRoutes = new Hono<AppEnv>()
   .get('/', async (c) => {
@@ -373,12 +385,14 @@ export const savedRoutes = new Hono<AppEnv>()
       const [col] = await db.select({ o: savedCollections.ownerId }).from(savedCollections).where(eq(savedCollections.id, input.collectionId));
       if (col?.o !== viewer.id) throw badRequest('invalid_collection');
     }
+    const { remindAt, ...rest } = input;
+    const reminder = reminderOf(remindAt);
     const [row] = await db
       .insert(savedItems)
-      .values({ ...input, ownerId: viewer.id })
+      .values({ ...rest, ...reminder, ownerId: viewer.id })
       .onConflictDoUpdate({
         target: [savedItems.ownerId, savedItems.itemType, savedItems.refId],
-        set: { collectionId: input.collectionId ?? null, note: input.note, title: input.title },
+        set: { collectionId: input.collectionId ?? null, note: input.note, title: input.title, ...reminder },
       })
       .returning();
     return c.json(toSaved(row!), 201);
@@ -386,10 +400,10 @@ export const savedRoutes = new Hono<AppEnv>()
   .patch('/:id', async (c) => {
     const viewer = requireUser(c);
     const { db } = c.get('deps');
-    const input = await body(c, savedItemSchema.pick({ note: true, collectionId: true, title: true }).partial());
+    const { remindAt, ...input } = await body(c, savedItemSchema.pick({ note: true, collectionId: true, title: true, remindAt: true }).partial());
     const [row] = await db
       .update(savedItems)
-      .set(input)
+      .set({ ...input, ...reminderOf(remindAt) })
       .where(and(eq(savedItems.id, param(c, 'id')), eq(savedItems.ownerId, viewer.id)))
       .returning();
     if (!row) throw notFound();

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { REMINDER_PRESETS, reminderTime } from '@qubedu/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -7,10 +8,11 @@ import { Screen } from '@/components/Screen';
 import { SelectField, Sheet, SwitchRow } from '@/components/kit';
 import { Button, Card, Chip, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { formatDay } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { openSaved } from '@/lib/saved';
 import { useTheme } from '@/lib/theme';
-import { confirm, toastError } from '@/lib/ui';
+import { confirm, toast, toastError } from '@/lib/ui';
 import { WEB_URL } from '@/lib/web';
 
 export default function SavedScreen() {
@@ -23,6 +25,7 @@ export default function SavedScreen() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: '', isPublic: false });
   const [moving, setMoving] = useState<string | null>(null);
+  const [reminding, setReminding] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [link, setLink] = useState({ title: '', url: '' });
   if (q.isPending) return <Loading />;
@@ -89,7 +92,23 @@ export default function SavedScreen() {
                 {i.note}
               </Text>
             ) : null}
+            {i.remindAt ? (
+              <Text size={12} weight="bold" color={i.reminded ? t.text3 : t.primary}>
+                {i.reminded
+                  ? tr.t('saved.reminderDone')
+                  : tr.t('saved.reminderOn', {
+                      when: formatDay(i.remindAt, tr, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                    })}
+              </Text>
+            ) : null}
           </View>
+          <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel={tr.t('saved.remind')} onPress={() => setReminding(i.id)}>
+            <Ionicons
+              name={i.remindAt && !i.reminded ? 'notifications' : 'notifications-outline'}
+              size={20}
+              color={i.remindAt && !i.reminded ? t.primary : t.text2}
+            />
+          </Pressable>
           <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel={tr.t('saved.addToCollection')} onPress={() => setMoving(i.id)}>
             <Ionicons name="folder-open-outline" size={20} color={t.text2} />
           </Pressable>
@@ -134,6 +153,47 @@ export default function SavedScreen() {
       >
         <Input label={tr.t('common.name')} value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
         <SwitchRow label={tr.t('saved.publicCollection')} value={form.isPublic} onChange={(v) => setForm({ ...form, isPublic: v })} />
+      </Sheet>
+      <Sheet open={!!reminding} onClose={() => setReminding(null)} title={tr.t('saved.reminderTitle')}>
+        <View style={{ gap: 8 }}>
+          {REMINDER_PRESETS.map((p) => (
+            <Button
+              key={p}
+              variant="soft"
+              title={tr.t(`saved.${p}`)}
+              onPress={async () => {
+                const at = reminderTime(p);
+                try {
+                  await api.saved.update(reminding!, { remindAt: at });
+                  toast(
+                    tr.t('saved.reminderSet', {
+                      when: formatDay(at, tr, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                    }),
+                  );
+                  setReminding(null);
+                  await refresh();
+                } catch (e) {
+                  toastError(e);
+                }
+              }}
+            />
+          ))}
+          {q.data.items.find((x) => x.id === reminding)?.remindAt ? (
+            <Button
+              variant="ghost"
+              title={tr.t('saved.removeReminder')}
+              onPress={async () => {
+                try {
+                  await api.saved.update(reminding!, { remindAt: null });
+                  setReminding(null);
+                  await refresh();
+                } catch (e) {
+                  toastError(e);
+                }
+              }}
+            />
+          ) : null}
+        </View>
       </Sheet>
       <Sheet open={!!moving} onClose={() => setMoving(null)} title={tr.t('saved.addToCollection')}>
         <SelectField

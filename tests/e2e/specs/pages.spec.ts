@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { newUser, register } from './helpers';
+import { apiRegister, login, newUser, register } from './helpers';
 
 test('every main screen renders without a client error', async ({ page }) => {
   const errors: string[] = [];
@@ -55,4 +55,22 @@ test('public info pages work for guests in every language', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/Privacy/i);
   await page.goto('/help');
   await expect(page.locator('details').first()).toBeVisible();
+});
+
+test('a saved item can get a reminder from the Saved page', async ({ page, request }) => {
+  const user = newUser('reminder');
+  const token = await apiRegister(request, user);
+  await request.post('/api/v1/saved', {
+    headers: { authorization: `Bearer ${token}` },
+    data: { itemType: 'link', title: 'Photosynthesis video', url: 'https://example.com/video' },
+  });
+  await login(page, user);
+  await page.goto('/saved');
+  await expect(page.getByText('Photosynthesis video')).toBeVisible();
+  await page.getByRole('button', { name: 'Remind me' }).click();
+  await page.getByRole('button', { name: 'Tomorrow morning' }).click();
+  await expect(page.getByText(/^Reminder: /)).toBeVisible();
+  await page.getByRole('button', { name: 'Remind me' }).click();
+  await page.getByRole('button', { name: 'Remove the reminder' }).click();
+  await expect(page.getByText(/^Reminder: /)).toBeHidden();
 });

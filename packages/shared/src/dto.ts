@@ -861,6 +861,10 @@ export interface SavedItemDto {
   url: string | null;
   note: string;
   collectionId: string | null;
+  /** When the reminder is due (null = none). */
+  remindAt: number | null;
+  /** The reminder was sent. */
+  reminded: boolean;
   createdAt: number;
 }
 
