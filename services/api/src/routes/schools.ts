@@ -45,7 +45,7 @@ const loginFor = (name: string, code: string) => {
 };
 export const isSchoolLogin = (email: string) => email.endsWith('.school.invalid');
 
-async function membership(deps: Deps, schoolId: string, userId: string) {
+export async function membership(deps: Deps, schoolId: string, userId: string) {
   const [m] = await deps.db
     .select()
     .from(schoolMembers)
@@ -54,7 +54,7 @@ async function membership(deps: Deps, schoolId: string, userId: string) {
 }
 
 /** Active member with one of the roles; site staff with classes.manage count as admins. */
-async function requireSchoolRole(deps: Deps, schoolId: string, user: AuthUser, roles: Role[]): Promise<Role> {
+export async function requireSchoolRole(deps: Deps, schoolId: string, user: AuthUser, roles: Role[]): Promise<Role> {
   const [school] = await deps.db.select({ id: schools.id }).from(schools).where(eq(schools.id, schoolId));
   if (!school) throw notFound('school_not_found');
   const m = await membership(deps, schoolId, user.id);
@@ -140,8 +140,28 @@ export const schoolsRoutes = new Hono<AppEnv>()
     const deps = c.get('deps');
     const id = param(c, 'id');
     const m = await membership(deps, id, user.id);
-    if (!m && !hasPermission(user.role, user.permissions, 'classes.manage')) throw notFound('school_not_found');
-    return c.json(await schoolDto(deps, id, user.id));
+    let parent = false;
+    if (!m && !hasPermission(user.role, user.permissions, 'classes.manage')) {
+      // A parent can open the school of their child (news, calendar, fees), nothing else.
+      const [link] = await deps.db
+        .select({ g: guardianLinks.guardianId })
+        .from(guardianLinks)
+        .innerJoin(
+          schoolMembers,
+          and(
+            eq(schoolMembers.userId, guardianLinks.studentId),
+            eq(schoolMembers.schoolId, id),
+            eq(schoolMembers.role, 'student'),
+            eq(schoolMembers.status, 'active'),
+          ),
+        )
+        .where(eq(guardianLinks.guardianId, user.id))
+        .limit(1);
+      if (!link) throw notFound('school_not_found');
+      parent = true;
+    }
+    const dto = await schoolDto(deps, id, user.id);
+    return c.json(parent ? { ...dto, myRole: 'parent' as const, myStatus: 'active' as const } : dto);
   })
   .patch('/:id', async (c) => {
     const user = requireUser(c);

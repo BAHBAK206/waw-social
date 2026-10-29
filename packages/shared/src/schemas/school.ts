@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { CURRICULUM_SYSTEMS } from '../curriculum';
 import { SCHOOL_ROLES } from '../schoolImport';
 import { GRADE_LEVELS } from '../stages';
-import { attachmentSchema, daySchema, idSchema, optionalUrl, trimmed, urlSchema } from './common';
+import { attachmentSchema, daySchema, idSchema, optionalUrl, timeSchema, trimmed, urlSchema } from './common';
 
 /** How students pay a teacher directly (Egypt: InstaPay, mobile wallets, bank transfer). Shown on paid courses. */
 export const TRANSFER_METHODS = ['instapay', 'wallet', 'bank'] as const;
@@ -282,3 +282,53 @@ export const schoolClassSchema = z.object({
   passMarks: z.number().min(0).max(1000).optional(),
   term: trimmed(80).optional().nullable(),
 });
+
+/* ───────── School administration: fees, news, timetable, surveys ───────── */
+
+export const feeInputSchema = z.object({
+  title: trimmed(120, 2),
+  amountCents: z.number().int().min(100).max(100_000_000),
+  currency: z.enum(['EGP', 'USD', 'EUR', 'SAR', 'AED']).default('EGP'),
+  instalments: z.number().int().min(1).max(12).default(1),
+  firstDue: daySchema,
+  section: trimmed(40).optional().nullable(),
+});
+
+export const invoiceActionSchema = z.object({ action: z.enum(['paid', 'cancel', 'reject']), reason: trimmed(300).optional() });
+export const invoicePaySchema = z.object({ method: z.enum(['paymob_card', 'paymob_wallet']), phone: trimmed(20).optional() });
+export const schoolTransferInfoSchema = z.object({
+  instapay: trimmed(120).optional().nullable(),
+  wallet: trimmed(120).optional().nullable(),
+  bank: trimmed(300).optional().nullable(),
+  note: trimmed(500).optional().nullable(),
+});
+
+export const announcementInputSchema = z.object({
+  title: trimmed(160, 2),
+  body: trimmed(4000).default(''),
+  audience: z.enum(['all', 'students', 'teachers', 'parents']).default('all'),
+  /** Also send it to parents' phones (WhatsApp / SMS) when they turned alerts on. */
+  whatsapp: z.boolean().default(false),
+});
+
+export const schoolEventInputSchema = z.object({
+  title: trimmed(160, 2),
+  day: daySchema,
+  endDay: daySchema.optional().nullable(),
+  kind: z.enum(['holiday', 'exam', 'event', 'meeting']).default('event'),
+});
+
+export const slotInputSchema = z
+  .object({ courseId: idSchema, day: z.number().int().min(0).max(6), start: timeSchema, end: timeSchema, room: trimmed(40).default('') })
+  .refine((v) => v.end > v.start, { message: 'end_after_start', path: ['end'] });
+export const classTeacherSchema = z.object({ teacherId: idSchema });
+
+export const surveyInputSchema = z.object({
+  title: trimmed(160, 2),
+  audience: z.enum(['all', 'students', 'teachers', 'parents']).default('all'),
+  questions: z
+    .array(z.object({ text: trimmed(200, 2), kind: z.enum(['rating', 'text']) }))
+    .min(1)
+    .max(15),
+});
+export const surveyAnswerSchema = z.object({ answers: z.record(z.string().max(20), z.union([z.number().int().min(1).max(5), trimmed(1000)])) });

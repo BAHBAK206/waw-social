@@ -447,6 +447,28 @@ export const en: GuideBook = {
     ],
     tips: ['Marks from a photo are only suggestions: every mark can be changed before it is saved.'],
   },
+  fees: {
+    title: 'School fees',
+    summary: 'Your school fee instalments in one place, for you and for your children.',
+    steps: [
+      'Open School fees to see each instalment with its due date and status.',
+      'Pay by card or mobile wallet when the school switched it on, or send a transfer (InstaPay, wallet or bank): fill in the reference and attach a photo of the receipt.',
+      'The school checks a transfer and marks it paid; you get a notification. A rejected transfer shows the reason so you can send it again.',
+      'You are reminded a few days before an instalment is due, and again if it is late; parents can also get it on WhatsApp.',
+      'Open a paid instalment to print its receipt.',
+    ],
+  },
+  'school-admin': {
+    title: 'Running a school',
+    summary: 'The school’s own tabs: a dashboard for the principal, fees, news and calendar, the timetable and surveys.',
+    steps: [
+      'Dashboard (administrators): attendance, average marks and pass rate for every class and subject; print it or save it as a PDF.',
+      'Fees: create a fee, split it into monthly instalments for every student (or one section), set how parents can pay by transfer, and approve the transfers that come in.',
+      'News and calendar: publish announcements to everyone, students, teachers or parents (and send them to parents’ phones too); add holidays, exam periods and meetings to the calendar. Everyone also sees the homework due in their classes.',
+      'Timetable: add lessons for each class, see clashes (the same teacher, room or section twice at once), and hand a class to another teacher.',
+      'Surveys: ask students, parents or teachers a few questions (ratings and comments). Answers are anonymous and only the averages and comments are shown to the school.',
+    ],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

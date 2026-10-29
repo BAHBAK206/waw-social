@@ -1,4 +1,12 @@
 import type {
+  FeeDto,
+  InvoiceDto,
+  MyInvoicesDto,
+  SchoolDashboardDto,
+  SchoolNewsDto,
+  SchoolTimetableDto,
+  SurveyDto,
+  SurveySummary,
   ClassComparisonDto,
   LessonPlanDto,
   PaperGradeDto,
@@ -633,6 +641,45 @@ export function createApi(options: ClientOptions) {
       focus: () => http.get<FocusStatusDto>('/study/focus'),
       startFocus: (minutes: number) => http.post<FocusStatusDto>('/study/focus/start', { minutes }),
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
+    },
+
+    schoolAdmin: {
+      dashboard: (id: string) => http.get<SchoolDashboardDto>(`/schools/${id}/dashboard`),
+      fees: (id: string) =>
+        http.get<{ items: FeeDto[]; transferInfo: { instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null } | null }>(
+          `/schools/${id}/fees`,
+        ),
+      createFee: (id: string, body: { title: string; amountCents: number; currency: string; instalments: number; firstDue: string; section?: string | null }) =>
+        http.post<{ id: string; invoices: number }>(`/schools/${id}/fees`, body),
+      setTransferInfo: (id: string, body: { instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null }) =>
+        http.put<Ok>(`/schools/${id}/fees/transfer-info`, body),
+      invoices: (id: string, status?: string) => http.get<{ items: InvoiceDto[] }>(`/schools/${id}/invoices`, { status }),
+      invoiceAction: (id: string, invoiceId: string, action: 'paid' | 'cancel' | 'reject', reason?: string) =>
+        http.patch<Ok>(`/schools/${id}/invoices/${invoiceId}`, { action, reason }),
+      myInvoices: () => http.get<MyInvoicesDto>('/schools/fees/mine'),
+      invoice: (invoiceId: string) => http.get<InvoiceDto>(`/schools/fees/invoices/${invoiceId}`),
+      payInvoice: (invoiceId: string, method: 'paymob_card' | 'paymob_wallet', phone?: string) =>
+        http.post<{ url: string }>(`/schools/fees/invoices/${invoiceId}/pay`, { method, phone }),
+      transferInvoice: (invoiceId: string, body: { method: 'instapay' | 'wallet' | 'bank'; reference: string; receipt: Attachment; note?: string }) =>
+        http.post<Ok>(`/schools/fees/invoices/${invoiceId}/transfer`, { note: '', ...body }),
+      news: (id: string) => http.get<SchoolNewsDto>(`/schools/${id}/news`),
+      announce: (id: string, body: { title: string; body: string; audience: string; whatsapp: boolean }) =>
+        http.post<{ id: string; notified: number; phones: number }>(`/schools/${id}/announcements`, body),
+      removeAnnouncement: (id: string, aid: string) => http.del<Ok>(`/schools/${id}/announcements/${aid}`),
+      addEvent: (id: string, body: { title: string; day: string; endDay?: string | null; kind: string }) =>
+        http.post<{ id: string }>(`/schools/${id}/events`, body),
+      removeEvent: (id: string, eid: string) => http.del<Ok>(`/schools/${id}/events/${eid}`),
+      timetable: (id: string) => http.get<SchoolTimetableDto>(`/schools/${id}/timetable`),
+      addSlot: (id: string, body: { courseId: string; day: number; start: string; end: string; room: string }) =>
+        http.post<{ id: string }>(`/schools/${id}/timetable`, body),
+      removeSlot: (id: string, eid: string) => http.del<Ok>(`/schools/${id}/timetable/${eid}`),
+      assignTeacher: (id: string, courseId: string, teacherId: string) => http.put<Ok>(`/schools/${id}/classes/${courseId}/teacher`, { teacherId }),
+      surveys: (id: string) => http.get<{ items: SurveyDto[] }>(`/schools/${id}/surveys`),
+      createSurvey: (id: string, body: { title: string; audience: string; questions: { text: string; kind: 'rating' | 'text' }[] }) =>
+        http.post<{ id: string }>(`/schools/${id}/surveys`, body),
+      answerSurvey: (id: string, sid: string, answers: Record<string, string | number>) => http.post<Ok>(`/schools/${id}/surveys/${sid}/answer`, { answers }),
+      surveyResults: (id: string, sid: string) => http.get<SurveySummary & { title: string }>(`/schools/${id}/surveys/${sid}/results`),
+      closeSurvey: (id: string, sid: string) => http.post<Ok>(`/schools/${id}/surveys/${sid}/close`),
     },
 
     teacherTools: {

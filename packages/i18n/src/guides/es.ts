@@ -439,6 +439,28 @@ export const es: GuideBook = {
     ],
     tips: ['Las notas de una foto son solo sugerencias: puedes cambiar cualquier nota antes de guardar.'],
   },
+  fees: {
+    title: 'Cuotas escolares',
+    summary: 'Tus cuotas escolares en un solo lugar, para ti y para tus hijos.',
+    steps: [
+      'Abre Cuotas escolares para ver cada plazo con su fecha y estado.',
+      'Paga con tarjeta o monedero móvil si el centro lo activó, o envía una transferencia (InstaPay, monedero o banco): escribe la referencia y adjunta una foto del justificante.',
+      'El centro revisa la transferencia y la marca como pagada; recibes una notificación. Si se rechaza, verás el motivo para volver a enviarla.',
+      'Te avisamos unos días antes del vencimiento y de nuevo si se retrasa; las familias también pueden recibirlo por WhatsApp.',
+      'Abre un plazo pagado para imprimir su recibo.',
+    ],
+  },
+  'school-admin': {
+    title: 'Gestionar un centro',
+    summary: 'Las pestañas propias del centro: panel del director, cuotas, noticias y calendario, horario y encuestas.',
+    steps: [
+      'Panel (administradores): asistencia, notas medias y aprobados por clase y materia; imprímelo o guárdalo en PDF.',
+      'Cuotas: crea una cuota, divídela en plazos mensuales para todos los alumnos (o una sección), indica cómo pagan las familias por transferencia y aprueba las transferencias recibidas.',
+      'Noticias y calendario: publica anuncios para todos, alumnos, profesores o familias (también en su teléfono); añade festivos, exámenes y reuniones al calendario. Todos ven también las tareas de sus clases.',
+      'Horario: añade las clases de cada grupo, detecta choques (mismo profesor, aula o sección dos veces a la vez) y asigna una clase a otro profesor.',
+      'Encuestas: haz unas preguntas a alumnos, familias o profesores (valoraciones y comentarios). Las respuestas son anónimas y el centro solo ve medias y comentarios.',
+    ],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

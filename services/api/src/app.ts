@@ -33,6 +33,7 @@ import { quizRoutes, taxonomyRoutes } from './routes/quizzes';
 import { schoolRoutes } from './routes/school';
 import { classRoutes, liveRoutes } from './routes/live';
 import { formRoutes } from './routes/forms';
+import { schoolAdminRoutes, schoolFeeRoutes } from './routes/schooladmin';
 import { schoolTemplateRoutes, teacherToolRoutes } from './routes/teachertools';
 import { collabRoutes, groupStudyRoutes } from './routes/collab';
 import { focusRoutes, glossaryRoutes, studyRoutes } from './routes/smart';
@@ -143,6 +144,8 @@ export function createApp(deps: Deps) {
   api.route('/school', gradebookRoutes);
   api.route('/school', courseKnowledgeRoutes);
   api.route('/certificates', certificateRoutes);
+  api.route('/schools', schoolFeeRoutes);
+  api.route('/schools', schoolAdminRoutes);
   api.route('/schools', schoolsRoutes);
   api.route('/leagues', leagueRoutes);
   api.route('/calendar', calendarRoutes);

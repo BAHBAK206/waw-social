@@ -7,6 +7,11 @@ import { Button, ButtonLink, IconButton } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, QueryState } from '@/components/ui/States';
+import { SchoolDashboard } from '@/components/schooladmin/Dashboard';
+import { SchoolFees } from '@/components/schooladmin/Fees';
+import { SchoolNews } from '@/components/schooladmin/News';
+import { SchoolSurveys } from '@/components/schooladmin/Surveys';
+import { SchoolTimetable } from '@/components/schooladmin/Timetable';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { pickFile } from '@/components/ui/Upload';
 import { api } from '@/lib/api';
@@ -14,7 +19,7 @@ import { downloadCsv } from '@/lib/download';
 import { useT } from '@/lib/i18n';
 import { confirmDialog, toast, toastError } from '@/lib/ui';
 
-const TABS = ['overview', 'people', 'classes', 'reports'] as const;
+const TABS = ['overview', 'dashboard', 'people', 'classes', 'fees', 'news', 'timetable', 'surveys', 'reports'] as const;
 
 export default function SchoolPage() {
   const { id = '' } = useParams();
@@ -27,11 +32,27 @@ export default function SchoolPage() {
         {(s) => (
           <>
             <PageHeader title={s.name} subtitle={s.myRole ? tr.t(`schools.roles.${s.myRole}`) : undefined} icon={<Building2 className="size-6" />} />
-            <Tabs className="mb-5" active={tab} onChange={setTab} tabs={TABS.map((k) => ({ key: k, label: tr.t(`schools.tabs.${k}`) }))} />
+            <Tabs
+              className="mb-5"
+              active={tab}
+              onChange={setTab}
+              tabs={TABS.filter((k) => {
+                const parent = s.myRole === 'parent';
+                const admin = s.myRole === 'admin';
+                if (k === 'dashboard' || k === 'fees') return admin;
+                if (k === 'people' || k === 'classes' || k === 'reports') return !parent;
+                return true;
+              }).map((k) => ({ key: k, label: tr.t(`schools.tabs.${k}`) }))}
+            />
             {tab === 'overview' && <Overview school={s} />}
-            {tab === 'people' && <People school={s} />}
-            {tab === 'classes' && <Classes school={s} />}
-            {tab === 'reports' && <Reports school={s} />}
+            {tab === 'dashboard' && s.myRole === 'admin' && <SchoolDashboard schoolId={s.id} name={s.name} />}
+            {tab === 'people' && s.myRole !== 'parent' && <People school={s} />}
+            {tab === 'classes' && s.myRole !== 'parent' && <Classes school={s} />}
+            {tab === 'fees' && s.myRole === 'admin' && <SchoolFees school={s} />}
+            {tab === 'news' && <SchoolNews school={s} />}
+            {tab === 'timetable' && <SchoolTimetable school={s} />}
+            {tab === 'surveys' && <SchoolSurveys school={s} />}
+            {tab === 'reports' && s.myRole !== 'parent' && <Reports school={s} />}
           </>
         )}
       </QueryState>

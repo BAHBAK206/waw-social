@@ -43,6 +43,8 @@ export const GUIDE_LIST = [
   { id: 'review', feature: 'review', detailed: false },
   { id: 'mentors', feature: 'mentors', detailed: false },
   { id: 'teacher-tools', feature: 'teacher-tools', detailed: false },
+  { id: 'fees', feature: 'fees', detailed: false },
+  { id: 'school-admin', feature: 'schools', detailed: false },
   { id: 'study-pack', feature: 'study-pack', detailed: false },
   { id: 'glossary', feature: 'glossary', detailed: false },
   { id: 'organizer', feature: 'organizer', detailed: false },

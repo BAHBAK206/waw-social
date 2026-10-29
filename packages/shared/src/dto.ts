@@ -1694,3 +1694,100 @@ export interface StudentCommentDto {
   teacherName: string | null;
   createdAt: number;
 }
+
+/* ───────── School administration ───────── */
+
+export interface SchoolDashboardRow {
+  students: number;
+  /** Share of present/late/excused in the last 30 days (0–100), null without records. */
+  attendance: number | null;
+  /** Average of the students' percentages so far, null without graded work. */
+  average: number | null;
+  /** Share of graded students currently passing (0–100). */
+  passRate: number | null;
+  graded: number;
+}
+
+export interface SchoolDashboardDto {
+  totals: SchoolDashboardRow & { classes: number };
+  classes: (SchoolDashboardRow & { courseId: string; title: string; section: string | null; subject: string; teacher: string })[];
+  subjects: (SchoolDashboardRow & { subject: string; classes: number })[];
+  generatedAt: number;
+}
+
+export interface FeeDto {
+  id: string;
+  title: string;
+  amountCents: number;
+  currency: string;
+  instalments: number;
+  firstDue: string;
+  section: string | null;
+  students: number;
+  paidCents: number;
+  outstandingCents: number;
+}
+
+export interface InvoiceDto {
+  id: string;
+  feeTitle: string;
+  schoolId: string;
+  schoolName: string;
+  student: { id: string; displayName: string };
+  no: number;
+  of: number;
+  amountCents: number;
+  currency: string;
+  dueDay: string;
+  status: 'pending' | 'review' | 'paid' | 'cancelled';
+  late: boolean;
+  method: string | null;
+  reference: string | null;
+  reason: string | null;
+  paidAt: number | null;
+  receipt: Attachment | null;
+}
+
+export interface MyInvoicesDto {
+  items: InvoiceDto[];
+  /** Ways to pay: card / wallet (Paymob, when switched on) and the school's transfer details. */
+  cardMethods: ('paymob_card' | 'paymob_wallet')[];
+  transfer: Record<string, { instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null } | null>;
+}
+
+export interface SchoolNewsDto {
+  announcements: { id: string; title: string; body: string; audience: string; createdAt: number }[];
+  events: { id: string; title: string; day: string; endDay: string | null; kind: 'holiday' | 'exam' | 'event' | 'meeting' }[];
+  /** Assignment due dates of the viewer's classes at this school, merged into one agenda. */
+  agenda: { kind: 'assignment'; title: string; day: string; courseId: string }[];
+}
+
+export interface SchoolSlotDto {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  subject: string;
+  section: string | null;
+  teacher: { id: string; displayName: string };
+  room: string;
+  day: number;
+  start: string;
+  end: string;
+}
+
+export interface SchoolTimetableDto {
+  items: SchoolSlotDto[];
+  conflicts: { kind: 'teacher' | 'room' | 'section'; a: string; b: string }[];
+  sections: string[];
+}
+
+export interface SurveyDto {
+  id: string;
+  title: string;
+  audience: string;
+  questions: { id: string; text: string; kind: 'rating' | 'text' }[];
+  closed: boolean;
+  answered: boolean;
+  responses: number | null;
+  createdAt: number;
+}

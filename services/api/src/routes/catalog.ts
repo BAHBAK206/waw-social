@@ -1,3 +1,4 @@
+import { settleFeeInvoiceFromPaymob } from '../lib/feePayments';
 import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -139,7 +140,7 @@ export function verifyStripeSignature(payload: string, header: string | undefine
 }
 
 /** Paymob API call (JSON, secret key auth). */
-async function paymob<T>(deps: Deps, path: string, payload: unknown): Promise<T> {
+export async function paymob<T>(deps: Deps, path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${deps.env.PAYMOB_API_URL.replace(/\/$/, '')}${path}`, {
     method: 'POST',
     headers: { authorization: `Token ${deps.env.PAYMOB_SECRET_KEY}`, 'content-type': 'application/json' },
@@ -526,7 +527,12 @@ export const paymobWebhook = new Hono<AppEnv>().post('/', async (c) => {
     .select()
     .from(payments)
     .where(and(eq(payments.id, pid), eq(payments.provider, 'paymob')));
-  if (!p || p.status !== 'pending') return c.json({ received: true });
+  if (!p) {
+    // Not a course payment: it may be a school fee instalment (its id is the merchant reference too).
+    await settleFeeInvoiceFromPaymob(deps, pid, obj);
+    return c.json({ received: true });
+  }
+  if (p.status !== 'pending') return c.json({ received: true });
   const ok = obj.success === true && obj.pending !== true && obj.is_voided !== true && obj.is_refunded !== true;
   if (ok && Number(obj.amount_cents) === p.amountCents && String(obj.currency ?? '').toUpperCase() === p.currency) {
     const [paid] = await deps.db

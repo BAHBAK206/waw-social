@@ -457,6 +457,28 @@ export const fr: GuideBook = {
     ],
     tips: ['Les notes issues d’une photo ne sont que des propositions : chaque note peut être modifiée avant l’enregistrement.'],
   },
+  fees: {
+    title: 'Frais scolaires',
+    summary: 'Vos échéances de frais scolaires au même endroit, pour vous et vos enfants.',
+    steps: [
+      'Ouvrez Frais scolaires pour voir chaque échéance avec sa date et son état.',
+      'Payez par carte ou portefeuille mobile si l’école l’a activé, ou envoyez un virement (InstaPay, portefeuille ou banque) : indiquez la référence et joignez une photo du reçu.',
+      'L’école vérifie le virement et le marque payé ; vous recevez une notification. Un virement refusé affiche le motif pour le renvoyer.',
+      'Vous êtes prévenu quelques jours avant l’échéance, puis en cas de retard ; les parents peuvent aussi le recevoir sur WhatsApp.',
+      'Ouvrez une échéance payée pour imprimer son reçu.',
+    ],
+  },
+  'school-admin': {
+    title: 'Gérer une école',
+    summary: 'Les onglets propres à l’école : tableau de bord du directeur, frais, actualités et calendrier, emploi du temps et sondages.',
+    steps: [
+      'Tableau de bord (administrateurs) : présence, moyennes et taux de réussite par classe et matière ; imprimez-le ou enregistrez-le en PDF.',
+      'Frais : créez des frais, répartissez-les en échéances mensuelles pour tous les élèves (ou une section), indiquez comment les parents paient par virement et validez les virements reçus.',
+      'Actualités et calendrier : publiez des annonces pour tous, les élèves, les enseignants ou les parents (aussi sur leur téléphone) ; ajoutez congés, examens et réunions au calendrier. Chacun voit aussi les devoirs de ses classes.',
+      'Emploi du temps : ajoutez les cours de chaque classe, repérez les conflits (même enseignant, salle ou section deux fois en même temps) et confiez une classe à un autre enseignant.',
+      'Sondages : posez quelques questions aux élèves, parents ou enseignants (notes et commentaires). Les réponses sont anonymes ; l’école ne voit que les moyennes et les commentaires.',
+    ],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

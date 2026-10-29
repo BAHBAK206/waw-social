@@ -19,6 +19,7 @@ test('every main screen renders without a client error', async ({ page }) => {
     '/review',
     '/mentors',
     '/teacher-tools',
+    '/fees',
     '/study-pack',
     '/glossary',
     '/school',

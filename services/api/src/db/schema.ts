@@ -2128,6 +2128,8 @@ export const schools = pgTable('schools', {
   phone: text('phone'),
   logoUrl: text('logo_url'),
   principal: text('principal'),
+  /** How parents can pay fees by InstaPay, a wallet or a bank transfer (they send the reference and a receipt). */
+  transferInfo: jsonb('transfer_info').$type<{ instapay?: string | null; wallet?: string | null; bank?: string | null; note?: string | null } | null>(),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -2287,4 +2289,130 @@ export const studentComments = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('student_comments_idx').on(t.studentId, t.createdAt), index('student_comments_course_idx').on(t.courseId, t.createdAt)],
+);
+
+/** A fee a school charges (tuition, activities…), split into monthly instalments, one invoice per student and instalment. */
+export const schoolFees = pgTable(
+  'school_fees',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').notNull().default('EGP'),
+    instalments: integer('instalments').notNull().default(1),
+    firstDue: date('first_due', { mode: 'string' }).notNull(),
+    /** Only students of this section (null = every student of the school). */
+    section: text('section'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('school_fees_school_idx').on(t.schoolId, t.createdAt)],
+);
+
+export const feeInvoices = pgTable(
+  'fee_invoices',
+  {
+    id: id(),
+    feeId: uuid('fee_id')
+      .notNull()
+      .references(() => schoolFees.id, { onDelete: 'cascade' }),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    no: integer('no').notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').notNull(),
+    dueDay: date('due_day', { mode: 'string' }).notNull(),
+    /** pending → (review →) paid, or cancelled by the school. */
+    status: text('status').$type<'pending' | 'review' | 'paid' | 'cancelled'>().notNull().default('pending'),
+    /** paymob | transfer, and for transfers instapay | wallet | bank with the payer's reference and receipt. */
+    provider: text('provider'),
+    method: text('method'),
+    reference: text('reference'),
+    receipt: jsonb('receipt').$type<Record<string, unknown> | null>(),
+    paidBy: uuid('paid_by').references(() => users.id, { onDelete: 'set null' }),
+    paidAt: ts('paid_at'),
+    reason: text('reason'),
+    lastRemindedAt: ts('last_reminded_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('fee_invoices_uq').on(t.feeId, t.studentId, t.no),
+    index('fee_invoices_student_idx').on(t.studentId, t.dueDay),
+    index('fee_invoices_school_idx').on(t.schoolId, t.status, t.dueDay),
+  ],
+);
+
+export const schoolAnnouncements = pgTable(
+  'school_announcements',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    body: text('body').notNull().default(''),
+    /** all | students | teachers | parents */
+    audience: text('audience').notNull().default('all'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('school_announcements_idx').on(t.schoolId, t.createdAt)],
+);
+
+/** A date on the school calendar (holiday, exam period, event, parents' meeting). */
+export const schoolEvents = pgTable(
+  'school_events',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    day: date('day', { mode: 'string' }).notNull(),
+    endDay: date('end_day', { mode: 'string' }),
+    kind: text('kind').$type<'holiday' | 'exam' | 'event' | 'meeting'>().notNull().default('event'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('school_events_idx').on(t.schoolId, t.day)],
+);
+
+export const schoolSurveys = pgTable(
+  'school_surveys',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    /** students | parents | teachers | all */
+    audience: text('audience').notNull().default('all'),
+    questions: jsonb('questions').$type<{ id: string; text: string; kind: 'rating' | 'text' }[]>().notNull(),
+    closedAt: ts('closed_at'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('school_surveys_idx').on(t.schoolId, t.createdAt)],
+);
+
+/** Survey answers are anonymous: only a one-way key per person (so nobody answers twice) is stored, never the person. */
+export const surveyResponses = pgTable(
+  'survey_responses',
+  {
+    id: id(),
+    surveyId: uuid('survey_id')
+      .notNull()
+      .references(() => schoolSurveys.id, { onDelete: 'cascade' }),
+    respondentKey: text('respondent_key').notNull(),
+    answers: jsonb('answers').$type<Record<string, string | number>>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('survey_responses_uq').on(t.surveyId, t.respondentKey)],
 );

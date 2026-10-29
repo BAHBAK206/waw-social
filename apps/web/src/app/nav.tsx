@@ -16,6 +16,7 @@ import {
   Bookmark,
   Aperture,
   Bot,
+  Wallet,
   ClipboardPen,
   HandHelping,
   BookA,
@@ -149,6 +150,7 @@ export const ICONS: Record<string, LucideIcon> = {
   'notebook-pen': NotebookPen,
   'book-a': BookA,
   focus: Focus,
+  wallet: Wallet,
   'clipboard-pen': ClipboardPen,
   'hand-helping': HandHelping,
 };

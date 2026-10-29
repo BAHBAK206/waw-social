@@ -68,3 +68,8 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Tiered worksheets (foundation / core / advanced) from an objective or question bank, optionally saved as three quizzes | ✅ | ✅ (browser view) |
 | Shared quiz and assignment templates inside a school | ✅ | ✅ (browser view) |
 | One-tap suggested personal note per student (from marks, attendance and missing work), reviewed then sent to the student and parents | ✅ | ✅ (students and parents read the notes on Grades) |
+| Principal dashboard: attendance, average marks and pass rate per class and subject, print / PDF | ✅ | ✅ (browser view) |
+| School fees: monthly instalments per student or section, pay by card or wallet (Paymob) or by transfer with a receipt the school approves, reminders (app and WhatsApp), printable receipt | ✅ | ✅ (browser view) |
+| School announcements by audience (optionally also to parents' phones) and a school calendar merged with homework due | ✅ | ✅ (browser view) |
+| School timetable with clash detection (teacher, room, section) and handing a class to another teacher | ✅ | ✅ (browser view) |
+| Anonymous satisfaction surveys (ratings and comments) for students, parents or teachers | ✅ | ✅ (browser view) |
