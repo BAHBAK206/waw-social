@@ -7,6 +7,7 @@ import { Button, ButtonLink, IconButton } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, QueryState } from '@/components/ui/States';
+import { SchoolComplaints } from '@/components/schooladmin/Complaints';
 import { SchoolDashboard } from '@/components/schooladmin/Dashboard';
 import { SchoolFees } from '@/components/schooladmin/Fees';
 import { SchoolNews } from '@/components/schooladmin/News';
@@ -19,7 +20,7 @@ import { downloadCsv } from '@/lib/download';
 import { useT } from '@/lib/i18n';
 import { confirmDialog, toast, toastError } from '@/lib/ui';
 
-const TABS = ['overview', 'dashboard', 'people', 'classes', 'fees', 'news', 'timetable', 'surveys', 'reports'] as const;
+const TABS = ['overview', 'dashboard', 'people', 'classes', 'fees', 'news', 'timetable', 'surveys', 'complaints', 'reports'] as const;
 
 export default function SchoolPage() {
   const { id = '' } = useParams();
@@ -39,7 +40,7 @@ export default function SchoolPage() {
               tabs={TABS.filter((k) => {
                 const parent = s.myRole === 'parent';
                 const admin = s.myRole === 'admin';
-                if (k === 'dashboard' || k === 'fees') return admin;
+                if (k === 'dashboard' || k === 'fees' || k === 'complaints') return admin;
                 if (k === 'people' || k === 'classes' || k === 'reports') return !parent;
                 return true;
               }).map((k) => ({ key: k, label: tr.t(`schools.tabs.${k}`) }))}
@@ -52,6 +53,7 @@ export default function SchoolPage() {
             {tab === 'news' && <SchoolNews school={s} />}
             {tab === 'timetable' && <SchoolTimetable school={s} />}
             {tab === 'surveys' && <SchoolSurveys school={s} />}
+            {tab === 'complaints' && s.myRole === 'admin' && <SchoolComplaints school={s} />}
             {tab === 'reports' && s.myRole !== 'parent' && <Reports school={s} />}
           </>
         )}

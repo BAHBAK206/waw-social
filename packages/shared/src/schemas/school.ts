@@ -342,3 +342,11 @@ export const meetingSlotsSchema = z
 export const meetingBookSchema = z.object({ studentId: idSchema, note: trimmed(300).default('') });
 export const behaviorNoteSchema = z.object({ courseId: idSchema, studentId: idSchema, kind: z.enum(['positive', 'concern']), text: trimmed(600, 3) });
 export const homeworkAckSchema = z.object({ studentId: idSchema });
+
+/* ───────── Safety and wellbeing ───────── */
+
+export const complaintInputSchema = z.object({ schoolId: idSchema, category: z.enum(['bullying', 'harassment', 'safety', 'other']), text: trimmed(3000, 10) });
+export const complaintReviewSchema = z.object({ status: z.enum(['new', 'seen', 'resolved']), reply: trimmed(2000).optional() });
+export const moodInputSchema = z.object({ mood: z.number().int().min(1).max(5), note: trimmed(300).optional() });
+export const timeLimitSchema = z.object({ minutes: z.number().int().min(15).max(480).nullable() });
+export const extraTimeSchema = z.object({ minutes: z.number().int().min(5).max(120) });

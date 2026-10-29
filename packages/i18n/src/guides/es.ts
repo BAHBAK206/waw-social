@@ -481,6 +481,17 @@ export const es: GuideBook = {
       'Resumen semanal: pulsa Escuchar en la página Familia y el teléfono lee la semana en voz alta en tu idioma.',
     ],
   },
+  wellbeing: {
+    title: 'Bienestar',
+    summary: 'Un registro de ánimo diario y privado, un buzón secreto para denunciar el acoso y un límite diario de tiempo fijado por la familia.',
+    steps: [
+      '¿Cómo estás hoy?: elige cómo te sientes (de 1 a 5) una vez al día. Solo tú lees tus respuestas. Tras varios días bajos seguidos, tus padres y el responsable de tu centro reciben un aviso amable para preguntarte cómo estás; nunca ven lo que escribiste.',
+      'Habla: elige tu centro y el tema y escribe qué pasó. Nadie ve quién lo envía. Recibes un código secreto: guárdalo para leer la respuesta del centro (no se vuelve a mostrar).',
+      'Los responsables del centro leen las quejas en la pestaña Buzón de quejas y pueden responder; las urgentes (inseguridad, agresión) les avisan al instante.',
+      'Límite de tiempo (familias): en la página Familia elige un límite diario. Al acabarse el tiempo la app se bloquea el resto del día, y la familia puede dar tiempo extra cuando quiera.',
+    ],
+    tips: ['Si alguien está en peligro ahora mismo, díselo ya a un adulto de confianza o llama al número de emergencias.'],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

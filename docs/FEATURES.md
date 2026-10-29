@@ -78,3 +78,6 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Behavior notes (praise or concern) from teachers, shown to the student and the parents | ✅ | ✅ |
 | "I saw the homework": one-tap acknowledgement by parents; teachers see how many parents saw an assignment | ✅ | ✅ (parents) |
 | Spoken weekly summary for parents, read aloud by the device in their language | ✅ | ✅ |
+| Anonymous complaint box: students report bullying or safety problems to the school without their name stored, get a one-time secret code to read the reply; urgent categories alert the supervisors at once | ✅ | ✅ (admins read it in browser view) |
+| Daily mood check (private) with a gentle alert to parents and school supervisors after several low days, at most once a week and never showing what was written | ✅ | ✅ |
+| Parent daily time limit per child: the app locks for the rest of the day when time is up, parents add extra time any time | ✅ | ✅ |

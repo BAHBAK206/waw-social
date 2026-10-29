@@ -56,6 +56,8 @@ export const users = pgTable(
     birthYear: integer('birth_year'),
     /** School stage and year (p1…p6, m1…m3, s1…s3, uni, adult). */
     gradeLevel: text('grade_level'),
+    /** Minutes a day a parent allows for this child (null = no limit). */
+    dailyLimitMinutes: integer('daily_limit_minutes'),
     /** Subjects a senior student offers to help juniors with (see canMentor). */
     mentorSubjects: jsonb('mentor_subjects').$type<string[]>().notNull().default([]),
     /** Set when an administrator verifies a teacher account (unlocks public catalog, open live classes…). */
@@ -2488,4 +2490,69 @@ export const homeworkAcks = pgTable(
     ackedAt: ts('acked_at').notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.assignmentId, t.studentId, t.guardianId] })],
+);
+
+/** Minutes spent in the app on a day, counted only for people with a daily limit (plus extra time a parent granted). */
+export const usageLog = pgTable(
+  'usage_log',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+    minutes: integer('minutes').notNull().default(0),
+    bonusMinutes: integer('bonus_minutes').notNull().default(0),
+    lastPingAt: ts('last_ping_at'),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
+/** A student's daily "how are you?" answer (1 = very low … 5 = great). Private to the student. */
+export const moodChecks = pgTable(
+  'mood_checks',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+    mood: integer('mood').notNull(),
+    note: text('note').notNull().default(''),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
+/** One gentle "low mood" heads-up per student per week. */
+export const moodAlerts = pgTable(
+  'mood_alerts',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('mood_alerts_idx').on(t.userId, t.createdAt)],
+);
+
+/**
+ * An anonymous complaint to a school's supervisors. Nothing here says who wrote it; the writer keeps a tracking
+ * code (only its hash is stored) to read the school's reply.
+ */
+export const complaints = pgTable(
+  'complaints',
+  {
+    id: id(),
+    schoolId: uuid('school_id')
+      .notNull()
+      .references(() => schools.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').notNull(),
+    category: text('category').$type<'bullying' | 'harassment' | 'safety' | 'other'>().notNull(),
+    body: text('body').notNull(),
+    status: text('status').$type<'new' | 'seen' | 'resolved'>().notNull().default('new'),
+    reply: text('reply'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('complaints_code_uq').on(t.codeHash), index('complaints_school_idx').on(t.schoolId, t.status, t.createdAt)],
 );

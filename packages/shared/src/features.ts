@@ -57,6 +57,7 @@ export const FEATURES = [
   { id: 'communities', kind: 'page', category: 'community', route: '/communities', icon: 'globe', auth: true },
   { id: 'chat', kind: 'page', category: 'community', route: '/chat', icon: 'message-circle', auth: true },
   { id: 'live', kind: 'page', category: 'classroom', route: '/live/:roomId', icon: 'radio', auth: true },
+  { id: 'wellbeing', kind: 'page', category: 'me', route: '/wellbeing', icon: 'heart-pulse', auth: true },
   { id: 'saved', kind: 'page', category: 'me', route: '/saved', icon: 'bookmark', auth: true },
   { id: 'profile', kind: 'page', category: 'me', route: '/profile', icon: 'user', auth: true },
   { id: 'organizer', kind: 'page', category: 'tools', route: '/organizer', icon: 'list-todo', auth: true },

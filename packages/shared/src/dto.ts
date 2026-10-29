@@ -1829,3 +1829,33 @@ export interface VoiceSummaryDto {
   text: string;
   language: 'en' | 'ar' | 'fr' | 'es';
 }
+
+/* ───────── Safety and wellbeing ───────── */
+
+export interface MoodDto {
+  today: number | null;
+  recent: { day: string; mood: number }[];
+}
+
+export interface UsageDto {
+  limit: number | null;
+  used: number;
+  bonus: number;
+  remaining: number | null;
+  locked: boolean;
+}
+
+export interface ComplaintDto {
+  id: string;
+  category: 'bullying' | 'harassment' | 'safety' | 'other';
+  text: string;
+  status: 'new' | 'seen' | 'resolved';
+  reply: string | null;
+  createdAt: number;
+}
+
+export interface ComplaintStatusDto {
+  status: 'new' | 'seen' | 'resolved';
+  reply: string | null;
+  createdAt: number;
+}

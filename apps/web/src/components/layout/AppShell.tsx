@@ -9,6 +9,7 @@ import { BottomNav } from './BottomNav';
 import { BannedScreen, FeatureGate, MaintenanceScreen } from './Gates';
 import { Sidebar } from './Sidebar';
 import { FocusBar } from '@/components/study/focus';
+import { UsageGuard } from '@/components/wellbeing/TimeLimit';
 import { Topbar } from './Topbar';
 
 const CommandPalette = lazy(() => import('@/components/overlays/CommandPalette'));
@@ -89,6 +90,7 @@ export function AppShell() {
         <VerifyEmailBar />
         <ConsentBar />
         {me && <FocusBar />}
+        {me && <UsageGuard />}
         <main id="main" className={embedded ? 'flex-1 pb-8' : 'flex-1 pb-24 lg:pb-8'}>
           <FeatureGate>
             <Suspense fallback={<Spinner />}>

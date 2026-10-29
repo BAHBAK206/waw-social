@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastHost } from '@/components/Toast';
 import openDyslexicBold from '../assets/fonts/OpenDyslexic-Bold.otf';
 import openDyslexicRegular from '../assets/fonts/OpenDyslexic-Regular.otf';
+import { UsageGuard } from '@/components/Wellbeing';
 import { ReportHost } from '@/components/Report';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useAppearance } from '@/lib/appearance';
@@ -63,6 +64,7 @@ function Shell() {
         <Stack.Screen name="people" options={{ title: tr.t('people.title') }} />
         <Stack.Screen name="saved" options={{ title: tr.t('saved.title') }} />
         <Stack.Screen name="review" options={{ title: tr.t('review.title') }} />
+        <Stack.Screen name="wellbeing" options={{ title: tr.t('nav.wellbeing') }} />
         <Stack.Screen name="glossary" options={{ title: tr.t('glossary.title') }} />
         <Stack.Screen name="downloads" options={{ title: tr.t('nav.downloads') }} />
         <Stack.Screen name="grades" options={{ title: tr.t('gradebook.reportCard') }} />
@@ -112,6 +114,7 @@ function Shell() {
         <Stack.Screen name="help/[id]" options={{ title: tr.t('helpCenter.title') }} />
         <Stack.Screen name="collection/[slug]" options={{ title: tr.t('saved.collections') }} />
       </Stack>
+      <UsageGuard />
       <OfflineBanner />
       <ReportHost />
       <ToastHost />

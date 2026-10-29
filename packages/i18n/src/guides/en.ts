@@ -489,6 +489,17 @@ export const en: GuideBook = {
       'Weekly summary: tap Listen on the Family page and your phone reads the week out loud in your language.',
     ],
   },
+  wellbeing: {
+    title: 'Wellbeing',
+    summary: 'A private daily mood check, a secret box to report bullying, and a daily time limit set by a parent.',
+    steps: [
+      'How are you today?: pick how you feel (1 to 5) once a day. Only you can read your answers. After several low days in a row, your parents and your school’s supervisor get a gentle message so someone can check in; they never see what you wrote.',
+      'Speak up: choose your school and what it is about, then write what happened. Nobody can see who sent it. You get a secret code: keep it to read the school’s answer later (the code is never shown again).',
+      'Supervisors of the school read the complaints in the school’s Complaint box tab and can answer; urgent ones (unsafe, harassment) alert them at once.',
+      'Time limit (parents): on the Family page choose a daily limit for a child. When time is up the app locks for the rest of the day, and a parent can give extra time any time.',
+    ],
+    tips: ['If someone is in danger right now, tell a trusted adult or call the local emergency number straight away.'],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

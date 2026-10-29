@@ -1,4 +1,8 @@
 import type {
+  ComplaintDto,
+  ComplaintStatusDto,
+  MoodDto,
+  UsageDto,
   BehaviorNoteDto,
   HomeworkAckItemDto,
   MeetingSlotDto,
@@ -645,6 +649,21 @@ export function createApi(options: ClientOptions) {
       focus: () => http.get<FocusStatusDto>('/study/focus'),
       startFocus: (minutes: number) => http.post<FocusStatusDto>('/study/focus/start', { minutes }),
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
+    },
+
+    wellbeing: {
+      sendComplaint: (body: { schoolId: string; category: string; text: string }) => http.post<{ code: string }>('/wellbeing/complaints', body),
+      complaintStatus: (code: string) => http.get<ComplaintStatusDto>('/wellbeing/complaints/status', { code }),
+      complaints: (schoolId: string) => http.get<{ items: ComplaintDto[] }>(`/schools/${schoolId}/complaints`),
+      reviewComplaint: (schoolId: string, id: string, body: { status: 'new' | 'seen' | 'resolved'; reply?: string }) =>
+        http.patch<Ok>(`/schools/${schoolId}/complaints/${id}`, body),
+      mood: () => http.get<MoodDto>('/wellbeing/mood'),
+      saveMood: (mood: number, note?: string) => http.post<{ ok: true; alerted: boolean }>('/wellbeing/mood', { mood, note }),
+      usage: () => http.get<UsageDto>('/wellbeing/usage'),
+      ping: () => http.post<UsageDto>('/wellbeing/usage/ping'),
+      setLimit: (childId: string, minutes: number | null) => http.put<{ limit: number | null }>(`/wellbeing/children/${childId}/time-limit`, { minutes }),
+      extraTime: (childId: string, minutes: number) => http.post<UsageDto>(`/wellbeing/children/${childId}/extra-time`, { minutes }),
+      childUsage: (childId: string) => http.get<UsageDto>(`/wellbeing/children/${childId}/usage`),
     },
 
     parentComms: {

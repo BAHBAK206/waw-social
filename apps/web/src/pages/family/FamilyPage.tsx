@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { ColumnChart } from '@/components/ui/Charts';
 import { ReasonChips, RiskBadge } from '@/components/family/Insights';
 import { FamilyCode } from '@/components/family/FamilyCode';
+import { TimeLimitCard } from '@/components/wellbeing/TimeLimit';
 import { ControlsEditor, FamilyRequests, InviteParent, MyControls, RequestChild } from '@/components/family/Linking';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -63,6 +64,7 @@ function ChildReport({ report }: { report: ChildReportDto }) {
       <HomeworkCheck studentId={report.child.id} />
       <BehaviorList studentId={report.child.id} />
       <ControlsEditor key={report.child.id} report={report} />
+      <TimeLimitCard childId={report.child.id} name={report.child.displayName} />
       <section className="card p-4">
         <ColumnChart
           title={tr.t('family.studyChart')}

@@ -11,6 +11,7 @@ import { useTheme } from '@/lib/theme';
 import { confirm, toast, toastError } from '@/lib/ui';
 import { ReportCard } from './Gradebook';
 import { ControlsEditorCard } from './Linking';
+import { TimeLimitCard } from './Wellbeing';
 import { BehaviorList, HomeworkCheck, VoiceSummary } from './ParentTools';
 import { Badge, Sheet } from './kit';
 import { Avatar, Button, Card, Empty, Input, Loading, Text } from './ui';
@@ -177,6 +178,7 @@ export function ChildReport({ report }: { report: ChildReportDto }) {
       <HomeworkCheck studentId={report.child.id} />
       <BehaviorList studentId={report.child.id} />
       <ControlsEditorCard key={report.child.id} report={report} />
+      <TimeLimitCard childId={report.child.id} name={report.child.displayName} />
       <Text weight="black">{tr.t('gradebook.reportCard')}</Text>
       <ReportCard studentId={report.child.id} />
       <Text weight="black">{tr.t('family.courses')}</Text>

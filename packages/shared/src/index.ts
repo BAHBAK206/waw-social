@@ -17,6 +17,7 @@ export * from './smartStudy';
 export * from './collab';
 export * from './teacherTools';
 export * from './schoolAdmin';
+export * from './wellbeing';
 export * from './roles';
 export * from './appearance';
 export * from './planner';

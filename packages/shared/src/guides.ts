@@ -45,6 +45,7 @@ export const GUIDE_LIST = [
   { id: 'teacher-tools', feature: 'teacher-tools', detailed: false },
   { id: 'fees', feature: 'fees', detailed: false },
   { id: 'meetings', feature: 'meetings', detailed: false },
+  { id: 'wellbeing', feature: 'wellbeing', detailed: false },
   { id: 'parent-tools', feature: 'family', detailed: false },
   { id: 'school-admin', feature: 'schools', detailed: false },
   { id: 'study-pack', feature: 'study-pack', detailed: false },

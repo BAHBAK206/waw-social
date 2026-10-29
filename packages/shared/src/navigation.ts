@@ -49,6 +49,7 @@ export const NAV_ORDER: readonly FeatureId[] = [
   'settings',
   'profile',
   'family',
+  'wellbeing',
   'saved',
   'studio',
   'help',

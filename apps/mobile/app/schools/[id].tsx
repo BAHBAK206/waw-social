@@ -98,25 +98,27 @@ export default function SchoolScreen() {
               </View>
             ))}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              {(admin ? (['dashboard', 'fees', 'news', 'timetable', 'surveys'] as const) : (['news', 'timetable', 'surveys'] as const)).map((k) => (
-                <Button
-                  key={k}
-                  small
-                  variant="soft"
-                  title={tr.t(`schools.tabs.${k}`)}
-                  loading={busy === k}
-                  onPress={async () => {
-                    setBusy(k);
-                    try {
-                      await openWebSignedIn(`/schools/${s.id}?tab=${k}`);
-                    } catch (e) {
-                      toastError(e);
-                    } finally {
-                      setBusy(null);
-                    }
-                  }}
-                />
-              ))}
+              {(admin ? (['dashboard', 'fees', 'news', 'timetable', 'surveys', 'complaints'] as const) : (['news', 'timetable', 'surveys'] as const)).map(
+                (k) => (
+                  <Button
+                    key={k}
+                    small
+                    variant="soft"
+                    title={tr.t(`schools.tabs.${k}`)}
+                    loading={busy === k}
+                    onPress={async () => {
+                      setBusy(k);
+                      try {
+                        await openWebSignedIn(`/schools/${s.id}?tab=${k}`);
+                      } catch (e) {
+                        toastError(e);
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                  />
+                ),
+              )}
             </View>
           </Card>
         )}

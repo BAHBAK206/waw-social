@@ -499,6 +499,17 @@ export const fr: GuideBook = {
       'Résumé hebdomadaire : touchez Écouter sur la page Famille et votre téléphone lit la semaine à voix haute dans votre langue.',
     ],
   },
+  wellbeing: {
+    title: 'Bien-être',
+    summary: 'Un suivi d’humeur privé chaque jour, une boîte secrète pour signaler le harcèlement et une limite de temps fixée par un parent.',
+    steps: [
+      'Comment vas-tu aujourd’hui ? : choisis ton humeur (de 1 à 5) une fois par jour. Toi seul lis tes réponses. Après plusieurs jours difficiles d’affilée, tes parents et le responsable de ton école reçoivent un message doux pour prendre de tes nouvelles ; ils ne voient jamais ce que tu as écrit.',
+      'Parle : choisis ton école et le sujet, puis écris ce qui s’est passé. Personne ne voit qui l’envoie. Tu reçois un code secret : garde-le pour lire la réponse de l’école (il ne sera plus affiché).',
+      'Les responsables de l’école lisent les plaintes dans l’onglet Boîte à plaintes et peuvent répondre ; les cas urgents (insécurité, agression) les alertent aussitôt.',
+      'Limite de temps (parents) : sur la page Famille, choisissez une limite quotidienne. Quand le temps est écoulé, l’app se verrouille pour le reste de la journée ; un parent peut donner du temps en plus à tout moment.',
+    ],
+    tips: ['Si quelqu’un est en danger maintenant, parlez-en tout de suite à un adulte de confiance ou appelez le numéro d’urgence.'],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

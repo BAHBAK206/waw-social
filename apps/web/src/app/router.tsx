@@ -72,6 +72,7 @@ export const router = createBrowserRouter([
       { path: 'workspace', ...page(() => import('@/pages/workspace/WorkspacePage'), { auth: true }) },
       { path: 'workspace/:id', ...page(() => import('@/pages/workspace/WorkspaceEditorPage'), { auth: true }) },
       { path: 'academic', ...page(() => import('@/pages/academic/AcademicPage'), { auth: true }) },
+      { path: 'wellbeing', ...page(() => import('@/pages/wellbeing/WellbeingPage'), { auth: true }) },
       { path: 'meetings', ...page(() => import('@/pages/meetings/MeetingsPage'), { auth: true }) },
       { path: 'fees', ...page(() => import('@/pages/fees/FeesPage'), { auth: true }) },
       { path: 'fees/receipt/:id', ...page(() => import('@/pages/fees/FeesPage').then((m) => ({ default: m.ReceiptPage })), { auth: true }) },
