@@ -9,6 +9,7 @@ import { ProgressBar } from '@/components/ui/Charts';
 import { Input, Select, Switch, Textarea } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, QueryState } from '@/components/ui/States';
+import { ClassMotivation } from '@/components/collab/ClassMotivation';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { CourseInsights } from '@/components/family/Insights';
 import { ClassAiKnowledge } from '@/components/school/ClassAiKnowledge';
@@ -1001,6 +1002,7 @@ export default function CoursePage() {
                 </div>
               </header>
               <Tabs className="mb-5" active={tab} onChange={setTab} tabs={visible.map((k) => ({ key: k, label: tr.t(`school.tabs.${k}`) }))} />
+              {tab === 'stream' && <ClassMotivation course={course} />}
               {tab === 'stream' && <Stream course={course} staff={staff} />}
               {tab === 'assignments' && <Assignments course={course} staff={staff} />}
               {tab === 'people' && <People course={course} staff={staff} />}

@@ -13,6 +13,7 @@ import { Input, Select, Textarea } from '@/components/ui/Field';
 import { Menu } from '@/components/ui/Menu';
 import { Modal } from '@/components/ui/Modal';
 import { CardSkeletons, EmptyState, ErrorState, LoadMore, Spinner } from '@/components/ui/States';
+import { GroupStudy } from '@/components/collab/GroupStudy';
 import { Tabs, useTabParam } from '@/components/ui/Tabs';
 import { UploadButton } from '@/components/ui/Upload';
 import { api, fileUrl } from '@/lib/api';
@@ -520,7 +521,7 @@ export default function GroupPage() {
   const g = q.data;
   const isCommunity = g?.kind === 'community';
   const member = !!g?.myRole;
-  const tabKeys = ['posts', 'chat', 'channels', 'members', 'resources', 'leaderboard', 'live', 'settings'] as const;
+  const tabKeys = ['posts', 'chat', 'study', 'channels', 'members', 'resources', 'leaderboard', 'live', 'settings'] as const;
   const [tab, setTab] = useTabParam(tabKeys, 'posts');
   if (q.isPending) return <Spinner className="py-24" />;
   if (q.error || !g)
@@ -553,6 +554,7 @@ export default function GroupPage() {
     { key: 'posts' as const, label: tr.t('groups.tabs.posts') },
     { key: 'channels' as const, label: tr.t('groups.tabs.channels'), hidden: !isCommunity || !member },
     { key: 'chat' as const, label: tr.t('groups.tabs.chat'), hidden: isCommunity || !member || !g.conversationId },
+    { key: 'study' as const, label: tr.t('groups.tabs.study'), hidden: isCommunity || !member },
     { key: 'members' as const, label: tr.t('groups.tabs.members'), hidden: locked },
     { key: 'resources' as const, label: tr.t('groups.tabs.resources'), hidden: locked },
     { key: 'leaderboard' as const, label: tr.t('groups.tabs.leaderboard'), hidden: locked },
@@ -670,6 +672,7 @@ export default function GroupPage() {
               <ChatThread conversationId={g.conversationId} group />
             </div>
           )}
+          {activeTab === 'study' && <GroupStudy g={g} />}
           {activeTab === 'channels' && <Channels g={g} />}
           {activeTab === 'members' && <Members g={g} />}
           {activeTab === 'resources' && <Resources g={g} />}

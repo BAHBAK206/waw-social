@@ -319,3 +319,11 @@ export const glossaryQuerySchema = z.object({
   courseId: idSchema.optional(),
   q: z.string().trim().max(120).optional(),
 });
+
+/* ───────── Collaboration and motivation ───────── */
+
+export const groupTaskSchema = z.object({ title: trimmed(200, 1) });
+export const groupTaskUpdateSchema = z.object({ done: z.boolean() });
+export const classGoalSchema = z.object({ targetMinutes: z.number().int().min(30).max(200_000) });
+export const mentorSettingsSchema = z.object({ subjects: z.array(trimmed(40, 1)).max(6) });
+export const mentorQuerySchema = z.object({ subject: z.string().trim().max(40).optional() });

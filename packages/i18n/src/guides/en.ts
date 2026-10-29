@@ -424,6 +424,16 @@ export const en: GuideBook = {
       'Teachers can share a term with a whole class from the class they teach.',
     ],
   },
+  mentors: {
+    title: 'Study mentors',
+    summary: 'Older students who offered to help in a subject, so younger ones know who to ask.',
+    steps: [
+      'Open Study mentors and pick a subject to see who offers help in it.',
+      'Ask your question in the Study hall as a question post and mention the subject. Mentors answer in public, where everyone can learn and teachers can see.',
+      'Students in the last two secondary years and at university can offer help: add your subjects and save.',
+      'When the author picks your answer as the best, you earn XP and it counts in your “answers chosen” number.',
+    ],
+  },
   saved: {
     title: 'Saved',
     summary: 'Lessons, questions and resources you saved, organized in collections you can share.',

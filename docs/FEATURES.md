@@ -59,3 +59,6 @@ Features can be switched on/off at runtime by the root administrator (Admin → 
 | Voice tutor: speak a question and hear the reply read aloud | ✅ (browser) | ✅ |
 | Past exam papers: year and board, a "Past papers" list with a year filter | ✅ | ✅ |
 | Glossary per subject: your own terms, terms teachers share with a class, terms found in a pasted lesson | ✅ | ✅ |
+| Study groups: shared task list, this week's study-time ranking, scheduled study sessions (events) | ✅ | ✅ (opens in the app's browser view) |
+| Class weekly study goal with class badge and XP when reached; weekly challenge between the classes of a school (study minutes per student) | ✅ | ✅ |
+| Study mentors: seniors list the subjects they can help with; answers stay public in the study hall | ✅ | ✅ (opens in the app's browser view) |

@@ -72,6 +72,7 @@ export const router = createBrowserRouter([
       { path: 'workspace', ...page(() => import('@/pages/workspace/WorkspacePage'), { auth: true }) },
       { path: 'workspace/:id', ...page(() => import('@/pages/workspace/WorkspaceEditorPage'), { auth: true }) },
       { path: 'academic', ...page(() => import('@/pages/academic/AcademicPage'), { auth: true }) },
+      { path: 'mentors', ...page(() => import('@/pages/mentors/MentorsPage'), { auth: true }) },
       { path: 'review', ...page(() => import('@/pages/review/ReviewPage'), { auth: true }) },
       { path: 'study-pack', ...page(() => import('@/pages/studypack/StudyPackPage'), { auth: true }) },
       { path: 'glossary', ...page(() => import('@/pages/glossary/GlossaryPage'), { auth: true }) },

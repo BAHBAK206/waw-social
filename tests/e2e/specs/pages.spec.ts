@@ -17,6 +17,7 @@ test('every main screen renders without a client error', async ({ page }) => {
     '/workspace',
     '/academic',
     '/review',
+    '/mentors',
     '/study-pack',
     '/glossary',
     '/school',

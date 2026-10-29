@@ -416,6 +416,16 @@ export const es: GuideBook = {
       'Un profesor puede compartir un término con toda su clase.',
     ],
   },
+  mentors: {
+    title: 'Mentores',
+    summary: 'Estudiantes mayores que ofrecen ayuda en una materia, para que los más jóvenes sepan a quién preguntar.',
+    steps: [
+      'Abre Mentores y elige una materia para ver quién ofrece ayuda.',
+      'Haz tu pregunta en la sala de estudio como pregunta e indica la materia. Los mentores responden en público, donde todos aprenden y los profesores ven.',
+      'Los estudiantes de los dos últimos cursos de secundaria y de la universidad pueden ofrecer ayuda: añade tus materias y guarda.',
+      'Cuando el autor elige tu respuesta como la mejor, ganas XP y cuenta en tus «respuestas elegidas».',
+    ],
+  },
   saved: {
     title: 'Guardados',
     summary: 'Lecciones, preguntas y recursos guardados, organizados en colecciones que puedes compartir.',

@@ -1596,3 +1596,49 @@ export interface GlossaryTermDto {
   mine: boolean;
   authorName: string;
 }
+
+/* ───────── Collaboration and motivation ───────── */
+
+export interface GroupTaskDto {
+  id: string;
+  title: string;
+  done: boolean;
+  doneByName: string | null;
+  createdAt: number;
+}
+
+export interface GroupStudyDto {
+  weekStart: string;
+  tasks: GroupTaskDto[];
+  /** This week's study minutes of the group's members. */
+  board: { rank: number; user: UserSummary; minutes: number }[];
+  /** Combined minutes of the whole group this week. */
+  totalMinutes: number;
+}
+
+export interface ClassChallengeDto {
+  weekStart: string;
+  /** Classes compete inside their school; null when the class is not part of a school. */
+  schoolId: string | null;
+  standings: { courseId: string; title: string; students: number; minutes: number; average: number; rank: number; mine: boolean }[];
+  lastWeekWinner: { courseId: string; title: string; average: number } | null;
+}
+
+export interface ClassGoalDto {
+  courseId: string;
+  weekStart: string;
+  targetMinutes: number | null;
+  minutes: number;
+  reached: boolean;
+  /** Weeks this class reached its goal (the class badge). */
+  badges: number;
+  students: number;
+  canSet: boolean;
+}
+
+export interface MentorDto {
+  user: UserSummary;
+  subjects: string[];
+  /** Answers of this mentor that a question's author chose as the best answer. */
+  helped: number;
+}

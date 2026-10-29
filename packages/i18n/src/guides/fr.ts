@@ -433,6 +433,16 @@ export const fr: GuideBook = {
       'Un enseignant peut partager un terme avec toute sa classe.',
     ],
   },
+  mentors: {
+    title: 'Mentors',
+    summary: 'Des élèves plus avancés qui proposent leur aide dans une matière, pour que les plus jeunes sachent à qui demander.',
+    steps: [
+      'Ouvrez Mentors et choisissez une matière pour voir qui propose son aide.',
+      'Posez votre question dans la salle d’étude sous forme de question en indiquant la matière. Les mentors répondent en public, où tout le monde apprend et où les enseignants voient.',
+      'Les élèves des deux dernières années du secondaire et de l’université peuvent proposer leur aide : ajoutez vos matières et enregistrez.',
+      'Quand l’auteur choisit votre réponse comme meilleure, vous gagnez de l’XP et elle compte dans vos « réponses retenues ».',
+    ],
+  },
   saved: {
     title: 'Enregistrés',
     summary: 'Leçons, questions et ressources enregistrées, classées en collections partageables.',

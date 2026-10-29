@@ -33,6 +33,7 @@ import { quizRoutes, taxonomyRoutes } from './routes/quizzes';
 import { schoolRoutes } from './routes/school';
 import { classRoutes, liveRoutes } from './routes/live';
 import { formRoutes } from './routes/forms';
+import { collabRoutes, groupStudyRoutes } from './routes/collab';
 import { focusRoutes, glossaryRoutes, studyRoutes } from './routes/smart';
 import { libraryRoutes, savedRoutes, searchRoutes, workspaceRoutes } from './routes/content';
 import { aiRoutes, assistantRoutes } from './routes/ai';
@@ -105,6 +106,8 @@ export function createApp(deps: Deps) {
   api.route('/uploads', uploadRoutes);
   api.route('/chat', chatRoutes);
   api.route('/groups', groupRoutes);
+  api.route('/groups', groupStudyRoutes);
+  api.route('/collab', collabRoutes);
   api.route('/quizzes', quizRoutes);
   api.route('/taxonomy', taxonomyRoutes);
   api.route('/flashcards', flashcardRoutes);

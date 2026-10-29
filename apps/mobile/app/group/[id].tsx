@@ -102,6 +102,17 @@ export default function GroupScreen() {
               onPress={() => router.push(`/chat/${group.conversationId}` as never)}
             />
           ) : null}
+          {group.myRole && group.kind === 'group' ? (
+            <Button
+              small
+              variant="soft"
+              icon="people-outline"
+              title={tr.t('groups.tabs.study')}
+              onPress={() =>
+                router.push(`/web?path=${encodeURIComponent(`/groups/${group.id}?tab=study`)}&title=${encodeURIComponent(tr.t('groups.tabs.study'))}` as never)
+              }
+            />
+          ) : null}
           {group.myRole && group.myRole !== 'owner' ? (
             <Button
               small

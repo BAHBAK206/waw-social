@@ -56,6 +56,8 @@ export const users = pgTable(
     birthYear: integer('birth_year'),
     /** School stage and year (p1…p6, m1…m3, s1…s3, uni, adult). */
     gradeLevel: text('grade_level'),
+    /** Subjects a senior student offers to help juniors with (see canMentor). */
+    mentorSubjects: jsonb('mentor_subjects').$type<string[]>().notNull().default([]),
     /** Set when an administrator verifies a teacher account (unlocks public catalog, open live classes…). */
     teacherVerifiedAt: ts('teacher_verified_at'),
     /** Set by a linked parent for a student under 18 (see ParentalControls). */
@@ -2215,4 +2217,38 @@ export const glossaryTerms = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('glossary_subject_idx').on(t.userId, t.subject), index('glossary_course_idx').on(t.courseId)],
+);
+
+/** A task shared by a study group: anyone in the group can add it and tick it off. */
+export const groupTasks = pgTable(
+  'group_tasks',
+  {
+    id: id(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    doneBy: uuid('done_by').references(() => users.id, { onDelete: 'set null' }),
+    doneAt: ts('done_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('group_tasks_group_idx').on(t.groupId, t.createdAt)],
+);
+
+/** A class's study-time goal for one week (Monday start). Reaching it earns every student a badge and XP once. */
+export const classGoals = pgTable(
+  'class_goals',
+  {
+    id: id(),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id, { onDelete: 'cascade' }),
+    weekStart: date('week_start', { mode: 'string' }).notNull(),
+    targetMinutes: integer('target_minutes').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    reachedAt: ts('reached_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('class_goals_week_uq').on(t.courseId, t.weekStart)],
 );

@@ -1,4 +1,9 @@
 import type {
+  ClassChallengeDto,
+  ClassGoalDto,
+  GroupStudyDto,
+  GroupTaskDto,
+  MentorDto,
   DailyReviewDto,
   FocusStatusDto,
   GlossaryTermDto,
@@ -622,6 +627,19 @@ export function createApi(options: ClientOptions) {
       focus: () => http.get<FocusStatusDto>('/study/focus'),
       startFocus: (minutes: number) => http.post<FocusStatusDto>('/study/focus/start', { minutes }),
       stopFocus: () => http.post<FocusStatusDto>('/study/focus/stop'),
+    },
+
+    collab: {
+      groupStudy: (id: string) => http.get<GroupStudyDto>(`/groups/${id}/study`),
+      addTask: (id: string, title: string) => http.post<GroupTaskDto>(`/groups/${id}/tasks`, { title }),
+      setTask: (id: string, taskId: string, done: boolean) => http.patch<GroupTaskDto>(`/groups/${id}/tasks/${taskId}`, { done }),
+      removeTask: (id: string, taskId: string) => http.del<Ok>(`/groups/${id}/tasks/${taskId}`),
+      challenge: (courseId: string) => http.get<ClassChallengeDto>(`/collab/challenge/${courseId}`),
+      goal: (courseId: string) => http.get<ClassGoalDto>(`/collab/goals/${courseId}`),
+      setGoal: (courseId: string, targetMinutes: number) => http.put<ClassGoalDto>(`/collab/goals/${courseId}`, { targetMinutes }),
+      mentors: (subject?: string) => http.get<{ items: MentorDto[] }>('/collab/mentors', { subject }),
+      myMentor: () => http.get<{ subjects: string[]; eligible: boolean }>('/collab/mentors/me'),
+      setMentor: (subjects: string[]) => http.put<{ subjects: string[]; eligible: boolean }>('/collab/mentors/me', { subjects }),
     },
 
     glossary: {

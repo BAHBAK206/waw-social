@@ -45,6 +45,7 @@ const MOBILE: Partial<Record<FeatureId, Omit<HubItem, 'id'>>> = {
   communities: { icon: 'globe-outline', web: '/communities' },
   people: { icon: 'person-add-outline', href: '/people' },
   explore: { icon: 'compass-outline', href: '/explore' },
+  mentors: { icon: 'hand-left-outline', web: '/mentors' },
   league: { icon: 'trophy-outline', href: '/league' },
   timetable: { icon: 'calendar-number-outline', href: '/timetable' },
   calculator: { icon: 'calculator-outline', href: '/calculator' },

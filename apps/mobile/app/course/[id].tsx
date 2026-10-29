@@ -10,6 +10,7 @@ import { Screen } from '@/components/Screen';
 import { CourseInsightsTab } from '@/components/Family';
 import { RosterImport } from '@/components/Roster';
 import { ClassGradebook, MyCourseResult } from '@/components/Gradebook';
+import { ClassMotivation } from '@/components/ClassMotivation';
 import { Badge, DateField, FeatureGate, Row, Segmented, Sheet, SwitchRow } from '@/components/kit';
 import { Avatar, Button, Card, Empty, ErrorView, Input, Loading, Text } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -364,6 +365,7 @@ export default function CourseScreen() {
           value={tab}
           onChange={setTab}
         />
+        {tab === 'stream' && <ClassMotivation courseId={c.id} />}
         {tab === 'stream' && <Stream courseId={c.id} staff={staff} />}
         {tab === 'assignments' && <Classwork courseId={c.id} staff={staff} />}
         {tab === 'people' && c.myRole === 'teacher' && <TransferRequests courseId={c.id} />}

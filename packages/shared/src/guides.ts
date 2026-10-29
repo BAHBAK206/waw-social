@@ -41,6 +41,7 @@ export const GUIDE_LIST = [
   { id: 'league', feature: 'league', detailed: false },
   { id: 'saved', feature: 'saved', detailed: false },
   { id: 'review', feature: 'review', detailed: false },
+  { id: 'mentors', feature: 'mentors', detailed: false },
   { id: 'study-pack', feature: 'study-pack', detailed: false },
   { id: 'glossary', feature: 'glossary', detailed: false },
   { id: 'organizer', feature: 'organizer', detailed: false },

@@ -16,6 +16,7 @@ import {
   Bookmark,
   Aperture,
   Bot,
+  HandHelping,
   BookA,
   Focus,
   NotebookPen,
@@ -147,6 +148,7 @@ export const ICONS: Record<string, LucideIcon> = {
   'notebook-pen': NotebookPen,
   'book-a': BookA,
   focus: Focus,
+  'hand-helping': HandHelping,
 };
 
 export interface NavItem {
