@@ -1,0 +1,10 @@
+node_modules
+dist
+legacy
+pnpm-lock.yaml
+*.md
+services/ai
+services/realtime
+apps/mobile/.expo
+services/api/drizzle
+services/api/src/db/seed-data

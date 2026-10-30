@@ -1,0 +1,169 @@
+# Full stack:  cp .env.example .env && docker compose up -d --build
+# Seed demo content (optional):  docker compose run --rm api node dist/seed.js
+name: qubedu
+
+x-api-env: &api-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://qubedu:${POSTGRES_PASSWORD:-qubedu}@postgres:5432/qubedu
+  REDIS_URL: redis://redis:6379
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+  INTERNAL_TOKEN: ${INTERNAL_TOKEN:?set INTERNAL_TOKEN in .env}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qubedu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qubedu}
+      POSTGRES_DB: qubedu
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U qubedu -d qubedu']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-qubedu}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-qubedu-secret-key}
+    volumes: [miniodata:/data]
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "mc alias set local http://minio:9000 $${S3_ACCESS_KEY_ID} $${S3_SECRET_ACCESS_KEY} &&
+      mc mb --ignore-existing local/${S3_BUCKET:-qubedu}"
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-qubedu}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-qubedu-secret-key}
+
+  api:
+    build: { context: ., dockerfile: services/api/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+    environment:
+      <<: *api-env
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8080}
+      REALTIME_PUBLIC_URL: ${REALTIME_PUBLIC_URL:-ws://localhost:8080/ws}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      ROOT_ADMIN_EMAIL: ${ROOT_ADMIN_EMAIL:-}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-s3}
+      STORAGE_DIR: /data/storage
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-qubedu}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-qubedu}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-qubedu-secret-key}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      MAIL_FROM: ${MAIL_FROM:-Qubedu <no-reply@example.com>}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-false}
+      AI_SERVICE_URL: http://ai:8790
+      AI_DAILY_QUOTA: ${AI_DAILY_QUOTA:-60}
+      TURN_URLS: ${TURN_URLS:-}
+      TURN_USERNAME: ${TURN_USERNAME:-}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      PUBLIC_FILES_URL: ${PUBLIC_FILES_URL:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes: [apidata:/data]
+
+  realtime:
+    build: { context: services/realtime }
+    restart: unless-stopped
+    depends_on:
+      redis: { condition: service_healthy }
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:?set INTERNAL_TOKEN in .env}
+      REDIS_URL: redis://redis:6379
+      API_INTERNAL_URL: http://api:8787
+      ALLOWED_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+
+  ai:
+    build: { context: services/ai }
+    restart: unless-stopped
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    restart: unless-stopped
+    depends_on: [api, realtime]
+    environment:
+      API_UPSTREAM: http://api:8787
+      REALTIME_UPSTREAM: http://realtime:8788
+    ports: ['${WEB_PORT:-8080}:80']
+
+  # Daily database + files backup into ./backups (keeps BACKUP_KEEP_DAYS days). Copy that folder off the server too.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://qubedu:${POSTGRES_PASSWORD:-qubedu}@postgres:5432/qubedu
+      BACKUP_DIR: /backups
+      STORAGE_DIR: /files
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups:/backups
+      - miniodata:/files/minio:ro
+      - apidata:/files/api:ro
+    entrypoint: ['sh', '-c', 'sleep 60; while true; do sh /scripts/backup.sh; sleep 86400; done']
+
+  # Relay for users behind strict NATs:  docker compose --profile turn up -d
+  coturn:
+    profiles: [turn]
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    network_mode: host
+    command: ['-n', '--lt-cred-mech', '--fingerprint', '--realm=qubedu', '--user=${TURN_USERNAME:-qubedu}:${TURN_CREDENTIAL:-change-me}', '--no-cli']
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  apidata:

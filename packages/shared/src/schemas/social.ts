@@ -1,0 +1,87 @@
+import { z } from 'zod';
+import { LIMITS, POST_KINDS, REACTIONS } from '../limits';
+import { attachmentSchema, idSchema, optionalUrl, trimmed, urlSchema } from './common';
+
+export const pollInputSchema = z.object({
+  options: z.array(trimmed(100, 1)).min(LIMITS.pollOptions.min).max(LIMITS.pollOptions.max),
+  multiple: z.boolean().default(false),
+  /** Hours until voting closes; omit for an open poll. */
+  durationHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30)
+    .optional(),
+});
+
+export const createPostSchema = z
+  .object({
+    text: trimmed(LIMITS.postText).default(''),
+    imageUrl: optionalUrl,
+    groupId: idSchema.optional().nullable(),
+    poll: pollInputSchema.optional(),
+    /** Re-share an existing post (with an optional comment in `text`). */
+    sharedPostId: idSchema.optional().nullable(),
+    /** Questions get a best answer; notes are study summaries; discussions are everything else. */
+    kind: z.enum(POST_KINDS).default('discussion'),
+    /** Subject (taxonomy material) the post is about. */
+    materialId: idSchema.optional().nullable(),
+  })
+  .refine((v) => v.text.length > 0 || !!v.imageUrl || !!v.poll || !!v.sharedPostId, { message: 'empty_post' })
+  .refine((v) => v.kind !== 'question' || v.text.length >= 8, { message: 'question_too_short', path: ['text'] });
+export type CreatePostInput = z.infer<typeof createPostSchema>;
+
+export const updatePostSchema = z.object({ text: trimmed(LIMITS.postText, 1) });
+export const reactSchema = z.object({ reaction: z.enum(REACTIONS).nullable() });
+/** A comment or answer: text, a voice note (e.g. a teacher explaining out loud), or both. */
+export const commentSchema = z
+  .object({
+    text: trimmed(LIMITS.commentText).default(''),
+    audio: attachmentSchema
+      .refine((a) => a.kind === 'audio', { message: 'audio_required' })
+      .nullable()
+      .optional(),
+  })
+  .refine((v) => v.text.length > 0 || !!v.audio, { message: 'empty_comment' });
+export const acceptAnswerSchema = z.object({ commentId: idSchema.nullable() });
+export const commentVoteSchema = z.object({ on: z.boolean() });
+
+export const startDirectSchema = z.object({ userId: idSchema });
+export const sendMessageSchema = z
+  .object({
+    text: trimmed(LIMITS.messageText).default(''),
+    attachment: attachmentSchema.optional().nullable(),
+    replyToId: idSchema.optional().nullable(),
+    clientId: z.string().max(64).optional(),
+  })
+  .refine((v) => v.text.length > 0 || !!v.attachment, { message: 'empty_message' });
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export const editMessageSchema = z.object({ text: trimmed(LIMITS.messageText, 1) });
+export const messageReactionSchema = z.object({ emoji: z.string().min(1).max(16) });
+
+export const createGroupSchema = z.object({
+  kind: z.enum(['group', 'community']).default('group'),
+  name: trimmed(LIMITS.groupName.max, LIMITS.groupName.min),
+  description: trimmed(LIMITS.groupDescription).default(''),
+  privacy: z.enum(['public', 'private']).default('public'),
+  avatarUrl: optionalUrl,
+  coverUrl: optionalUrl,
+  tags: z.array(trimmed(30, 1)).max(8).default([]),
+});
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export const updateGroupSchema = createGroupSchema.partial().omit({ kind: true });
+export const joinRequestSchema = z.object({ message: trimmed(300).optional() });
+export const memberRoleSchema = z.object({ role: z.enum(['admin', 'teacher', 'member']) });
+export const groupResourceSchema = z.object({
+  title: trimmed(200, 1),
+  url: urlSchema,
+  kind: z.enum(['file', 'link']),
+  mime: trimmed(120).optional().nullable(),
+  size: z.number().int().min(0).optional().nullable(),
+});
+export const channelSchema = z.object({
+  name: trimmed(60, 1),
+  kind: z.enum(['text', 'announcement']).default('text'),
+});
+
+export const pollVoteSchema = z.object({ optionIds: z.array(idSchema).min(1).max(LIMITS.pollOptions.max) });

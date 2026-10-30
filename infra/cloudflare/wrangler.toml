@@ -1,0 +1,6 @@
+# Used by `wrangler pages deploy` (the GitHub workflow runs it for you).
+name = "qubedu"
+pages_build_output_dir = "../../apps/web/dist"
+compatibility_date = "2026-09-01"
+# BACKEND_ORIGIN is set in the Cloudflare dashboard (Settings → Variables and Secrets), not here,
+# so this file never overrides it.

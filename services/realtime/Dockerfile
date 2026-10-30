@@ -1,0 +1,13 @@
+FROM golang:1.24-bookworm AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/realtime ./cmd/realtime
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/realtime /realtime
+EXPOSE 8788
+ENV REALTIME_ADDR=:8788 NODE_ENV=production
+USER nonroot
+ENTRYPOINT ["/realtime"]

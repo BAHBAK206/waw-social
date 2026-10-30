@@ -1,0 +1,7 @@
+{
+  "CFBundleDisplayName": "Qubedu",
+  "NSCameraUsageDescription": "Pour prendre des photos pour vos publications et votre profil.",
+  "NSPhotoLibraryUsageDescription": "Pour joindre des photos à vos publications et à votre profil.",
+  "NSMicrophoneUsageDescription": "Pour enregistrer des notes vocales et s’entraîner à la prononciation.",
+  "NSSpeechRecognitionUsageDescription": "Pour évaluer votre prononciation dans le labo de prononciation."
+}

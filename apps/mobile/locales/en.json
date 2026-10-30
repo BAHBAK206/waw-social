@@ -1,0 +1,7 @@
+{
+  "CFBundleDisplayName": "Qubedu",
+  "NSCameraUsageDescription": "Used to take photos for posts and your profile.",
+  "NSPhotoLibraryUsageDescription": "Used to attach photos to posts and your profile.",
+  "NSMicrophoneUsageDescription": "Used to record voice notes and to practise pronunciation.",
+  "NSSpeechRecognitionUsageDescription": "Used to score your pronunciation in the pronunciation lab."
+}

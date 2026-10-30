@@ -1,0 +1,35 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+# local runtime data
+.local/
+storage/
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+# go
+services/realtime/bin/
+# expo / mobile
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/web-build/
+*.tsbuildinfo
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+*.egg-info/
+.expo/
+expo-env.d.ts
+test-results/
+playwright-report/
+backups/

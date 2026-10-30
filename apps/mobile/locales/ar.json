@@ -1,0 +1,7 @@
+{
+  "CFBundleDisplayName": "Qubedu",
+  "NSCameraUsageDescription": "لالتقاط صور للمنشورات وصورتك الشخصية.",
+  "NSPhotoLibraryUsageDescription": "لإرفاق صور بالمنشورات وصورتك الشخصية.",
+  "NSMicrophoneUsageDescription": "لتسجيل الملاحظات الصوتية والتدرّب على النطق.",
+  "NSSpeechRecognitionUsageDescription": "لتقييم نطقك في مختبر النطق."
+}
